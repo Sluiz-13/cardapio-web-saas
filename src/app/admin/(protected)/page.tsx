@@ -1,0 +1,22 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import OrdersBoard from "./_components/orders-board";
+
+
+export default async function AdminOrdersPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.restaurantId) return null; // middleware já protege, isso é só type-safety
+
+  const orders = await db.order.findMany({
+    where: {
+      restaurantId: session.user.restaurantId,
+      status: { in: ["NEW", "PREPARING", "READY", "DELIVERED"] },
+    },
+    include: { items: true },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+
+  return <OrdersBoard initialOrders={orders} />;
+}

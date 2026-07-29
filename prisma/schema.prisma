@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------
+// Tenant
+// -----------------------------
+model Restaurant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique // usado na URL: /r/[slug]
+  isOpen    Boolean  @default(true)
+  timezone  String   @default("America/Sao_Paulo")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  adminUsers AdminUser[]
+  categories Category[]
+  products   Product[]
+  orders     Order[]
+
+  @@map("restaurants")
+}
+
+// -----------------------------
+// Admin (dono/staff do restaurante)
+// -----------------------------
+enum AdminRole {
+  OWNER
+  STAFF
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(STAFF)
+  createdAt    DateTime  @default(now())
+
+  @@index([restaurantId])
+  @@map("admin_users")
+}
+
+// -----------------------------
+// Cardápio
+// -----------------------------
+model Category {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  order        Int        @default(0)
+  products     Product[]
+
+  @@index([restaurantId])
+  @@map("categories")
+}
+
+model Product {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categoryId   String
+  category     Category   @relation(fields: [categoryId], references: [id])
+  name         String
+  description  String?
+  priceCents   Int // preço SEMPRE em centavos (nunca float pra dinheiro)
+  imageUrl     String?
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  removableOptions ProductRemovable[]
+  extraOptions     ProductExtra[]
+  orderItems       OrderItem[]
+
+  @@index([restaurantId])
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductRemovable {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String // ex: "Cebola", "Salada"
+
+  @@map("product_removables")
+}
+
+model ProductExtra {
+  id         String  @id @default(cuid())
+  productId  String
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name       String
+  priceCents Int
+
+  @@map("product_extras")
+}
+
+// -----------------------------
+// Pedido
+// -----------------------------
+enum OrderStatus {
+  PENDING_PAYMENT // criado, aguardando confirmação do gateway
+  NEW // pago, entrou na fila da cozinha
+  PREPARING
+  READY
+  DELIVERED
+  CANCELED
+}
+
+enum DeliveryType {
+  DELIVERY
+  PICKUP
+}
+
+enum PaymentMethod {
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+  CASH
+}
+
+
+model Order {
+  id            String        @id @default(cuid())
+  restaurantId  String
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customerName  String
+  customerPhone String
+  status        OrderStatus   @default(PENDING_PAYMENT)
+  totalCents    Int
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  deliveryType  DeliveryType  @default(DELIVERY)
+  paymentMethod PaymentMethod
+
+  // Preenchido só quando deliveryType = DELIVERY (validado na API, não no banco)
+  street        String?
+  number        String?
+  complement    String?
+  neighborhood  String?
+  city          String?
+  zipCode       String?
+  referenceNote String?
+
+  items   OrderItem[]
+  payment Payment?
+
+  @@index([restaurantId, status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String  @id @default(cuid())
+  orderId       String
+  order         Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product @relation(fields: [productId], references: [id])
+  productName   String // snapshot do nome no momento da compra
+  unitPriceCents Int    // snapshot do preço no momento da compra
+  qty           Int
+  removedItems  Json    @default("[]") // string[]
+  extras        Json    @default("[]") // { name, priceCents }[]
+
+  @@map("order_items")
+}
+
+// -----------------------------
+// Pagamento
+// -----------------------------
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REFUNDED
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  orderId           String        @unique
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider          String // "mercadopago" | "efi" | "pagarme" ...
+  providerPaymentId String? // id retornado pelo gateway
+  status            PaymentStatus @default(PENDING)
+  amountCents       Int
+  rawPayload        Json? // payload bruto do último webhook recebido (auditoria)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([provider, providerPaymentId])
+  @@map("payments")
+}
