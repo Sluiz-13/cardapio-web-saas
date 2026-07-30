@@ -59,8 +59,8 @@ export default function ProdutosPage() {
   const modalOpen = showCreateForm || editingProduct !== null;
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col items-start gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
         <button
           onClick={() => setShowCreateForm(true)}
@@ -85,12 +85,12 @@ export default function ProdutosPage() {
           {products.map((p) => (
             <div
               key={p.id}
-              className="flex items-center gap-3 p-3 rounded-xl bg-white shadow-sm border border-gray-100"
+              className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-white shadow-sm border border-gray-100 sm:flex-nowrap"
             >
               {p.imageUrl && (
                 <img src={p.imageUrl} className="w-12 h-12 object-cover rounded-lg" alt="" />
               )}
-              <div className="flex-1">
+              <div className="flex-1 min-w-[8rem]">
                 <p className="font-bold text-sm text-gray-900">{p.name}</p>
                 <p className="text-xs text-gray-400">{p.category.name}</p>
               </div>
@@ -234,7 +234,7 @@ function ProductFormModal({
     <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-lg bg-white rounded-2xl p-5 max-h-[88vh] overflow-y-auto"
+        className="w-full max-w-lg bg-white rounded-2xl p-4 sm:p-5 max-h-[88vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">
@@ -245,8 +245,8 @@ function ProductFormModal({
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div className="sm:col-span-2">
             <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Nome</label>
             <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
           </div>
@@ -262,11 +262,11 @@ function ProductFormModal({
               ))}
             </select>
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Descrição</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} rows={2} />
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">URL da imagem</label>
             <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className={inputClass} placeholder="https://..." />
           </div>
@@ -274,7 +274,7 @@ function ProductFormModal({
 
         <div className="mb-3">
           <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Ingredientes removíveis</label>
-          <div className="flex gap-2 mb-2">
+          <div className="flex flex-col sm:flex-row gap-2 mb-2">
             <input
               value={removableInput}
               onChange={(e) => setRemovableInput(e.target.value)}
@@ -299,9 +299,9 @@ function ProductFormModal({
 
         <div className="mb-4">
           <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Extras pagos</label>
-          <div className="flex gap-2 mb-2">
+          <div className="flex flex-col sm:flex-row gap-2 mb-2">
             <input value={extraName} onChange={(e) => setExtraName(e.target.value)} placeholder="ex: Ovo frito" className={`flex-1 ${inputClass}`} />
-            <input value={extraPrice} onChange={(e) => setExtraPrice(e.target.value)} type="number" step="0.01" placeholder="R$" className={`w-24 ${inputClass}`} />
+            <input value={extraPrice} onChange={(e) => setExtraPrice(e.target.value)} type="number" step="0.01" placeholder="R$" className={`w-full sm:w-24 ${inputClass}`} />
             <button type="button" onClick={addExtra} className="px-3.5 py-2 rounded-full border border-gray-200 text-xs font-semibold text-gray-600">
               Adicionar
             </button>

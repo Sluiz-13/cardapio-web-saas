@@ -38,7 +38,7 @@ export default function FinanceiroPage() {
   ];
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-4">Financeiro</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 max-w-2xl">
@@ -55,7 +55,7 @@ export default function FinanceiroPage() {
         <h2 className="text-xs uppercase tracking-wide font-semibold text-gray-400 mb-2">Últimas vendas</h2>
         <div className="space-y-1.5">
           {data.ultimasVendas.map((v) => (
-            <div key={v.id} className="flex items-center justify-between px-4 py-3 rounded-xl bg-white shadow-sm border border-gray-100">
+            <div key={v.id} className="flex flex-col items-start gap-1 px-4 py-3 rounded-xl bg-white shadow-sm border border-gray-100 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-bold text-sm text-gray-900">{v.customerName}</p>
                 <p className="text-xs text-gray-400">

@@ -43,7 +43,7 @@ export default function ConfiguracoesPage() {
   if (loading) return <div className="p-6 text-sm text-gray-400">Carregando…</div>;
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-4 sm:p-6 max-w-2xl">
       <h1 className="text-2xl font-bold text-gray-900 mb-4">Configurações</h1>
 
       <div className="p-4 rounded-xl bg-white shadow-sm border border-gray-100 mb-6 flex items-center justify-between">
@@ -73,7 +73,7 @@ export default function ConfiguracoesPage() {
         {hours.map((h) => (
           <div
             key={h.dayOfWeek}
-            className="flex items-center gap-3 p-3 rounded-xl bg-white shadow-sm border border-gray-100"
+            className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-white shadow-sm border border-gray-100 sm:flex-nowrap"
           >
             <button
               onClick={() => updateDay(h.dayOfWeek, { isOpen: !h.isOpen })}
@@ -85,9 +85,9 @@ export default function ConfiguracoesPage() {
                 style={{ left: h.isOpen ? "20px" : "4px" }}
               />
             </button>
-            <span className="text-sm font-medium text-gray-800 w-32 shrink-0">{DAY_LABELS[h.dayOfWeek]}</span>
+            <span className="text-sm font-medium text-gray-800 w-24 sm:w-32 shrink-0">{DAY_LABELS[h.dayOfWeek]}</span>
             {h.isOpen ? (
-              <div className="flex items-center gap-2 flex-1">
+              <div className="flex flex-wrap items-center gap-2 flex-1">
                 <input
                   type="time"
                   value={h.openTime}

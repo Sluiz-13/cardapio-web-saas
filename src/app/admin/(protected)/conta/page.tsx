@@ -48,7 +48,7 @@ export default function ContaPage() {
     "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-chili/30 focus:border-chili transition-shadow";
 
   return (
-    <div className="p-6 max-w-sm">
+    <div className="p-4 sm:p-6 max-w-sm">
       <h1 className="text-2xl font-bold text-gray-900 mb-4">Minha Conta</h1>
 
       <form onSubmit={handleSubmit} className="space-y-3">

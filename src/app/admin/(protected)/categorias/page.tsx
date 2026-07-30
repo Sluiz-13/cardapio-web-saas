@@ -43,10 +43,10 @@ export default function CategoriasPage() {
   }
 
   return (
-    <div className="p-6 max-w-xl">
+    <div className="p-4 sm:p-6 max-w-xl">
       <h1 className="text-2xl font-bold text-gray-900 mb-4">Categorias</h1>
 
-      <form onSubmit={handleCreate} className="flex gap-2 mb-6">
+      <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-2 mb-6">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}

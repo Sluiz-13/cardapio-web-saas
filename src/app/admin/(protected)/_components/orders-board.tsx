@@ -106,7 +106,7 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
   }
 
   return (
-    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       {STATUS_FLOW.map((status) => (
         <div key={status}>
           <p className="text-xs uppercase tracking-wide font-semibold mb-2.5 flex items-center gap-1.5 text-gray-500">
