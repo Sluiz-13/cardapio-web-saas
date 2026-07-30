@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getAdminSession } from "@/lib/session";
 import { notificationsClient } from "@/lib/notifications-client";
 
-const STATUS_FLOW = ["NEW", "PREPARING", "READY", "DELIVERED"] as const;
+const STATUS_FLOW = ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
 
 const bodySchema = z.object({
   status: z.enum(STATUS_FLOW),

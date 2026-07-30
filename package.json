@@ -11,7 +11,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
     "prisma:studio": "prisma studio",
-    "lgpd:anonymize": "tsx prisma/anonymize-old-orders.ts"
+    "lgpd:anonymize": "tsx prisma/anonymize-old-orders.ts",
+    "seed:business-hours": "tsx prisma/seed-business-hours.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

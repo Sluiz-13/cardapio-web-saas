@@ -15,7 +15,7 @@ export async function GET() {
   // exceto pendente/cancelado. Isso já reflete corretamente pedidos em
   // dinheiro (nascem como NEW) e os que vierem de gateway (viram NEW só após
   // o webhook confirmar).
-  const paidStatuses = ["NEW", "PREPARING", "READY", "DELIVERED"] as const;
+  const paidStatuses = ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
 
   const [todayOrders, last10] = await Promise.all([
     db.order.findMany({

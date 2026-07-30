@@ -23,8 +23,22 @@ model Restaurant {
   categories Category[]
   products   Product[]
   orders     Order[]
+  businessHours BusinessHours[]
 
   @@map("restaurants")
+}
+
+model BusinessHours {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  dayOfWeek    Int        // 0 = domingo, 1 = segunda, ... 6 = sábado
+  isOpen       Boolean    @default(true)
+  openTime     String     // formato "HH:mm", ex: "11:00"
+  closeTime    String     // formato "HH:mm", ex: "22:00"
+
+  @@unique([restaurantId, dayOfWeek])
+  @@map("business_hours")
 }
 
 // -----------------------------
@@ -110,10 +124,11 @@ model ProductExtra {
 // Pedido
 // -----------------------------
 enum OrderStatus {
-  PENDING_PAYMENT // criado, aguardando confirmação do gateway
-  NEW // pago, entrou na fila da cozinha
+  PENDING_PAYMENT
+  NEW
   PREPARING
   READY
+  OUT_FOR_DELIVERY
   DELIVERED
   CANCELED
 }

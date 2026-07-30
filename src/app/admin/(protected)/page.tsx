@@ -11,7 +11,7 @@ export default async function AdminOrdersPage() {
   const orders = await db.order.findMany({
     where: {
       restaurantId: session.user.restaurantId,
-      status: { in: ["NEW", "PREPARING", "READY", "DELIVERED"] },
+      status: { in: ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] },
     },
     include: { items: true },
     orderBy: { createdAt: "desc" },

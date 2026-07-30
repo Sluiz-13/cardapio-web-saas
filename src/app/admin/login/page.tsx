@@ -32,31 +32,34 @@ export default function AdminLoginPage() {
     router.refresh();
   }
 
+  const inputClass =
+    "w-full mb-4 px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-chili/30 focus:border-chili transition-shadow";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-chalk px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-paper rounded-sm p-6"
+        className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
       >
-        <h1 className="font-display text-xl uppercase mb-1">Painel Administrativo</h1>
-        <p className="text-xs text-ink/60 mb-6">Entre com sua conta para gerenciar o cardápio.</p>
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Painel Administrativo</h1>
+        <p className="text-xs text-gray-500 mb-6">Entre com sua conta para gerenciar o cardápio.</p>
 
-        <label className="block text-xs font-mono uppercase mb-1 text-ink/60">E-mail</label>
+        <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">E-mail</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full mb-4 px-3 py-2 rounded-sm border border-ink/15 bg-white text-sm"
+          className={inputClass}
         />
 
-        <label className="block text-xs font-mono uppercase mb-1 text-ink/60">Senha</label>
+        <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Senha</label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full mb-4 px-3 py-2 rounded-sm border border-ink/15 bg-white text-sm"
+          className={inputClass}
         />
 
         {error && <p className="text-chili text-xs mb-4">{error}</p>}
@@ -64,7 +67,7 @@ export default function AdminLoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 rounded-sm font-display uppercase text-sm bg-chili text-paper disabled:opacity-50"
+          className="w-full py-3 rounded-full font-semibold text-sm bg-chili text-white shadow-sm disabled:opacity-50"
         >
           {loading ? "Entrando…" : "Entrar"}
         </button>

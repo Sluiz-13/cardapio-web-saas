@@ -44,36 +44,36 @@ export default function CategoriasPage() {
 
   return (
     <div className="p-6 max-w-xl">
-      <h1 className="font-display text-2xl uppercase mb-4">Categorias</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">Categorias</h1>
 
       <form onSubmit={handleCreate} className="flex gap-2 mb-6">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nome da categoria (ex: Carnes)"
-          className="flex-1 px-3 py-2 rounded-sm border border-ink/15 bg-white text-sm"
+          className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-chili/30 focus:border-chili transition-shadow"
         />
         <button
           disabled={saving}
-          className="flex items-center gap-1 px-4 py-2 rounded-sm font-display uppercase text-xs bg-herb text-paper disabled:opacity-50"
+          className="flex items-center gap-1 px-4 py-2.5 rounded-full font-semibold text-sm bg-emerald-600 text-white shadow-sm disabled:opacity-50"
         >
           <Plus size={14} /> Adicionar
         </button>
       </form>
 
       {loading ? (
-        <p className="text-sm text-ink/50">Carregando…</p>
+        <p className="text-sm text-gray-400">Carregando…</p>
       ) : categories.length === 0 ? (
-        <p className="text-sm text-ink/50">Nenhuma categoria cadastrada ainda.</p>
+        <p className="text-sm text-gray-400">Nenhuma categoria cadastrada ainda.</p>
       ) : (
         <ul className="space-y-2">
           {categories.map((cat) => (
             <li
               key={cat.id}
-              className="flex items-center justify-between px-3 py-2.5 rounded-sm bg-paper-dim border border-ink/10"
+              className="flex items-center justify-between px-4 py-3 rounded-xl bg-white shadow-sm border border-gray-100"
             >
-              <span className="font-display uppercase text-sm">{cat.name}</span>
-              <button onClick={() => handleDelete(cat.id)} className="text-ink/40 hover:text-chili">
+              <span className="font-semibold text-sm text-gray-800">{cat.name}</span>
+              <button onClick={() => handleDelete(cat.id)} className="text-gray-300 hover:text-chili transition-colors">
                 <Trash2 size={15} />
               </button>
             </li>

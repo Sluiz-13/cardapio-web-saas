@@ -61,11 +61,11 @@ export default function ProdutosPage() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="font-display text-2xl uppercase">Produtos</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
         <button
           onClick={() => setShowCreateForm(true)}
           disabled={categories.length === 0}
-          className="flex items-center gap-1 px-4 py-2 rounded-sm font-display uppercase text-xs bg-herb text-paper disabled:opacity-40"
+          className="flex items-center gap-1 px-4 py-2.5 rounded-full font-semibold text-sm bg-emerald-600 text-white shadow-sm disabled:opacity-40"
           title={categories.length === 0 ? "Cadastre uma categoria primeiro" : ""}
         >
           <Plus size={14} /> Novo Produto
@@ -79,41 +79,41 @@ export default function ProdutosPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-ink/50">Carregando…</p>
+        <p className="text-sm text-gray-400">Carregando…</p>
       ) : (
         <div className="space-y-2 max-w-2xl">
           {products.map((p) => (
             <div
               key={p.id}
-              className="flex items-center gap-3 p-3 rounded-sm bg-paper-dim border border-ink/10"
+              className="flex items-center gap-3 p-3 rounded-xl bg-white shadow-sm border border-gray-100"
             >
               {p.imageUrl && (
-                <img src={p.imageUrl} className="w-12 h-12 object-cover rounded-sm" alt="" />
+                <img src={p.imageUrl} className="w-12 h-12 object-cover rounded-lg" alt="" />
               )}
               <div className="flex-1">
-                <p className="font-display text-sm uppercase">{p.name}</p>
-                <p className="text-[11px] text-ink/50">{p.category.name}</p>
+                <p className="font-bold text-sm text-gray-900">{p.name}</p>
+                <p className="text-xs text-gray-400">{p.category.name}</p>
               </div>
-              <span className="font-mono text-sm">{currency(p.priceCents)}</span>
+              <span className="text-emerald-600 font-bold text-sm">{currency(p.priceCents)}</span>
               <button
                 onClick={() => toggleActive(p)}
-                className="text-[11px] font-display uppercase px-2.5 py-1 rounded-sm"
+                className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
                 style={{
-                  background: p.active ? "#4C6449" : "#B0A896",
-                  color: "#F6EFE3",
+                  background: p.active ? "#059669" : "#D1D5DB",
+                  color: "#FFFFFF",
                 }}
               >
                 {p.active ? "Ativo" : "Inativo"}
               </button>
-              <button onClick={() => setEditingProduct(p)} className="text-ink/40 hover:text-herb">
+              <button onClick={() => setEditingProduct(p)} className="text-gray-300 hover:text-emerald-600 transition-colors">
                 <Pencil size={15} />
               </button>
-              <button onClick={() => handleDelete(p.id)} className="text-ink/40 hover:text-chili">
+              <button onClick={() => handleDelete(p.id)} className="text-gray-300 hover:text-chili transition-colors">
                 <Trash2 size={15} />
               </button>
             </div>
           ))}
-          {products.length === 0 && <p className="text-sm text-ink/50">Nenhum produto cadastrado ainda.</p>}
+          {products.length === 0 && <p className="text-sm text-gray-400">Nenhum produto cadastrado ainda.</p>}
         </div>
       )}
 
@@ -227,66 +227,69 @@ function ProductFormModal({
     onSaved();
   }
 
+  const inputClass =
+    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-chili/30 focus:border-chili transition-shadow";
+
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/55 p-4">
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-lg bg-paper rounded-sm p-5 max-h-[88vh] overflow-y-auto"
+        className="w-full max-w-lg bg-white rounded-2xl p-5 max-h-[88vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg uppercase">
+          <h2 className="text-lg font-bold text-gray-900">
             {isEditing ? "Editar Produto" : "Novo Produto"}
           </h2>
-          <button type="button" onClick={onClose}>
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700">
             <X size={18} />
           </button>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="col-span-2">
-            <label className="block text-xs font-mono uppercase mb-1 text-ink/60">Nome</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2 rounded-sm border border-ink/15 bg-white text-sm" />
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Nome</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className="block text-xs font-mono uppercase mb-1 text-ink/60">Preço (R$)</label>
-            <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" step="0.01" className="w-full px-3 py-2 rounded-sm border border-ink/15 bg-white text-sm" />
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Preço (R$)</label>
+            <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" step="0.01" className={inputClass} />
           </div>
           <div>
-            <label className="block text-xs font-mono uppercase mb-1 text-ink/60">Categoria</label>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full px-3 py-2 rounded-sm border border-ink/15 bg-white text-sm">
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Categoria</label>
+            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={inputClass}>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
           <div className="col-span-2">
-            <label className="block text-xs font-mono uppercase mb-1 text-ink/60">Descrição</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-3 py-2 rounded-sm border border-ink/15 bg-white text-sm" rows={2} />
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Descrição</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} rows={2} />
           </div>
           <div className="col-span-2">
-            <label className="block text-xs font-mono uppercase mb-1 text-ink/60">URL da imagem</label>
-            <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full px-3 py-2 rounded-sm border border-ink/15 bg-white text-sm" placeholder="https://..." />
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">URL da imagem</label>
+            <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className={inputClass} placeholder="https://..." />
           </div>
         </div>
 
         <div className="mb-3">
-          <label className="block text-xs font-mono uppercase mb-1 text-ink/60">Ingredientes removíveis</label>
+          <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Ingredientes removíveis</label>
           <div className="flex gap-2 mb-2">
             <input
               value={removableInput}
               onChange={(e) => setRemovableInput(e.target.value)}
               placeholder="ex: Cebola"
-              className="flex-1 px-3 py-1.5 rounded-sm border border-ink/15 bg-white text-sm"
+              className={`flex-1 ${inputClass}`}
             />
-            <button type="button" onClick={addRemovable} className="px-3 py-1.5 rounded-sm border border-ink/15 text-xs font-display uppercase">
+            <button type="button" onClick={addRemovable} className="px-3.5 py-2 rounded-full border border-gray-200 text-xs font-semibold text-gray-600">
               Adicionar
             </button>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {removables.map((r, i) => (
-              <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-sm bg-paper-dim border border-ink/10">
+              <span key={i} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
                 {r}
-                <button type="button" onClick={() => removeRemovable(i)} className="text-ink/40 hover:text-chili">
+                <button type="button" onClick={() => removeRemovable(i)} className="text-gray-400 hover:text-chili">
                   <X size={11} />
                 </button>
               </span>
@@ -295,19 +298,19 @@ function ProductFormModal({
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs font-mono uppercase mb-1 text-ink/60">Extras pagos</label>
+          <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Extras pagos</label>
           <div className="flex gap-2 mb-2">
-            <input value={extraName} onChange={(e) => setExtraName(e.target.value)} placeholder="ex: Ovo frito" className="flex-1 px-3 py-1.5 rounded-sm border border-ink/15 bg-white text-sm" />
-            <input value={extraPrice} onChange={(e) => setExtraPrice(e.target.value)} type="number" step="0.01" placeholder="R$" className="w-20 px-3 py-1.5 rounded-sm border border-ink/15 bg-white text-sm" />
-            <button type="button" onClick={addExtra} className="px-3 py-1.5 rounded-sm border border-ink/15 text-xs font-display uppercase">
+            <input value={extraName} onChange={(e) => setExtraName(e.target.value)} placeholder="ex: Ovo frito" className={`flex-1 ${inputClass}`} />
+            <input value={extraPrice} onChange={(e) => setExtraPrice(e.target.value)} type="number" step="0.01" placeholder="R$" className={`w-24 ${inputClass}`} />
+            <button type="button" onClick={addExtra} className="px-3.5 py-2 rounded-full border border-gray-200 text-xs font-semibold text-gray-600">
               Adicionar
             </button>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {extras.map((ex, i) => (
-              <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-sm bg-paper-dim border border-ink/10">
+              <span key={i} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
                 {ex.name} · {currency(ex.priceCents)}
-                <button type="button" onClick={() => removeExtra(i)} className="text-ink/40 hover:text-chili">
+                <button type="button" onClick={() => removeExtra(i)} className="text-gray-400 hover:text-chili">
                   <X size={11} />
                 </button>
               </span>
@@ -319,7 +322,7 @@ function ProductFormModal({
 
         <button
           disabled={saving}
-          className="w-full py-3 rounded-sm font-display uppercase text-sm bg-chili text-paper disabled:opacity-50"
+          className="w-full py-3 rounded-full font-semibold text-sm bg-chili text-white shadow-sm disabled:opacity-50"
         >
           {saving ? "Salvando…" : isEditing ? "Salvar Alterações" : "Salvar Produto"}
         </button>

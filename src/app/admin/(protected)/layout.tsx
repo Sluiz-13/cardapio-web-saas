@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   });
 
   return (
-    <div className="min-h-screen bg-paper">
+    <div className="min-h-screen bg-gray-50">
       <AdminNav restaurantName={restaurant?.name ?? ""} userName={session.user.name} />
       <main>{children}</main>
     </div>
