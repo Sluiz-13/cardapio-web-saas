@@ -23,12 +23,24 @@ export default function ConfiguracoesPage() {
       .then((r) => r.json())
       .then((data) => {
         setRestaurantIsOpen(data.restaurant.isOpen);
-        setHours(data.businessHours.sort((a: BusinessHour, b: BusinessHour) => a.dayOfWeek - b.dayOfWeek));
-        setLoading(false);
+        const fetchedHours: BusinessHour[] = data.businessHours;
+        if (fetchedHours.length === 0) {
+          const defaults: BusinessHour[] = Array.from({ length: 7 }, (_, dayOfWeek) => ({
+            dayOfWeek,
+            isOpen: true,
+            openTime: "08:00",
+            closeTime: "22:00",
+          }));
+          setHours(defaults);
+        } else {
+          setHours(fetchedHours.sort((a, b) => a.dayOfWeek - b.dayOfWeek));
+        }
+
         setPixKey(data.restaurant.pixKey ?? "");
         setPixKeyType(data.restaurant.pixKeyType ?? "RANDOM");
         setPixMerchantName(data.restaurant.pixMerchantName ?? "");
         setPixMerchantCity(data.restaurant.pixMerchantCity ?? "");
+        setLoading(false);
       });
   }, []);
 
