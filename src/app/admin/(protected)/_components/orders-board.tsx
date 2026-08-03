@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Flame, Clock, Printer, MapPin, Phone, Bike } from "lucide-react";
+import { Flame, Clock, Printer, MapPin, Phone, Bike, MessageCircle } from "lucide-react";
+import OrderHistoryModal from "./order-history-modal";
+import { buildWhatsAppLink, buildOrderStatusMessage } from "@/lib/whatsapp";
+import { playNotificationSound } from "@/lib/notification-sound";
 
 const STATUS_FLOW = ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
 type Status = (typeof STATUS_FLOW)[number];
@@ -45,20 +48,18 @@ type Order = {
   number: string | null;
   neighborhood: string | null;
   city: string | null;
+  changeForCents: number | null;
+  paymentConfirmed: boolean;
 };
 
 const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
+const POLL_INTERVAL_MS = 8000;
+const FLASH_DURATION_MS = 6000;
 
 function isBoardStatus(status: string): status is Status {
   return (STATUS_FLOW as readonly string[]).includes(status);
 }
 
-/**
- * Retirada no balcão (PICKUP) não passa por "Saiu para entrega" — não faz
- * sentido pro fluxo. Essa função calcula o próximo status pulando essa
- * etapa quando necessário, em vez de simplesmente pegar o próximo item
- * da lista.
- */
 function getNextStatus(order: Order): Status | null {
   if (!isBoardStatus(order.status)) return null;
   const idx = STATUS_FLOW.indexOf(order.status);
@@ -87,12 +88,57 @@ function getNextActionLabel(order: Order): string {
 
 export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState(initialOrders);
+  const [historyOrderId, setHistoryOrderId] = useState<string | null>(null);
+  const [flashingIds, setFlashingIds] = useState<Set<string>>(new Set());
+
+  const knownIds = useRef<Set<string>>(new Set(initialOrders.map((o) => o.id)));
+  const isFirstPoll = useRef(true);
+
+  useEffect(() => {
+    async function poll() {
+      try {
+        const res = await fetch("/api/admin/orders");
+        if (!res.ok) return;
+        const fetched: Order[] = await res.json();
+
+        const newOnes = fetched.filter((o) => !knownIds.current.has(o.id));
+
+        if (newOnes.length > 0 && !isFirstPoll.current) {
+          playNotificationSound();
+          setFlashingIds((prev) => {
+            const next = new Set(prev);
+            newOnes.forEach((o) => next.add(o.id));
+            return next;
+          });
+          newOnes.forEach((o) => {
+            setTimeout(() => {
+              setFlashingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(o.id);
+                return next;
+              });
+            }, FLASH_DURATION_MS);
+          });
+        }
+
+        knownIds.current = new Set(fetched.map((o) => o.id));
+        isFirstPoll.current = false;
+        setOrders(fetched);
+      } catch {
+        // Falha de rede no polling não deve quebrar a tela — só tenta de novo no próximo ciclo.
+      }
+    }
+
+    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   async function advance(order: Order) {
     const next = getNextStatus(order);
     if (!next) return;
 
     setOrders((os) => os.map((o) => (o.id === order.id ? { ...o, status: next } : o)));
+    knownIds.current.add(order.id);
 
     const res = await fetch(`/api/admin/orders/${order.id}/status`, {
       method: "PATCH",
@@ -105,8 +151,13 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
     }
   }
 
+  async function confirmPayment(orderId: string) {
+    setOrders((os) => os.map((o) => (o.id === orderId ? { ...o, paymentConfirmed: true } : o)));
+    await fetch(`/api/admin/orders/${orderId}/confirm-payment`, { method: "PATCH" });
+  }
+
   return (
-    <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       {STATUS_FLOW.map((status) => (
         <div key={status}>
           <p className="text-xs uppercase tracking-wide font-semibold mb-2.5 flex items-center gap-1.5 text-gray-500">
@@ -119,68 +170,109 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
           <div className="space-y-3">
             {orders
               .filter((o) => o.status === status)
-              .map((o) => (
-                <div
-                  key={o.id}
-                  className="rounded-xl bg-white shadow-sm border-l-4 p-3.5"
-                  style={{ borderLeftColor: STATUS_BORDER_COLOR[status] }}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-mono text-gray-400">#{o.id.slice(-5)}</span>
-                    <span className="text-xs font-mono text-gray-400">
-                      {new Date(o.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-                  <p className="font-bold text-sm text-gray-900">{o.customerName}</p>
+              .map((o) => {
+                const isFlashing = flashingIds.has(o.id);
+                return (
+                  <div
+                    key={o.id}
+                    onClick={() => setHistoryOrderId(o.id)}
+                    className={`rounded-xl bg-white shadow-sm border-l-4 p-3.5 cursor-pointer hover:shadow-md transition-shadow ${
+                      isFlashing ? "animate-pulse ring-2 ring-chili" : ""
+                    }`}
+                    style={{ borderLeftColor: STATUS_BORDER_COLOR[status] }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-mono text-gray-400">#{o.id.slice(-5)}</span>
+                      <span className="text-xs font-mono text-gray-400">
+                        {new Date(o.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <p className="font-bold text-sm text-gray-900">{o.customerName}</p>
 
-                  <p className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                    <Phone size={11} /> {o.customerPhone}
-                  </p>
-
-                  {o.deliveryType === "DELIVERY" && o.street && (
-                    <p className="flex items-start gap-1 text-xs text-gray-500 mt-0.5">
-                      <MapPin size={11} className="mt-0.5 shrink-0" />
-                      {o.street}, {o.number} — {o.neighborhood}, {o.city}
+                    <p className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                      <Phone size={11} /> {o.customerPhone}
                     </p>
-                  )}
 
-                  <p className="text-xs mt-2 text-gray-600">
-                    {o.items.map((i) => `${i.qty}x ${i.productName}`).join(", ")}
-                  </p>
+                    {o.deliveryType === "DELIVERY" && o.street && (
+                      <p className="flex items-start gap-1 text-xs text-gray-500 mt-0.5">
+                        <MapPin size={11} className="mt-0.5 shrink-0" />
+                        {o.street}, {o.number} — {o.neighborhood}, {o.city}
+                      </p>
+                    )}
 
-                  <div className="flex items-center justify-between mt-2.5">
-                    <span className="text-emerald-600 font-bold text-sm">{currency(o.totalCents)}</span>
-                    <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                      {PAYMENT_LABEL[o.paymentMethod] ?? o.paymentMethod}
-                    </span>
-                  </div>
+                    <p className="text-xs mt-2 text-gray-600">
+                      {o.items.map((i) => `${i.qty}x ${i.productName}`).join(", ")}
+                    </p>
 
-                  <div className="flex items-center gap-2 mt-3">
-                    {status !== "DELIVERED" && (
+                    <div className="flex items-center justify-between mt-2.5">
+                      <span className="text-emerald-600 font-bold text-sm">{currency(o.totalCents)}</span>
+                      <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                        {PAYMENT_LABEL[o.paymentMethod] ?? o.paymentMethod}
+                      </span>
+                    </div>
+
+                    {o.paymentMethod === "CASH" && o.changeForCents && (
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        Troco para {currency(o.changeForCents)} (levar {currency(o.changeForCents - o.totalCents)})
+                      </p>
+                    )}
+
+                    {o.paymentMethod === "PIX" && !o.paymentConfirmed && (
                       <button
-                        onClick={() => advance(o)}
-                        className="flex-1 text-xs font-semibold px-2.5 py-2 rounded-full bg-chili text-white shadow-sm active:scale-[0.98] transition-transform"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          confirmPayment(o.id);
+                        }}
+                        className="w-full mt-2 text-[11px] font-semibold px-2.5 py-1.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200"
                       >
-                        {getNextActionLabel(o)}
+                        ⏳ Pix aguardando conferência — toque para confirmar
                       </button>
                     )}
-                    <Link
-                      href={`/admin/pedidos/${o.id}/imprimir`}
-                      target="_blank"
-                      className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
-                      title="Imprimir pedido"
-                    >
-                      <Printer size={14} />
-                    </Link>
+
+                    <div className="flex items-center gap-2 mt-3">
+                      {status !== "DELIVERED" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            advance(o);
+                          }}
+                          className="flex-1 text-xs font-semibold px-2.5 py-2 rounded-full bg-chili text-white shadow-sm active:scale-[0.98] transition-transform"
+                        >
+                          {getNextActionLabel(o)}
+                        </button>
+                      )}
+                      
+                       <a href={buildWhatsAppLink(o.customerPhone, buildOrderStatusMessage(o.status, o.customerName, o.id.slice(-5)))}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-emerald-600 hover:bg-emerald-50 transition-colors shrink-0"
+                        title="Enviar mensagem no WhatsApp"
+                      >
+                        <MessageCircle size={14} />
+                      </a>
+                      <Link
+                        href={`/admin/pedidos/${o.id}/imprimir`}
+                        target="_blank"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
+                        title="Imprimir pedido"
+                      >
+                        <Printer size={14} />
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             {orders.filter((o) => o.status === status).length === 0 && (
               <p className="text-xs italic text-gray-300">Nenhum pedido</p>
             )}
           </div>
         </div>
       ))}
+      {historyOrderId && (
+        <OrderHistoryModal orderId={historyOrderId} onClose={() => setHistoryOrderId(null)} />
+      )}
     </div>
   );
 }

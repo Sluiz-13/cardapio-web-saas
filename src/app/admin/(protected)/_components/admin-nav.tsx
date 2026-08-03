@@ -11,6 +11,8 @@ const LINKS = [
   { href: "/admin/financeiro", label: "Financeiro" },
   { href: "/admin/conta", label: "Conta" },
   { href: "/admin/configuracoes", label: "Configurações" },
+  { href: "/admin/cupons", label: "Cupons" },
+  { href: "/admin/entregas", label: "Entregas" },
 ];
 
 export default function AdminNav({ restaurantName, userName }: { restaurantName: string; userName: string }) {

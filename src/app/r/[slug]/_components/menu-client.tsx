@@ -12,6 +12,7 @@ import {
   ImageOff,
 } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import PixQrCode from "./pix-qr-code";
 
 type Extra = { id: string; name: string; priceCents: number };
 type Removable = { id: string; name: string };
@@ -60,7 +61,7 @@ export default function MenuClient({
   const [cart, setCart] = useState<CartLine[]>([]);
   const [modalProduct, setModalProduct] = useState<Product | null>(null);
   const [drawer, setDrawer] = useState<null | "cart" | "checkout" | "confirmed">(null);
-  const [orderResult, setOrderResult] = useState<{ status: string } | null>(null);
+  const [orderResult, setOrderResult] = useState<{ status: string; pixPayload?: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const catRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -121,7 +122,6 @@ export default function MenuClient({
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto bg-gray-50">
-        {/* Header */}
         <div className="sticky top-0 z-20 px-5 pt-5 pb-4 bg-white border-b border-gray-100">
           <div className="flex items-start justify-between">
             <div>
@@ -155,7 +155,6 @@ export default function MenuClient({
           </div>
         </div>
 
-        {/* Category tabs */}
         <div className="sticky top-[84px] sm:top-[92px] z-10 flex gap-2 px-5 py-3 overflow-x-auto bg-gray-50/95 backdrop-blur-sm border-b border-gray-100 scrollbar-none">
           {categories.map((cat) => (
             <button
@@ -176,7 +175,6 @@ export default function MenuClient({
           ))}
         </div>
 
-        {/* Product grid */}
         <div className="px-5 py-5 pb-32 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((product) => (
             <ProductCard key={product.id} product={product} onOpen={() => setModalProduct(product)} />
@@ -189,7 +187,6 @@ export default function MenuClient({
           )}
         </div>
 
-        {/* Sticky bottom cart bar */}
         {cartCount > 0 && drawer === null && (
           <button
             onClick={() => setDrawer("cart")}
@@ -202,7 +199,6 @@ export default function MenuClient({
           </button>
         )}
 
-        {/* Toast */}
         {toast && (
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg animate-fade-in-up flex items-center gap-2">
             <Check size={14} className="text-emerald-400" /> {toast}
@@ -239,6 +235,7 @@ export default function MenuClient({
         {drawer === "confirmed" && orderResult && (
           <ConfirmedDrawer
             isCash={orderResult.status === "NEW"}
+            pixPayload={orderResult.pixPayload}
             onNewOrder={() => {
               setCart([]);
               setOrderResult(null);
@@ -514,7 +511,7 @@ function CheckoutDrawer({
   cart: CartLine[];
   total: number;
   onClose: () => void;
-  onSuccess: (result: { status: string }) => void;
+  onSuccess: (result: { status: string; pixPayload?: string }) => void;
 }) {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -528,6 +525,48 @@ function CheckoutDrawer({
   const [paymentMethod, setPaymentMethod] = useState<(typeof PAYMENT_OPTIONS)[number]["value"]>("PIX");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponStatus, setCouponStatus] = useState<null | { discountCents: number; code: string }>(null);
+  const [couponError, setCouponError] = useState("");
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [deliveryFeeCents, setDeliveryFeeCents] = useState(0);
+  const [changeFor, setChangeFor] = useState("");
+
+  async function applyCoupon() {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    setCouponError("");
+    const res = await fetch("/api/coupons/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        restaurantId,
+        code: couponCode,
+        subtotalCents: total,
+        items: cart.map((l) => ({ productId: l.productId, lineTotalCents: l.unitPriceCents * l.qty })),
+      }),
+    });
+    const data = await res.json();
+    setValidatingCoupon(false);
+
+    if (!data.valid) {
+      setCouponError(data.error ?? "Cupom inválido.");
+      setCouponStatus(null);
+      return;
+    }
+    setCouponStatus({ discountCents: data.discountCents, code: data.code });
+  }
+
+  async function checkDeliveryFee() {
+    if (!neighborhood.trim()) return;
+    const res = await fetch("/api/delivery-fee", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantId, neighborhood }),
+    });
+    const data = await res.json();
+    if (res.ok) setDeliveryFeeCents(data.feeCents);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -542,6 +581,13 @@ function CheckoutDrawer({
       return;
     }
 
+    const finalTotal = total - (couponStatus?.discountCents ?? 0) + (deliveryType === "DELIVERY" ? deliveryFeeCents : 0);
+
+    if (paymentMethod === "CASH" && changeFor && Math.round(Number(changeFor) * 100) < finalTotal) {
+      setError("O valor para troco não pode ser menor que o total do pedido.");
+      return;
+    }
+
     setSubmitting(true);
     const res = await fetch("/api/orders", {
       method: "POST",
@@ -552,6 +598,8 @@ function CheckoutDrawer({
         customerPhone,
         deliveryType,
         paymentMethod,
+        couponCode: couponStatus?.code,
+        changeForCents: paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor) * 100) : undefined,
         address:
           deliveryType === "DELIVERY"
             ? { street, number, complement: complement || undefined, neighborhood, city, referenceNote: referenceNote || undefined }
@@ -571,7 +619,7 @@ function CheckoutDrawer({
       return;
     }
     const data = await res.json();
-    onSuccess({ status: data.status });
+    onSuccess({ status: data.status, pixPayload: data.pixPayload });
   }
 
   const inputClass =
@@ -625,7 +673,7 @@ function CheckoutDrawer({
                 <input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Rua" className={`col-span-2 ${inputClass}`} />
                 <input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Número" inputMode="numeric" className={inputClass} />
                 <input value={complement} onChange={(e) => setComplement(e.target.value)} placeholder="Complemento (opcional)" className={`col-span-3 ${inputClass}`} />
-                <input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} placeholder="Bairro" className={`col-span-2 ${inputClass}`} />
+                <input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} onBlur={checkDeliveryFee} placeholder="Bairro" className={`col-span-2 ${inputClass}`} />
                 <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Cidade" className={inputClass} />
                 <input value={referenceNote} onChange={(e) => setReferenceNote(e.target.value)} placeholder="Ponto de referência (opcional)" className={`col-span-3 ${inputClass}`} />
               </div>
@@ -643,6 +691,23 @@ function CheckoutDrawer({
                 ))}
               </select>
             </div>
+
+            {paymentMethod === "CASH" && (
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">
+                  Precisa de troco para quanto? (opcional)
+                </label>
+                <input
+                  value={changeFor}
+                  onChange={(e) => setChangeFor(e.target.value)}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="ex: 100"
+                  className={inputClass}
+                />
+              </div>
+            )}
           </div>
 
           <p className="text-xs text-gray-400 mb-3">
@@ -656,10 +721,65 @@ function CheckoutDrawer({
         </div>
 
         <div className="p-5 pt-3 border-t border-gray-100 pb-safe">
-          <div className="flex items-center justify-between font-bold text-base mb-4 text-gray-900">
-            <span>Total</span>
-            <span className="text-emerald-600">{currency(total)}</span>
+          <div className="mb-4">
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">
+              Cupom de desconto
+            </label>
+            <div className="flex gap-2">
+              <input
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value.toUpperCase());
+                  setCouponStatus(null);
+                  setCouponError("");
+                }}
+                placeholder="Digite o código"
+                className={inputClass}
+              />
+              <button
+                type="button"
+                onClick={applyCoupon}
+                disabled={validatingCoupon || !couponCode.trim()}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 disabled:opacity-40 whitespace-nowrap"
+              >
+                {validatingCoupon ? "..." : "Aplicar"}
+              </button>
+            </div>
+            {couponError && <p className="text-chili text-xs mt-1.5">{couponError}</p>}
+            {couponStatus && (
+              <p className="text-emerald-600 text-xs mt-1.5 font-medium">
+                Cupom {couponStatus.code} aplicado: -{currency(couponStatus.discountCents)}
+              </p>
+            )}
           </div>
+
+          <div className="space-y-1 mb-4">
+            {couponStatus && couponStatus.discountCents > 0 && (
+              <>
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <span>Subtotal</span>
+                  <span>{currency(total)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-emerald-600">
+                  <span>Desconto</span>
+                  <span>-{currency(couponStatus.discountCents)}</span>
+                </div>
+              </>
+            )}
+            {deliveryType === "DELIVERY" && deliveryFeeCents > 0 && (
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <span>Taxa de entrega</span>
+                <span>{currency(deliveryFeeCents)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between font-bold text-base text-gray-900">
+              <span>Total</span>
+              <span className="text-emerald-600">
+                {currency(total - (couponStatus?.discountCents ?? 0) + (deliveryType === "DELIVERY" ? deliveryFeeCents : 0))}
+              </span>
+            </div>
+          </div>
+
           <button
             disabled={submitting}
             className="w-full py-3.5 rounded-full font-semibold text-sm bg-chili text-white shadow-sm disabled:opacity-50 active:scale-[0.98] transition-transform"
@@ -672,11 +792,19 @@ function CheckoutDrawer({
   );
 }
 
-function ConfirmedDrawer({ isCash, onNewOrder }: { isCash: boolean; onNewOrder: () => void }) {
+function ConfirmedDrawer({
+  isCash,
+  pixPayload,
+  onNewOrder,
+}: {
+  isCash: boolean;
+  pixPayload?: string;
+  onNewOrder: () => void;
+}) {
   return (
     <Overlay onClose={onNewOrder}>
-      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl bg-white p-5 animate-fade-in-up">
-        <div className="text-center py-8">
+      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl bg-white p-5 animate-fade-in-up max-h-[90vh] overflow-y-auto">
+        <div className="text-center py-6">
           <div className="w-14 h-14 rounded-full mx-auto flex items-center justify-center mb-4 bg-emerald-500">
             <Check size={26} color="#FFFFFF" />
           </div>
@@ -688,6 +816,14 @@ function ConfirmedDrawer({ isCash, onNewOrder }: { isCash: boolean; onNewOrder: 
               ? "Seu pedido já está sendo preparado."
               : "Assim que confirmarmos o pagamento, seu pedido entra na cozinha."}
           </p>
+
+          {pixPayload && (
+            <div className="mt-5 pt-5 border-t border-gray-100">
+              <p className="text-sm font-semibold text-gray-800 mb-3">Pague com Pix para confirmar</p>
+              <PixQrCode payload={pixPayload} />
+            </div>
+          )}
+
           <button
             onClick={onNewOrder}
             className="mt-6 px-5 py-2.5 rounded-full font-semibold text-sm bg-chili text-white shadow-sm active:scale-95 transition-transform"

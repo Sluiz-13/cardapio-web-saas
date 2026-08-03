@@ -24,6 +24,14 @@ model Restaurant {
   products   Product[]
   orders     Order[]
   businessHours BusinessHours[]
+  coupons Coupon[]
+  defaultDeliveryFeeCents Int             @default(0)
+  deliveryFees            DeliveryFee[]
+
+  pixKey           String?
+  pixKeyType       String?
+  pixMerchantName  String?
+  pixMerchantCity  String?
 
   @@map("restaurants")
 }
@@ -95,6 +103,8 @@ model Product {
   removableOptions ProductRemovable[]
   extraOptions     ProductExtra[]
   orderItems       OrderItem[]
+  availableDays Int[] @default([])
+  coupons Coupon[]
 
   @@index([restaurantId])
   @@index([categoryId])
@@ -156,9 +166,13 @@ model Order {
   totalCents    Int
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  couponCode    String?
+  discountCents Int     @default(0)
+  deliveryFeeCents Int @default(0)
 
   deliveryType  DeliveryType  @default(DELIVERY)
   paymentMethod PaymentMethod
+  paymentConfirmed Boolean @default(true)
 
   // Preenchido só quando deliveryType = DELIVERY (validado na API, não no banco)
   street        String?
@@ -171,6 +185,8 @@ model Order {
 
   items   OrderItem[]
   payment Payment?
+  statusHistory OrderStatusHistory[]
+  changeForCents Int?
 
   @@index([restaurantId, status])
   @@map("orders")
@@ -189,6 +205,29 @@ model OrderItem {
   extras        Json    @default("[]") // { name, priceCents }[]
 
   @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    String
+  changedAt DateTime @default(now())
+
+  @@index([orderId])
+  @@map("order_status_history")
+}
+
+model DeliveryFee {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  neighborhood String     // como o admin digitou, exibido na tela
+  feeCents     Int
+  createdAt    DateTime   @default(now())
+
+  @@unique([restaurantId, neighborhood])
+  @@map("delivery_fees")
 }
 
 // -----------------------------
@@ -215,4 +254,33 @@ model Payment {
 
   @@index([provider, providerPaymentId])
   @@map("payments")
+}
+
+// -----------------------------
+// Cupom de desconto
+// -----------------------------
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model Coupon {
+  id            String       @id @default(cuid())
+  restaurantId  String
+  restaurant    Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  code          String       // salvo em maiúsculas, comparação case-insensitive na aplicação
+  discountType  DiscountType
+  discountValue Int          // porcentagem (0-100) OU centavos, depende do discountType
+  active        Boolean      @default(true)
+  minOrderCents Int?         // pedido mínimo pra cupom valer (opcional)
+  maxUsage      Int?         // null = sem limite de usos
+  usageCount    Int          @default(0)
+  expiresAt     DateTime?
+  createdAt     DateTime     @default(now())
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, code])
+  @@map("coupons")
 }

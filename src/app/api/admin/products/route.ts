@@ -11,6 +11,7 @@ const createProductSchema = z.object({
   imageUrl: z.string().url().optional(),
   removableOptions: z.array(z.string()).default([]),
   extraOptions: z.array(z.object({ name: z.string(), priceCents: z.number().int().nonnegative() })).default([]),
+  availableDays: z.array(z.number().int().min(0).max(6)).default([]),
 });
 
 export async function GET() {

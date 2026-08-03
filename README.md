@@ -44,7 +44,7 @@ docker compose up -d
 npx prisma migrate dev --name init
 npm run prisma:seed
 npm run dev
-```
+``` 
 
 Acesse:
 - Cardápio do cliente: `http://localhost:3000/r/quiosque-to-em-casa`

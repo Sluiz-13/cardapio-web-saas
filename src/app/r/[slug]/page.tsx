@@ -10,8 +10,11 @@ export default async function RestaurantMenuPage({ params }: { params: { slug: s
   const [categories, products, businessHours] = await Promise.all([
     db.category.findMany({ where: { restaurantId: restaurant.id }, orderBy: { order: "asc" } }),
     db.product.findMany({
-      where: { restaurantId: restaurant.id, active: true },
-      include: { removableOptions: true, extraOptions: true },
+        where: { restaurantId: restaurant.id, active: true },
+        include: { removableOptions: true, extraOptions: true },
+    }).then((products) => {
+        const today = new Date().getDay();
+        return products.filter((p) => p.availableDays.length === 0 || p.availableDays.includes(today));
     }),
     db.businessHours.findMany({ where: { restaurantId: restaurant.id } }),
   ]);

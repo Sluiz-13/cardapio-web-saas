@@ -10,10 +10,9 @@ const updateProductSchema = z.object({
   imageUrl: z.string().url().optional().or(z.literal("")),
   active: z.boolean().optional(),
   categoryId: z.string().optional(),
-  // Se vierem, SUBSTITUEM totalmente a lista atual (mais simples e previsível
-  // que tentar diff/merge item a item).
   removableOptions: z.array(z.string()).optional(),
   extraOptions: z.array(z.object({ name: z.string(), priceCents: z.number().int().nonnegative() })).optional(),
+  availableDays: z.array(z.number().int().min(0).max(6)).optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {

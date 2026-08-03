@@ -17,9 +17,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const parsed = bodySchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const result = await db.order.updateMany({
-    where: { id: params.id, restaurantId: session.user.restaurantId },
-    data: { status: parsed.data.status },
+  const result = await db.$transaction(async (tx) => {
+    const updated = await tx.order.updateMany({
+      where: { id: params.id, restaurantId: session.user.restaurantId },
+      data: { status: parsed.data.status },
+    });
+    if (updated.count > 0) {
+      await tx.orderStatusHistory.create({
+        data: { orderId: params.id, status: parsed.data.status },
+      });
+    }
+    return updated;
   });
   if (result.count === 0) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
 

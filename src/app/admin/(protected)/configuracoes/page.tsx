@@ -13,6 +13,10 @@ export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [pixKey, setPixKey] = useState("");
+  const [pixKeyType, setPixKeyType] = useState("RANDOM");
+  const [pixMerchantName, setPixMerchantName] = useState("");
+  const [pixMerchantCity, setPixMerchantCity] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -21,6 +25,10 @@ export default function ConfiguracoesPage() {
         setRestaurantIsOpen(data.restaurant.isOpen);
         setHours(data.businessHours.sort((a: BusinessHour, b: BusinessHour) => a.dayOfWeek - b.dayOfWeek));
         setLoading(false);
+        setPixKey(data.restaurant.pixKey ?? "");
+        setPixKeyType(data.restaurant.pixKeyType ?? "RANDOM");
+        setPixMerchantName(data.restaurant.pixMerchantName ?? "");
+        setPixMerchantCity(data.restaurant.pixMerchantCity ?? "");
       });
   }, []);
 
@@ -34,7 +42,14 @@ export default function ConfiguracoesPage() {
     const res = await fetch("/api/admin/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isOpen: restaurantIsOpen, businessHours: hours }),
+      body: JSON.stringify({
+        isOpen: restaurantIsOpen,
+        businessHours: hours,
+        pixKey: pixKey || undefined,
+        pixKeyType,
+        pixMerchantName: pixMerchantName || undefined,
+        pixMerchantCity: pixMerchantCity || undefined,
+      }),
     });
     setSaving(false);
     if (res.ok) setSuccess(true);
@@ -66,6 +81,54 @@ export default function ConfiguracoesPage() {
             style={{ left: restaurantIsOpen ? "26px" : "4px" }}
           />
         </button>
+      </div>
+         
+      <div className="p-4 rounded-xl bg-white shadow-sm border border-gray-100 mb-6">
+        <p className="font-bold text-sm text-gray-900 mb-1">Pix</p>
+        <p className="text-xs text-gray-500 mb-3">
+          Sem gateway: o cliente paga direto na sua chave e você confere manualmente pelo app do banco.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Chave Pix</label>
+            <input
+              value={pixKey}
+              onChange={(e) => setPixKey(e.target.value)}
+              placeholder="CPF, e-mail, telefone ou chave aleatória"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Tipo</label>
+            <select value={pixKeyType} onChange={(e) => setPixKeyType(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm">
+              <option value="RANDOM">Aleatória</option>
+              <option value="CPF">CPF</option>
+              <option value="CNPJ">CNPJ</option>
+              <option value="EMAIL">E-mail</option>
+              <option value="PHONE">Telefone</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Nome do titular</label>
+            <input
+              value={pixMerchantName}
+              onChange={(e) => setPixMerchantName(e.target.value.slice(0, 25))}
+              placeholder="Nome que aparece no Pix"
+              maxLength={25}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm"
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Cidade</label>
+            <input
+              value={pixMerchantCity}
+              onChange={(e) => setPixMerchantCity(e.target.value.slice(0, 15))}
+              placeholder="ex: SAO PAULO"
+              maxLength={15}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm"
+            />
+          </div>
+        </div>
       </div>
 
       <p className="text-xs uppercase tracking-wide font-semibold text-gray-400 mb-2">Horário de funcionamento</p>
