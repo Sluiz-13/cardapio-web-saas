@@ -6,8 +6,9 @@ declare module "next-auth" {
       id: string;
       name: string;
       email: string;
-      restaurantId: string;
-      role: "OWNER" | "STAFF";
+      restaurantId?: string;
+      role?: "OWNER" | "STAFF";
+      isPlatformAdmin?: boolean;
     };
   }
 }

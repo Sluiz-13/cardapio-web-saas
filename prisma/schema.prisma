@@ -10,12 +10,19 @@ datasource db {
 // -----------------------------
 // Tenant
 // -----------------------------
+enum Plan {
+  FREE
+  PRO
+}
+
 model Restaurant {
   id        String   @id @default(cuid())
   name      String
   slug      String   @unique // usado na URL: /r/[slug]
   isOpen    Boolean  @default(true)
   timezone  String   @default("America/Sao_Paulo")
+  plan      Plan     @default(FREE)
+  active    Boolean  @default(true) // desativado pela plataforma = cardápio some do ar, admin bloqueado
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -287,4 +294,18 @@ model Coupon {
 
   @@unique([restaurantId, code])
   @@map("coupons")
+}
+
+
+// -----------------------------
+// Plataforma (dono do SaaS — separado de AdminUser)
+// -----------------------------
+model PlatformAdmin {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@map("platform_admins")
 }

@@ -1,14 +1,14 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: cardapio-web-db
+    container_name: cardapio-web-saas-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: cardapio
       POSTGRES_PASSWORD: cardapio
       POSTGRES_DB: cardapio_web
     ports:
-      - "5434:5432"
+      - "5435:5432"
     volumes:
       - cardapio_web_pgdata:/var/lib/postgresql/data
 
