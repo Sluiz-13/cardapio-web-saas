@@ -33,6 +33,10 @@ model Restaurant {
   pixMerchantName  String?
   pixMerchantCity  String?
 
+  phone           String?
+  address         String?
+  avgDeliveryTime String?
+
   @@map("restaurants")
 }
 

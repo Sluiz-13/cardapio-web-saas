@@ -10,6 +10,7 @@ import {
   Check,
   CircleDot,
   ImageOff,
+  MapPin,
 } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import PixQrCode from "./pix-qr-code";
@@ -27,7 +28,14 @@ type Product = {
   extraOptions: Extra[];
 };
 type Category = { id: string; name: string };
-type Restaurant = { id: string; name: string; isOpen: boolean };
+type Restaurant = {
+  id: string;
+  name: string;
+  isOpen: boolean;
+  phone?: string | null;
+  address?: string | null;
+  avgDeliveryTime?: string | null;
+};
 
 type CartLine = {
   key: string;
@@ -131,12 +139,30 @@ export default function MenuClient({
                   Cardápio Digital
                 </span>
               </div>
+
               <h1 className="font-bold text-2xl sm:text-3xl text-chili leading-tight">
                 {restaurant.name}
               </h1>
+              {restaurant.address && (
+                
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 mt-0.5 text-xs text-gray-500 hover:text-chili hover:underline w-fit"
+                >
+                  <MapPin size={12} />
+                  {restaurant.address}
+                </a>
+              )}
               <div className="flex items-center gap-1.5 mt-1.5">
                 <CircleDot size={10} className="text-emerald-500" fill="currentColor" />
                 <span className="text-xs text-gray-500">Aberto agora</span>
+                {restaurant.avgDeliveryTime && (
+                  <>
+                    <span className="text-gray-300">•</span>
+                    <span className="text-xs text-gray-500">{restaurant.avgDeliveryTime}</span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -175,7 +201,7 @@ export default function MenuClient({
           ))}
         </div>
 
-        <div className="px-5 py-5 pb-32 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((product) => (
             <ProductCard key={product.id} product={product} onOpen={() => setModalProduct(product)} />
           ))}
@@ -186,6 +212,9 @@ export default function MenuClient({
             </div>
           )}
         </div>
+
+        <Footer restaurant={restaurant} />
+        <div className="pb-24" />
 
         {cartCount > 0 && drawer === null && (
           <button
@@ -247,6 +276,30 @@ export default function MenuClient({
     </div>
   );
 }
+
+
+function Footer({ restaurant }: { restaurant: Restaurant }) {
+  const devWhatsApp =
+    "https://wa.me/5535999603944?text=" +
+    encodeURIComponent("Olá! Vi um cardápio digital feito por você e gostaria de saber mais.");
+
+  return (
+    <footer className="px-5 py-6 border-t border-gray-100 mt-2">
+      <p className="text-center text-[11px] text-gray-400">
+        Desenvolvido por{" "}
+        
+        <a href={devWhatsApp}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-gray-500 hover:text-chili underline"
+        >
+          Luiz Felippe
+        </a>
+      </p>
+    </footer>
+  );
+}
+
 
 function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void }) {
   const [imgError, setImgError] = useState(false);

@@ -12,6 +12,9 @@ const updateSchema = z.object({
   pixKeyType: z.enum(["CPF", "CNPJ", "EMAIL", "PHONE", "RANDOM"]).optional(),
   pixMerchantName: z.string().max(25).optional(),
   pixMerchantCity: z.string().max(15).optional(),
+  phone: z.string().max(20).optional(),
+  address: z.string().max(150).optional(),
+  avgDeliveryTime: z.string().max(30).optional(),
   businessHours: z
     .array(
       z.object({
@@ -31,15 +34,18 @@ export async function GET() {
   const restaurant = await db.restaurant.findUnique({
     where: { id: session.user.restaurantId },
     select: {
-      id: true,
-      name: true,
-      isOpen: true,
-      defaultDeliveryFeeCents: true,
-      pixKey: true,
-      pixKeyType: true,
-      pixMerchantName: true,
-      pixMerchantCity: true,
-    },
+    id: true,
+    name: true, 
+    isOpen: true, 
+    defaultDeliveryFeeCents: true,
+    pixKey: true, 
+    pixKeyType: true, 
+    pixMerchantName: true, 
+    pixMerchantCity: true,
+    phone: true, 
+    address: true, 
+    avgDeliveryTime: true,
+  },
   });
 
   const businessHours = await db.businessHours.findMany({
@@ -56,8 +62,18 @@ export async function PATCH(req: NextRequest) {
 
   const parsed = updateSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const { isOpen, defaultDeliveryFeeCents, pixKey, pixKeyType, pixMerchantName, pixMerchantCity, businessHours } =
-    parsed.data;
+  const {
+    isOpen,
+    defaultDeliveryFeeCents,
+    pixKey,
+    pixKeyType,
+    pixMerchantName,
+    pixMerchantCity,
+    phone,
+    address,
+    avgDeliveryTime,
+    businessHours,
+  } = parsed.data;
 
   const restaurantData: Record<string, unknown> = {};
   if (isOpen !== undefined) restaurantData.isOpen = isOpen;
@@ -66,6 +82,9 @@ export async function PATCH(req: NextRequest) {
   if (pixKeyType !== undefined) restaurantData.pixKeyType = pixKeyType;
   if (pixMerchantName !== undefined) restaurantData.pixMerchantName = pixMerchantName;
   if (pixMerchantCity !== undefined) restaurantData.pixMerchantCity = pixMerchantCity;
+  if (phone !== undefined) restaurantData.phone = phone;
+  if (address !== undefined) restaurantData.address = address;
+  if (avgDeliveryTime !== undefined) restaurantData.avgDeliveryTime = avgDeliveryTime;
 
   if (Object.keys(restaurantData).length > 0) {
     await db.restaurant.update({ where: { id: session.user.restaurantId }, data: restaurantData });

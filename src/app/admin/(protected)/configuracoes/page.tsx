@@ -17,33 +17,38 @@ export default function ConfiguracoesPage() {
   const [pixKeyType, setPixKeyType] = useState("RANDOM");
   const [pixMerchantName, setPixMerchantName] = useState("");
   const [pixMerchantCity, setPixMerchantCity] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [avgDeliveryTime, setAvgDeliveryTime] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/settings")
-      .then((r) => r.json())
-      .then((data) => {
-        setRestaurantIsOpen(data.restaurant.isOpen);
-        const fetchedHours: BusinessHour[] = data.businessHours;
-        if (fetchedHours.length === 0) {
-          const defaults: BusinessHour[] = Array.from({ length: 7 }, (_, dayOfWeek) => ({
-            dayOfWeek,
-            isOpen: true,
-            openTime: "08:00",
-            closeTime: "22:00",
-          }));
-          setHours(defaults);
-        } else {
-          setHours(fetchedHours.sort((a, b) => a.dayOfWeek - b.dayOfWeek));
-        }
+      fetch("/api/admin/settings")
+        .then((r) => r.json())
+        .then((data) => {
+          setRestaurantIsOpen(data.restaurant.isOpen);
+          const fetchedHours: BusinessHour[] = data.businessHours;
+          if (fetchedHours.length === 0) {
+            const defaults: BusinessHour[] = Array.from({ length: 7 }, (_, dayOfWeek) => ({
+              dayOfWeek,
+              isOpen: true,
+              openTime: "08:00",
+              closeTime: "22:00",
+            }));
+            setHours(defaults);
+          } else {
+            setHours(fetchedHours.sort((a, b) => a.dayOfWeek - b.dayOfWeek));
+          }
 
-        setPixKey(data.restaurant.pixKey ?? "");
-        setPixKeyType(data.restaurant.pixKeyType ?? "RANDOM");
-        setPixMerchantName(data.restaurant.pixMerchantName ?? "");
-        setPixMerchantCity(data.restaurant.pixMerchantCity ?? "");
-        setLoading(false);
-      });
-  }, []);
-
+          setPixKey(data.restaurant.pixKey ?? "");
+          setPixKeyType(data.restaurant.pixKeyType ?? "RANDOM");
+          setPixMerchantName(data.restaurant.pixMerchantName ?? "");
+          setPixMerchantCity(data.restaurant.pixMerchantCity ?? "");
+          setPhone(data.restaurant.phone ?? "");
+          setAddress(data.restaurant.address ?? "");
+          setAvgDeliveryTime(data.restaurant.avgDeliveryTime ?? "");
+          setLoading(false);
+        });
+    }, []);
   function updateDay(dayOfWeek: number, patch: Partial<BusinessHour>) {
     setHours((hs) => hs.map((h) => (h.dayOfWeek === dayOfWeek ? { ...h, ...patch } : h)));
   }
@@ -61,6 +66,9 @@ export default function ConfiguracoesPage() {
         pixKeyType,
         pixMerchantName: pixMerchantName || undefined,
         pixMerchantCity: pixMerchantCity || undefined,
+        phone: phone || undefined,
+        address: address || undefined,
+        avgDeliveryTime: avgDeliveryTime || undefined,
       }),
     });
     setSaving(false);
@@ -139,6 +147,24 @@ export default function ConfiguracoesPage() {
               maxLength={15}
               className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm"
             />
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 rounded-xl bg-white shadow-sm border border-gray-100 mb-6">
+        <p className="font-bold text-sm text-gray-900 mb-3">Informações de contato</p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Endereço</label>
+            <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, bairro, cidade" className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Telefone</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(35) 99999-9999" className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Tempo médio de entrega</label>
+            <input value={avgDeliveryTime} onChange={(e) => setAvgDeliveryTime(e.target.value)} placeholder="ex: 30-45 min" className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm" />
           </div>
         </div>
       </div>

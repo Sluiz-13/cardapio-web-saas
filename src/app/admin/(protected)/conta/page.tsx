@@ -9,6 +9,11 @@ export default function ContaPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [emailSuccess, setEmailSuccess] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,6 +47,35 @@ export default function ContaPage() {
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+  }
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setEmailError("");
+    setEmailSuccess(false);
+
+    if (!newEmail.trim() || !currentPasswordForEmail) {
+      setEmailError("Preencha a senha atual e o novo e-mail.");
+      return;
+    }
+
+    setSavingEmail(true);
+    const res = await fetch("/api/admin/account/email", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword: currentPasswordForEmail, newEmail }),
+    });
+    setSavingEmail(false);
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setEmailError(data?.error ?? "Não foi possível trocar o e-mail.");
+      return;
+    }
+
+    setEmailSuccess(true);
+    setCurrentPasswordForEmail("");
+    setNewEmail("");
   }
 
   const inputClass =
@@ -90,6 +124,43 @@ export default function ContaPage() {
           {saving ? "Salvando…" : "Trocar Senha"}
         </button>
       </form>
+      <hr className="my-6 border-gray-100" />
+
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Trocar E-mail</h2>
+        <form onSubmit={handleEmailSubmit} className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Senha atual</label>
+            <input
+              type="password"
+              value={currentPasswordForEmail}
+              onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Novo e-mail</label>
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+
+          {emailError && <p className="text-chili text-xs">{emailError}</p>}
+          {emailSuccess && (
+            <p className="text-emerald-600 text-xs">
+              E-mail alterado. Use o novo e-mail no próximo login.
+            </p>
+          )}
+
+          <button
+            disabled={savingEmail}
+            className="w-full py-3 rounded-full font-semibold text-sm bg-chili text-white shadow-sm disabled:opacity-50"
+          >
+            {savingEmail ? "Salvando…" : "Trocar E-mail"}
+          </button>
+        </form>
     </div>
   );
 }

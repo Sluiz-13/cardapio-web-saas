@@ -11,10 +11,13 @@ const PAYMENT_LABEL: Record<string, string> = {
 
 const currency = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 
-// Escapa campo pro padrão CSV (RFC 4180): envolve em aspas se tiver vírgula,
-// aspas ou quebra de linha, e duplica aspas internas.
+// Separador ; (não vírgula) — padrão do Excel em português, já que vírgula
+// é o separador decimal nesse locale. Isso evita qualquer conflito entre
+// valor monetário (18,00) e o delimitador de coluna do CSV.
+const DELIMITER = ";";
+
 function csvField(value: string): string {
-  if (/[",\n]/.test(value)) {
+  if (new RegExp(`[";\n]`).test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
@@ -46,7 +49,8 @@ export async function GET(req: NextRequest) {
   });
 
   const header = [
-    "Data/Hora",
+    "Data",
+    "Hora",
     "Cliente",
     "Telefone",
     "Pagamento",
@@ -56,27 +60,28 @@ export async function GET(req: NextRequest) {
     "Cupom",
     "Taxa de Entrega",
     "Total",
-  ].join(",");
+  ].join(DELIMITER);
 
   const rows = orders.map((o) => {
     const subtotalCents = o.totalCents - o.deliveryFeeCents + o.discountCents;
-    const itemsSummary = o.items.map((i) => `${i.qty}x ${i.productName}`).join("; ");
+    const itemsSummary = o.items.map((i) => `${i.qty}x ${i.productName}`).join(" | ");
+    const createdAt = new Date(o.createdAt);
 
     return [
-      csvField(new Date(o.createdAt).toLocaleString("pt-BR")),
+      csvField(createdAt.toLocaleDateString("pt-BR")),
+      csvField(createdAt.toLocaleTimeString("pt-BR")),
       csvField(o.customerName),
       csvField(o.customerPhone),
       csvField(PAYMENT_LABEL[o.paymentMethod] ?? o.paymentMethod),
       csvField(itemsSummary),
-      currency(subtotalCents),
-      currency(o.discountCents),
+      csvField(currency(subtotalCents)),
+      csvField(currency(o.discountCents)),
       csvField(o.couponCode ?? ""),
-      currency(o.deliveryFeeCents),
-      currency(o.totalCents),
-    ].join(",");
+      csvField(currency(o.deliveryFeeCents)),
+      csvField(currency(o.totalCents)),
+    ].join(DELIMITER);
   });
 
-  // BOM (\uFEFF) no início evita o Excel abrir acentuação corrompida em CSV UTF-8.
   const csv = "\uFEFF" + [header, ...rows].join("\n");
 
   return new NextResponse(csv, {

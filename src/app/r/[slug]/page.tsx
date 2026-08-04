@@ -23,7 +23,14 @@ export default async function RestaurantMenuPage({ params }: { params: { slug: s
 
   return (
     <MenuClient
-      restaurant={{ id: restaurant.id, name: restaurant.name, isOpen: isOpenNow }}
+      restaurant={{
+        id: restaurant.id,
+        name: restaurant.name,
+        isOpen: isOpenNow,
+        phone: restaurant.phone,
+        address: restaurant.address,
+        avgDeliveryTime: restaurant.avgDeliveryTime,
+      }}
       categories={categories}
       products={products}
     />
