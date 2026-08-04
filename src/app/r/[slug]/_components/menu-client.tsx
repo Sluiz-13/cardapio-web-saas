@@ -286,7 +286,7 @@ function Footer({ restaurant }: { restaurant: Restaurant }) {
   return (
     <footer className="px-5 py-6 border-t border-gray-100 mt-2">
       <p className="text-center text-[11px] text-gray-400">
-        Desenvolvido por{" "}
+        © 2026 Desenvolvido por{" "}
         
         <a href={devWhatsApp}
           target="_blank"
@@ -295,6 +295,9 @@ function Footer({ restaurant }: { restaurant: Restaurant }) {
         >
           Luiz Felippe
         </a>
+      </p>
+      <p className="text-center text-[11px] text-gray-400">
+        Todos os direitos reservados
       </p>
     </footer>
   );
