@@ -1,139 +1,120 @@
-# cardapio-web
+# cardapio-saas
 
-Sistema de cardápio digital com painel administrativo, checkout com múltiplas
-formas de pagamento e impressão de pedidos. Projeto próprio, arquitetado
-desde o início pensando em virar SaaS multi-restaurante — hoje operando
-**single-tenant**.
+> **Se você é uma instância do Claude lendo isso pela primeira vez**: este documento existe pra te dar contexto completo antes de escrever qualquer código. Leia inteiro antes de propor arquitetura. O projeto tem histórico real de produção (não é greenfield teórico) — várias decisões aqui vieram de bug real, cliente real, dinheiro real (Pix testado com pagamento verdadeiro). Trate as seções "Erros já cometidos" e "Decisões e o porquê" como restrições de projeto, não sugestões.
+
+## O que é isso
+
+`cardapio-saas` é a evolução multi-tenant de um sistema de cardápio digital + pedido + pagamento que já foi **construído do zero, testado e entregue** para um cliente real (um quiosque/restaurante) como produto single-tenant, no repositório [`cardapio-web`](https://github.com/Sluiz-13/cardapio-web) (tag `v1.0-quiosque-to-em-casa` marca o ponto exato entregue).
+
+Este projeto **reaproveita a mesma base de código**, generalizando pra atender múltiplos restaurantes simultaneamente, com um novo painel de administração da plataforma.
+
+**Decisão de negócio importante**: o SaaS só está sendo iniciado *depois* de validar o produto com um cliente pagante real por semanas de uso — não é suposição de mercado, é extensão de algo que já funciona.
 
 ## Stack
 
 - **Next.js 14 (App Router) + TypeScript**
 - **PostgreSQL + Prisma ORM**
-- **NextAuth** (Credentials) para autenticação do admin
-- **Zod** para validação de toda entrada de API
-- **Tailwind CSS** para estilização
-- **Docker Compose** para o banco em desenvolvimento
+- **NextAuth** (Credentials) — autenticação
+- **Zod** — validação de toda entrada de API
+- **Tailwind CSS**
+- **Docker Compose** (dev) → **VPS + Docker Compose + Nginx + Certbot** (produção, deploy-alvo)
+- **Playwright** — testes E2E
 
-## Arquitetura de serviços
+## Arquitetura já pronta pra multi-tenant (herdada, não precisa redesenhar)
 
-┌──────────────────┐ HTTP (Bearer key) ┌──────────────────────┐
-│ cardapio-web │ ─────────────────────▶ │ notifications-api │
-│ (este repo) │ │ (repo separado) │
-│ Next.js + Prisma │ │ Express + Socket.IO │
-└──────────────────┘ └──────────────────────┘
-▲
-│ webhook (a implementar)
-┌──────────────────┐
-│ Gateway de pagto │ em definição
-└──────────────────┘
+O `cardapio-web` foi **deliberadamente** desenhado desde o primeiro commit pra virar SaaS, mesmo operando single-tenant:
 
-`notifications-api` é um serviço separado por escolha deliberada: notificação
-(e-mail, tempo real) tem ciclo de vida e modelo de falha diferente de
-pedido/pagamento. Se ele cair, o checkout continua funcionando — a chamada em
-`src/lib/notifications-client.ts` é *best-effort* e nunca derruba o fluxo
-principal.
+- Toda tabela de negócio carrega `restaurantId` (`Order`, `Product`, `Category`, `Coupon`, `DeliveryFee`, `BusinessHours`, etc.)
+- A sessão do admin carrega `restaurantId` (via `AdminUser.restaurantId` → embutido no JWT)
+- **Toda** rota `/api/admin/*` escopa queries usando `restaurantId` da sessão, com o padrão `updateMany`/`deleteMany` + `where` composto (nunca `findUnique` por id sozinho) — isso é proteção básica contra IDOR entre restaurantes
+- Cardápio do cliente já é multi-tenant nativo: `/r/[slug]`, uma URL por restaurante
 
-## Setup local
+**Conclusão prática**: `/r/[slug]` (cardápio do cliente) e o admin de restaurante (`/admin/*`) não precisam ser redesenhados pro SaaS — só precisam de auditoria de segurança mais rigorosa (ver seção própria) e, potencialmente, customização visual por tenant.
 
-```bash
-git clone https://github.com/Sluiz-13/cardapio-web.git
-cd cardapio-web
-npm install
-cp .env.example .env   # preencher os valores, ver seção abaixo
-docker compose up -d
-npx prisma migrate dev --name init
-npm run prisma:seed
-npm run dev
-``` 
+## O que já existe e funciona (não reconstruir do zero)
 
-Acesse:
-- Cardápio do cliente: `http://localhost:3000/r/quiosque-to-em-casa`
-- Painel admin: `http://localhost:3000/admin/login`
-  - Login criado pelo seed: `admin@quiosque.com` / `troque-esta-senha`
-  - **Troque essa senha assim que logar** em `/admin/conta`
+**Cardápio do cliente (`/r/[slug]`)**
+- Categorias, produtos com imagem/descrição/preço, ingredientes removíveis, extras pagos
+- Disponibilidade de produto por dia da semana (`availableDays: Int[]`, vazio = todo dia)
+- Carrinho, modal de personalização, toast de feedback
+- Checkout: nome, telefone, entrega ou retirada, endereço completo, forma de pagamento
+- Taxa de entrega por bairro: texto livre normalizado (sem acento/maiúsculo) comparado contra cadastro do admin, com taxa padrão de fallback
+- Cupom de desconto: percentual ou fixo, pedido mínimo, limite de uso, expiração, **e opcionalmente restrito a um produto específico** (desconto calculado só na linha daquele produto)
+- Troco pra pagamento em dinheiro
+- **Pix sem gateway**: gera QR Code real (padrão EMV/BR Code do Banco Central) + Copia-e-Cola, a partir da própria chave Pix do restaurante — zero custo, zero API paga. Testado com dinheiro real.
+- Horário de funcionamento por dia da semana + switch manual de "aberto/fechado" (o manual sempre pode fechar mesmo dentro do horário programado)
+- Endereço/telefone/tempo médio de entrega do restaurante, footer com crédito do desenvolvedor
+- Aviso de privacidade/LGPD linkado no checkout
 
-## Variáveis de ambiente
+**Admin do restaurante (`/admin/*`)**
+- Login (NextAuth Credentials + bcrypt), troca de senha e e-mail (ambos exigem senha atual)
+- CRUD de categorias e produtos (com removíveis/extras/dias de disponibilidade)
+- CRUD de cupons (geral ou por produto)
+- CRUD de taxas de entrega por bairro + taxa padrão
+- Configurações: horário de funcionamento, chave Pix, dados de contato
+- Painel de pedidos: colunas por status (`NEW → PREPARING → READY → OUT_FOR_DELIVERY → DELIVERED`; pedidos de retirada pulam `OUT_FOR_DELIVERY`), com atualização quase-tempo-real via **polling** (8s) + som (gerado via Web Audio API, sem arquivo de áudio) + destaque visual em pedido novo
+- Histórico/timeline de status de cada pedido (tabela `OrderStatusHistory`)
+- Selo "Pix aguardando conferência" — como não há gateway, o admin confirma manualmente que o Pix caiu na conta, olhando o próprio app do banco
+- Botão de WhatsApp manual (link `wa.me` com mensagem pré-preenchida por status, editável antes de enviar — não é envio automático)
+- Impressão de cupom em layout de impressora térmica (rota própria, fora do layout com nav)
+- Financeiro: faturamento do dia, ticket médio, últimas vendas, **exportação CSV** (delimitador `;`, não `,` — importante pro Excel em pt-BR, que usa vírgula como separador decimal)
+- Rate limiting em memória (por IP) no endpoint público de criação de pedido
 
-| Variável | Descrição |
-|---|---|
-| `DATABASE_URL` | Connection string do Postgres |
-| `NEXTAUTH_SECRET` | Gerar com `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | URL da aplicação (`http://localhost:3000` em dev) |
-| `NOTIFICATIONS_API_URL` | URL do serviço `notifications-api` |
-| `NOTIFICATIONS_API_KEY` | Chave compartilhada com o `notifications-api` |
-| `MERCADOPAGO_ACCESS_TOKEN` | (pendente — gateway de pagamento em definição) |
-| `MERCADOPAGO_WEBHOOK_SECRET` | (pendente) |
+**Testes**
+- Suite E2E com Playwright (`tests/e2e/`), usando `data-testid` nos elementos-chave — cobre fluxo de cliente (adicionar item, checkout, pagamento em dinheiro) e admin (login, pedido aparecendo e avançando status)
 
-## Rotas
+## Decisões de arquitetura e o porquê (não mudar sem motivo forte)
 
-### Públicas (sem autenticação)
+- **Dinheiro sempre em centavos (`Int`), nunca `Float`** — evita erro de ponto flutuante em cálculo financeiro
+- **Preço/desconto/taxa sempre recalculados no servidor**, nunca confiados no que vem do client — proteção contra manipulação via DevTools
+- **`notifications-api`**: microsserviço separado (Express + Socket.IO + Nodemailer) por decisão deliberada — notificação tem ciclo de vida diferente de pedido/pagamento. Toda chamada pra ele é *best-effort* (nunca derruba o fluxo principal se falhar). **Está pausado hoje** (não hospedado) — o tempo real do admin usa polling in-app, que já resolve o essencial sem essa dependência
+- **Sem gateway de pagamento integrado** — decisão do primeiro cliente: cartão é cobrado fisicamente pelo motoboy, Pix usa QR estático sem intermediário. A rota de webhook existe, documentada, pronta pra plugar um gateway no futuro, mas sem uso ativo
+- **Deploy-alvo é VPS + Docker Compose + Nginx + Certbot**, não serverless — parcialmente porque o polling/tempo real do admin se beneficia de processo Node persistente
 
-| Rota | Método | Descrição |
-|---|---|---|
-| `/r/[slug]` | página | Cardápio digital do cliente final |
-| `/privacidade` | página | Aviso de privacidade / LGPD |
-| `/api/orders` | `POST` | Cria um pedido. Recalcula preço no servidor a partir do banco (nunca confia no valor vindo do client). Rate limited: 5 pedidos / 5 min por IP |
-| `/api/payments/webhook` | `POST` | Recebe confirmação de pagamento do gateway. Estrutura pronta, validação de assinatura pendente até definição do provider |
+## Erros já cometidos durante o desenvolvimento (não repetir)
 
-### Admin (autenticação via NextAuth, escopadas por `restaurantId` da sessão)
+1. **Colar código em blocos parciais quebra fácil** — tags JSX de abertura (`<a`, `<div`) sumiram múltiplas vezes ao colar trechos no meio de arquivo grande. Quando o risco de erro de cópia é alto, mandar o **arquivo inteiro**, não só o trecho.
+2. **Reaproveitar uma classe utilitária com `w-full` embutido dentro de um contexto flex/grid quebra layout** de forma não-óbvia (o `w-full` briga com `flex-1`/`w-20` no mesmo elemento). Lição: separar string de estilo "visual" (cor, borda, padding) de "dimensão" (largura) quando a mesma classe é reaproveitada em contextos de layout diferentes.
+3. **Rota de API dentro de `src/app/admin/...` em vez de `src/app/api/admin/...`** faz o Next.js servir o JSON cru no lugar da página (o `route.ts` e o `page.tsx` competem pelo mesmo segmento de URL). Sempre conferir o caminho antes de criar endpoint.
+4. **`git pull` sozinho não sincroniza `node_modules` nem schema do banco** — sempre rodar `npm install && npx prisma generate && npx prisma migrate deploy` ao trocar de máquina.
+5. **Oracle Cloud Free Tier (ARM)** sofre de falta de capacidade crônica em algumas regiões (erro "Out of capacity"), especialmente com um único Availability Domain — não é erro seu, é conhecido. Home region é fixada no cadastro e **não pode ser trocada depois**.
+6. **Render free tier é ótimo pra validar build/HTTPS antes da VPS**, mas o Postgres gratuito **expira e é apagado** — nunca tratar como armazenamento de produção real.
+7. **Testar Pix com dinheiro real revelou um caso prático**: algumas contas bancárias pessoais (ex: Poupança) não estão habilitadas pra receber Pix via QR Code/"Pix Cobrança" comercial, mesmo que Pix manual pra mesma chave funcione normal. **Todo restaurante novo no SaaS deveria testar a própria chave Pix com um pagamento real de valor baixo antes de divulgar o cardápio publicamente** — vale virar um passo formal de onboarding.
+8. **CSV pra Excel em pt-BR**: usar `;` como delimitador de campo, não `,` — vírgula já é o separador decimal do locale brasileiro, e um valor tipo `18,00` sem essa troca quebra a importação.
 
-| Rota | Método | Descrição |
-|---|---|---|
-| `/admin/login` | página | Login |
-| `/admin` | página | Painel de pedidos em tempo real (colunas por status) |
-| `/admin/produtos` | página | CRUD de produtos (removíveis, extras, ativar/desativar) |
-| `/admin/categorias` | página | CRUD de categorias |
-| `/admin/financeiro` | página | Faturamento do dia, ticket médio, últimas vendas |
-| `/admin/conta` | página | Trocar senha |
-| `/admin/pedidos/[id]/imprimir` | página | Cupom de impressão (formato térmico) |
-| `/api/auth/[...nextauth]` | `GET/POST` | Handler do NextAuth |
-| `/api/admin/categories` | `GET/POST` | Listar / criar categoria |
-| `/api/admin/categories/[id]` | `PATCH/DELETE` | Editar / remover categoria |
-| `/api/admin/products` | `GET/POST` | Listar / criar produto |
-| `/api/admin/products/[id]` | `PATCH/DELETE` | Editar (inclusive removíveis/extras) / remover produto |
-| `/api/admin/orders/[id]/status` | `PATCH` | Avança o status de um pedido |
-| `/api/admin/financeiro` | `GET` | Métricas financeiras do dia |
-| `/api/admin/account/password` | `PATCH` | Troca a própria senha |
+## Segurança já implementada (base a manter, mas reforçar antes de múltiplos tenants pagantes)
 
-## Regras de dinheiro e pagamento (não mudar sem motivo forte)
-
-1. Preço é sempre armazenado em **centavos** (`Int`), nunca `Float`.
-2. O preço do pedido é **sempre recalculado no servidor** a partir do banco
-   (`src/app/api/orders/route.ts`) — o carrinho no client é só UI.
-3. Um pedido só vira `NEW` (visível pro admin) quando o pagamento é
-   confirmado — via webhook (Pix/cartão) ou imediatamente no caso de
-   "Dinheiro na entrega". Nunca confiar em redirect de navegador.
-4. Todo webhook precisa ser idempotente e ter assinatura validada antes de
-   processar — ainda pendente até a escolha do gateway.
-
-## Segurança implementada
-
-- Senha de admin com hash `bcrypt`, nunca texto puro
-- Toda rota `/api/admin/*` valida sessão e escopa queries por
-  `restaurantId` (`updateMany`/`deleteMany` com `where` composto) — isso
-  evita um admin acessar/editar dado de outro restaurante (proteção IDOR,
-  pré-requisito para o futuro multi-tenant)
-- Validação de entrada com Zod em toda rota de API
-- Rate limiting em `/api/orders` (rota pública, sem login)
+- Senha com hash `bcrypt`
+- Toda rota `/api/admin/*` escopada por `restaurantId` da sessão (proteção IDOR básica)
+- Validação de entrada com Zod em toda rota
 - `middleware.ts` protege todas as rotas `/admin/*` exceto `/admin/login`
+- LGPD: aviso de privacidade + script de anonimização de dado antigo (`lgpd:anonymize`) — ainda não agendado via cron
+- Rate limiting em memória, por processo — **não escala** se um dia rodar múltiplas instâncias (precisaria migrar pra algo tipo Redis)
 
-## LGPD
+**Importante**: a proteção IDOR atual foi suficiente pra um cliente confiando no próprio sistema. Com múltiplos restaurantes pagantes reais no mesmo banco, um vazamento de dado entre tenants deixa de ser hipotético e vira incidente de verdade — vale uma auditoria de segurança formal (testes automatizados específicos de cross-tenant leakage) antes de onboardar o segundo cliente de verdade.
 
-- Aviso de privacidade em `/privacidade`, linkado no checkout
-- Base legal: execução de contrato (art. 7º, V) — coletamos apenas o
-  necessário para processar o pedido
-- Script de anonimização de dado antigo: `npm run lgpd:anonymize`
-  (remove nome/telefone/endereço de pedidos finalizados há mais de 90 dias,
-  mantém valor/itens para fins contábeis). Ainda não agendado via cron —
-  pendente até a VPS de produção estar definida.
+## Pontos a resolver pro SaaS (o motivo desta conversa existir)
 
-## Roadmap
+1. **Painel Super Admin da plataforma** (não existe ainda) — você precisa conseguir:
+   - Cadastrar/editar/desativar restaurantes (criar `Restaurant` + primeiro `AdminUser` de cada um)
+   - Ver todos os tenants numa lista, com status e métricas básicas
+   - Ver faturamento agregado da plataforma (não só por restaurante)
+   - Provavelmente precisa de um novo conceito de "role" de plataforma, separado do `AdminRole` (`OWNER`/`STAFF`) que hoje é escopado *dentro* de um restaurante
+2. **Onboarding de restaurante novo** — decidir: continua manual (você cadastra cada um pelo painel super admin) por enquanto, ou já nasce self-service (formulário público, criação automática)? Recomendo manual pra validar os primeiros SaaS-clientes, automatiza depois.
+3. **Planos e feature gating** — campo `plan` no `Restaurant`, checagens no código habilitando/desabilitando funcionalidade por plano
+4. **Cobrança recorrente dos donos de restaurante** (diferente de qualquer gateway de pedido) — decisão grande, pode esperar validar demanda primeiro
+5. **Customização visual por restaurante** — hoje a paleta de cor (`chili` laranja, etc.) é fixa no `tailwind.config.ts`. Pro SaaS, isso precisa virar dado (`Restaurant.primaryColor`, `Restaurant.logoUrl`) aplicado dinamicamente
+6. **Auditoria de segurança formal** de isolamento entre tenants (ver seção acima)
+7. **Rate limiting compartilhado** entre instâncias (se escalar horizontalmente)
+8. **Decisão sobre `notifications-api`**: investir e hospedar de verdade pra WebSocket real (tempo real de verdade pra todos os tenants), ou manter só polling in-app (mais simples de manter, já funciona)
+9. **Gateway de pagamento pro SaaS**: provavelmente Pagar.me ou Asaas, por causa do **split de pagamento nativo** (cobra comissão automática de cada restaurante repassando o resto pro dono) — Mercado Pago tem via "Marketplace", mais burocrático
 
-- [x] Auth, CRUD de cardápio, painel de pedidos, impressão
-- [x] Tela cliente conectada ao banco com checkout completo
-- [x] Rate limiting, troca de senha, tela financeira, LGPD básico
-- [ ] Gateway de pagamento definitivo (Pix/cartão) — aguardando decisão
-- [ ] Validação de assinatura do webhook (depende do gateway)
-- [ ] Integração com `notifications-api` em produção (hoje só roda local)
-- [ ] Deploy em VPS com domínio próprio
-- [ ] Revisão AppSec formal antes de generalizar para multi-tenant
+## O que reaproveitar tal como está
+
+- `/r/[slug]` (cardápio do cliente) inteiro
+- `/admin/*` (painel do dono de restaurante) inteiro — reforçar segurança, não redesenhar
+- Todo o schema Prisma existente — a base de dados já foi pensada pra isso desde o início
+
+## Repositório de origem
+
+https://github.com/Sluiz-13/cardapio-web — tag `v1.0-quiosque-to-em-casa` marca o ponto exato entregue ao primeiro cliente. Consultar esse repo (ou este README) antes de tomar decisão de arquitetura que já foi resolvida lá.
