@@ -11,7 +11,7 @@ datasource db {
 // Tenant
 // -----------------------------
 enum Plan {
-  FREE
+  START
   PRO
 }
 
@@ -21,8 +21,10 @@ model Restaurant {
   slug      String   @unique // usado na URL: /r/[slug]
   isOpen    Boolean  @default(true)
   timezone  String   @default("America/Sao_Paulo")
-  plan      Plan     @default(FREE)
+  plan      Plan     @default(START)
   active    Boolean  @default(true) // desativado pela plataforma = cardápio some do ar, admin bloqueado
+  lastPaymentConfirmedAt DateTime? // null = nunca pagou; usado só pra mostrar pendência no painel, não bloqueia nada sozinho
+  welcomeCouponCode      String? // cupom de assinatura aplicado só na 1ª cobrança
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -296,6 +298,23 @@ model Coupon {
   @@map("coupons")
 }
 
+// -----------------------------
+// Cupom de desconto boas vindas
+// -----------------------------
+
+model PlatformCoupon {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  discountType  DiscountType
+  discountValue Int // porcentagem (0-100) OU centavos, depende do discountType
+  active        Boolean      @default(true)
+  maxUsage      Int?
+  usageCount    Int          @default(0)
+  expiresAt     DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@map("platform_coupons")
+}
 
 // -----------------------------
 // Plataforma (dono do SaaS — separado de AdminUser)
@@ -308,4 +327,20 @@ model PlatformAdmin {
   createdAt    DateTime @default(now())
 
   @@map("platform_admins")
+}
+
+
+// -----------------------------
+// Pix Saas
+// -----------------------------
+
+model PlatformSettings {
+  id              String   @id @default("singleton")
+  pixKey          String?
+  pixKeyType      String?
+  pixMerchantName String?
+  pixMerchantCity String?
+  updatedAt       DateTime @updatedAt
+
+  @@map("platform_settings")
 }

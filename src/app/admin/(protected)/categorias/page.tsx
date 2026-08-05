@@ -10,6 +10,7 @@ export default function CategoriasPage() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   async function load() {
     setLoading(true);
@@ -26,13 +27,23 @@ export default function CategoriasPage() {
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-    await fetch("/api/admin/categories", {
+    setError("");
+
+    const res = await fetch("/api/admin/categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, order: categories.length }),
     });
-    setName("");
+
     setSaving(false);
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setError(typeof data?.error === "string" ? data.error : "Não foi possível criar a categoria.");
+      return;
+    }
+
+    setName("");
     load();
   }
 
@@ -60,6 +71,8 @@ export default function CategoriasPage() {
           <Plus size={14} /> Adicionar
         </button>
       </form>
+
+      {error && <p className="text-chili text-sm mb-4">{error}</p>}
 
       {loading ? (
         <p className="text-sm text-gray-400">Carregando…</p>

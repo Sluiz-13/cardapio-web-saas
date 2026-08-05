@@ -20,11 +20,13 @@ export const authOptions: NextAuthOptions = {
 
         const admin = await db.adminUser.findUnique({
           where: { email: credentials.email },
+          include: { restaurant: { select: { active: true } } },
         });
         if (!admin) return null;
 
         const validPassword = await bcrypt.compare(credentials.password, admin.passwordHash);
         if (!validPassword) return null;
+        if (!admin.restaurant.active) return null;
 
         return {
           id: admin.id,

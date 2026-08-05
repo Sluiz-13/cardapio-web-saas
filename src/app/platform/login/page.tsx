@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { platformSignIn } from "@/lib/platform-auth-client";
 import { useRouter } from "next/navigation";
 
 export default function PlatformLoginPage() {
@@ -16,16 +16,11 @@ export default function PlatformLoginPage() {
     setLoading(true);
     setError("");
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-      callbackUrl: "/platform",
-    });
+    const { ok } = await platformSignIn(email, password);
 
     setLoading(false);
 
-    if (res?.error) {
+    if (!ok) {
       setError("E-mail ou senha inválidos.");
       return;
     }

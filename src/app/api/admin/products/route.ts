@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAdminSession } from "@/lib/session";
+import { assertUnderPlanLimit } from "@/lib/plan-guard";
 
 const createProductSchema = z.object({
   categoryId: z.string().min(1),
@@ -33,6 +34,9 @@ export async function POST(req: NextRequest) {
   const parsed = createProductSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   const { removableOptions, extraOptions, ...data } = parsed.data;
+
+  const limitCheck = await assertUnderPlanLimit(session.user.restaurantId, "maxProducts");
+  if (!limitCheck.ok) return NextResponse.json({ error: limitCheck.message }, { status: 403 });
 
   const category = await db.category.findFirst({
     where: { id: data.categoryId, restaurantId: session.user.restaurantId },

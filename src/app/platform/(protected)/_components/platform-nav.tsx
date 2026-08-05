@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { platformSignOut } from "@/lib/platform-auth-client";
 
 const LINKS = [
   { href: "/platform", label: "Restaurantes" },
   { href: "/platform/restaurantes/novo", label: "Novo restaurante" },
+  { href: "/platform/cupons", label: "Cupons" },
+  { href: "/platform/configuracoes", label: "Configurações" },
 ];
 
 export default function PlatformNav({ userName }: { userName: string }) {
@@ -38,7 +40,7 @@ export default function PlatformNav({ userName }: { userName: string }) {
       <div className="flex items-center justify-between gap-3 sm:justify-start">
         <span className="text-sm text-gray-300 truncate">{userName}</span>
         <button
-          onClick={() => signOut({ callbackUrl: "/platform/login" })}
+          onClick={() => platformSignOut()}
           className="text-xs font-semibold px-3.5 py-1.5 rounded-full border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
         >
           Sair

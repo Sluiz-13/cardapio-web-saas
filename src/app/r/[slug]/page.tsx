@@ -5,7 +5,8 @@ import MenuClient from "./_components/menu-client";
 
 export default async function RestaurantMenuPage({ params }: { params: { slug: string } }) {
   const restaurant = await db.restaurant.findUnique({ where: { slug: params.slug } });
-  if (!restaurant) notFound();
+
+  if (!restaurant || !restaurant.active) notFound();
 
   const [categories, products, businessHours] = await Promise.all([
     db.category.findMany({ where: { restaurantId: restaurant.id }, orderBy: { order: "asc" } }),

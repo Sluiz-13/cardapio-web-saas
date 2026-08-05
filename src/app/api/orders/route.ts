@@ -105,6 +105,7 @@ export async function POST(req: NextRequest) {
 const restaurant = await db.restaurant.findUnique({
   where: { id: restaurantId },
   select: {
+    active: true,
     defaultDeliveryFeeCents: true,
     pixKey: true,
     pixKeyType: true,
@@ -112,6 +113,11 @@ const restaurant = await db.restaurant.findUnique({
     pixMerchantCity: true,
   },
 });
+
+
+if (!restaurant || !restaurant.active) {
+  return NextResponse.json({ error: "Restaurante indisponível no momento." }, { status: 403 });
+}
 
   let deliveryFeeCents = 0;
   if (deliveryType === "DELIVERY" && address) {
