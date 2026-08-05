@@ -15,6 +15,9 @@ type Restaurant = {
   createdAt: string;
   lastPaymentConfirmedAt: string | null;
   paymentPending: boolean;
+  dueDate: string;
+  daysUntilDue: number;
+  pendingPlanRequest: "START" | "PRO" | null;
 };
 
 function money(cents: number) {
@@ -91,6 +94,21 @@ export default function RestaurantsTable({ initialRestaurants }: { initialRestau
     );
   }
 
+  async function handleApprovePlanRequest(r: Restaurant) {
+    setLoadingId(r.id);
+    const res = await fetch(`/api/platform/restaurants/${r.id}/approve-plan-request`, { method: "POST" });
+    setLoadingId(null);
+    if (!res.ok) {
+      alert("Não foi possível aprovar a solicitação.");
+      return;
+    }
+    const data = await res.json();
+    setRestaurants((prev) =>
+      prev.map((x) => (x.id === r.id ? { ...x, plan: data.plan, pendingPlanRequest: null } : x))
+    );
+  }
+
+
 
   if (restaurants.length === 0) {
     return (
@@ -111,6 +129,7 @@ export default function RestaurantsTable({ initialRestaurants }: { initialRestau
             <th className="px-4 py-3 font-medium">Faturamento</th>
             <th className="px-4 py-3 font-medium">Status</th>
             <th className="px-4 py-3 font-medium">Mensalidade</th>
+            <th className="px-4 py-3 font-medium">Vencimento</th>
             <th className="px-4 py-3 font-medium text-right">Ação</th>
           </tr>
         </thead>
@@ -148,6 +167,16 @@ export default function RestaurantsTable({ initialRestaurants }: { initialRestau
                   {r.paymentPending ? "Pendente" : "Em dia"}
                 </span>
               </td>
+              <td className="px-4 py-3">
+                <span className={`text-xs ${r.daysUntilDue <= 3 ? "text-chili font-semibold" : "text-gray-500"}`}>
+                  {new Date(r.dueDate).toLocaleDateString("pt-BR")}
+                </span>
+                {r.pendingPlanRequest && (
+                  <p className="text-[11px] text-blue-600 font-semibold mt-0.5">
+                    Pediu {r.pendingPlanRequest}
+                  </p>
+                )}
+              </td>
               <td className="px-4 py-3 text-right">
                 <div className="flex justify-end gap-2">
                   <button
@@ -164,6 +193,15 @@ export default function RestaurantsTable({ initialRestaurants }: { initialRestau
                       className="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
                     >
                       Confirmar pagamento
+                    </button>
+                  )}
+                  {r.pendingPlanRequest && (
+                    <button
+                      onClick={() => handleApprovePlanRequest(r)}
+                      disabled={loadingId === r.id}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      Aprovar {r.pendingPlanRequest}
                     </button>
                   )}
                   <button

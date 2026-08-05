@@ -56,7 +56,7 @@ export default function NovoRestaurantePage() {
   return (
     <div className="max-w-lg mx-auto px-4 py-6 sm:px-6">
       <h1 className="text-xl font-bold text-gray-900 mb-1">Novo restaurante</h1>
-      <p className="text-sm text-gray-500 mb-6">Cria o tenant e o primeiro admin (OWNER) de uma vez.</p>
+      <p className="text-sm text-gray-500 mb-6">Crie Restaurante e o primeiro admin (OWNER) de uma vez.</p>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <label className={labelClass}>Nome do restaurante</label>

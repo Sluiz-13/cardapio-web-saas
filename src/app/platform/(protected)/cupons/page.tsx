@@ -56,7 +56,14 @@ export default function PlatformCuponsPage() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => null);
-      setError(typeof data?.error === "string" ? data.error : "Não foi possível criar o cupom.");
+      if (typeof data?.error === "string") {
+        setError(data.error);
+      } else if (data?.error?.fieldErrors) {
+        const firstFieldError = Object.values(data.error.fieldErrors).flat()[0];
+        setError(typeof firstFieldError === "string" ? firstFieldError : "Dados inválidos.");
+      } else {
+        setError("Não foi possível criar o cupom.");
+      }
       return;
     }
 
@@ -103,6 +110,7 @@ export default function PlatformCuponsPage() {
         <input
           className={inputClass}
           type="number"
+          min={1}
           placeholder={discountType === "PERCENTAGE" ? "Ex: 20" : "Ex: 3000 (centavos)"}
           value={discountValue}
           onChange={(e) => setDiscountValue(e.target.value)}
@@ -113,6 +121,9 @@ export default function PlatformCuponsPage() {
           type="number"
           placeholder="Limite de usos (opcional)"
           value={maxUsage}
+          step={discountType === "PERCENTAGE" ? "1" : "0.01"}
+            min={discountType === "PERCENTAGE" ? "1" : "0.01"}
+            max={discountType === "PERCENTAGE" ? "100" : undefined}
           onChange={(e) => setMaxUsage(e.target.value)}
         />
         {error && <p className="col-span-2 text-chili text-xs">{error}</p>}

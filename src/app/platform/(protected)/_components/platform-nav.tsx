@@ -17,7 +17,7 @@ export default function PlatformNav({ userName }: { userName: string }) {
   return (
     <header className="flex flex-col gap-3 px-4 py-3.5 bg-ink border-b border-gray-800 sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <div className="min-w-0 w-full sm:w-auto">
-        <p className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">cardapio-saas · plataforma</p>
+        <p className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">Table OS Plataforma</p>
         <nav className="flex gap-5 mt-0.5 overflow-x-auto whitespace-nowrap pb-1 -mb-1 scrollbar-none">
           {LINKS.map((link) => {
             const active = pathname === link.href;

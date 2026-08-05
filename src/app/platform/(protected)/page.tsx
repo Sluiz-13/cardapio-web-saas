@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import RestaurantsTable from "./_components/restaurants-table";
+import { getNextDueDate, getDaysUntilDue, PAYMENT_GRACE_DAYS } from "@/lib/billing";
 
 export default async function PlatformDashboardPage() {
   const restaurants = await db.restaurant.findMany({
@@ -8,8 +9,6 @@ export default async function PlatformDashboardPage() {
       _count: { select: { orders: true, adminUsers: true } },
     },
   });
-
-  const PAYMENT_GRACE_DAYS = 35; // ~1 mês + margem
 
   const revenueByRestaurant = await db.order.groupBy({
     by: ["restaurantId"],
@@ -24,6 +23,7 @@ export default async function PlatformDashboardPage() {
       ? (now - r.lastPaymentConfirmedAt.getTime()) / (1000 * 60 * 60 * 24)
       : null;
     const paymentPending = daysSincePayment === null || daysSincePayment > PAYMENT_GRACE_DAYS;
+    const dueDate = getNextDueDate(r.lastPaymentConfirmedAt, r.createdAt);
 
     return {
       id: r.id,
@@ -37,6 +37,9 @@ export default async function PlatformDashboardPage() {
       createdAt: r.createdAt.toISOString(),
       lastPaymentConfirmedAt: r.lastPaymentConfirmedAt?.toISOString() ?? null,
       paymentPending,
+      dueDate: dueDate.toISOString(),
+      daysUntilDue: getDaysUntilDue(dueDate),
+      pendingPlanRequest: r.pendingPlanRequest,
     };
   });
 
@@ -47,7 +50,7 @@ export default async function PlatformDashboardPage() {
       <div className="flex flex-col gap-1 mb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Restaurantes</h1>
-          <p className="text-sm text-gray-500">{rows.length} tenant(s) cadastrado(s) na plataforma.</p>
+          <p className="text-sm text-gray-500">{rows.length} Restaurante(s) cadastrado(s) na plataforma.</p>
         </div>
         <div className="text-sm text-gray-600">
           Faturamento total (entregues):{" "}

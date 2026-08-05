@@ -4,10 +4,10 @@ import { db } from "@/lib/db";
 import { getPlatformSession } from "@/lib/platform-session";
 
 const createCouponSchema = z.object({
-  code: z.string().min(3).transform((v) => v.trim().toUpperCase()),
+  code: z.string().min(3, "Código precisa ter pelo menos 3 caracteres.").transform((v) => v.trim().toUpperCase()),
   discountType: z.enum(["PERCENTAGE", "FIXED"]),
-  discountValue: z.number().int().positive(),
-  maxUsage: z.number().int().positive().optional(),
+  discountValue: z.number().int().positive("O valor do desconto precisa ser maior que zero."),
+  maxUsage: z.number().int().positive("O limite de usos precisa ser maior que zero.").optional(),
   expiresAt: z.string().datetime().optional(),
 });
 

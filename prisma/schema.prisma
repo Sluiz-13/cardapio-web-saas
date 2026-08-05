@@ -27,6 +27,8 @@ model Restaurant {
   welcomeCouponCode      String? // cupom de assinatura aplicado só na 1ª cobrança
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  pendingPlanRequest     Plan?    // plano que o dono pediu (upgrade/downgrade) — só vira `plan` de verdade quando o Super Admin confirma
+  pendingPlanRequestedAt DateTime?
 
   adminUsers AdminUser[]
   categories Category[]
