@@ -7,7 +7,7 @@ export default async function PlatformLayout({ children }: { children: React.Rea
   if (!session) redirect("/platform/login");
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface-bg">
       <PlatformNav userName={session.user.name} />
       <main>{children}</main>
     </div>

@@ -15,7 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!restaurant?.active) redirect("/admin/login?desativado=1");
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface-bg w-full">
       <AdminNav restaurantName={restaurant?.name ?? ""} userName={session.user.name} />
       <main>{children}</main>
     </div>

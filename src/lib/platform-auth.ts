@@ -55,7 +55,7 @@ export const platformAuthOptions: NextAuthOptions = {
         // Rate limit por IP + e-mail tentado: 5 tentativas a cada 5 minutos.
         // Evita brute-force na conta de maior privilégio do sistema.
         const ip = (req?.headers?.["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? "unknown";
-        const { allowed } = rateLimit(`platform-login:${ip}:${credentials.email}`, 5, 5 * 60 * 1000);
+        const { allowed } = await rateLimit(`platform-login:${ip}:${credentials.email}`, 5, 5 * 60 * 1000);
         if (!allowed) return null;
 
         const admin = await db.platformAdmin.findUnique({

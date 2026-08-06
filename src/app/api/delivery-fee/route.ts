@@ -12,7 +12,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const { allowed } = rateLimit(`delivery-fee:${ip}`, 30, 5 * 60 * 1000);
+  const { allowed } = await rateLimit(`delivery-fee:${ip}`, 30, 5 * 60 * 1000);
   if (!allowed) return NextResponse.json({ error: "Muitas tentativas." }, { status: 429 });
 
   const parsed = schema.safeParse(await req.json());

@@ -1,13 +1,4 @@
-/**
- * Rate limiter em memória (fixed window), por chave arbitrária (ex: IP).
- *
- * LIMITAÇÃO CONHECIDA: o contador vive na memória do processo Node. Funciona
- * corretamente com 1 instância do servidor rodando (nosso caso hoje, 1
- * container Docker). Se no futuro isso rodar em múltiplas instâncias atrás
- * de um load balancer, cada instância terá seu próprio contador e o limite
- * real efetivo vira (limite × nº de instâncias). Quando chegar nesse ponto,
- * trocar por um limiter baseado em Redis (ex: Upstash Ratelimit).
- */
+import Redis from "ioredis";
 
 type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
@@ -20,7 +11,7 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000).unref();
 
-export function rateLimit(key: string, limit: number, windowMs: number): { allowed: boolean } {
+function rateLimitMemory(key: string, limit: number, windowMs: number): { allowed: boolean } {
   const now = Date.now();
   const bucket = buckets.get(key);
 
@@ -33,4 +24,39 @@ export function rateLimit(key: string, limit: number, windowMs: number): { allow
   }
   bucket.count += 1;
   return { allowed: true };
+}
+
+let redis: Redis | null = null;
+if (process.env.REDIS_URL) {
+  redis = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: 1 });
+  redis.on("error", (err) => {
+    console.error("[rate-limit] Redis com problema, caindo pra memória local nessa chamada:", err.message);
+  });
+}
+
+// Incrementa e, só na 1ª vez que a chave é criada, define o TTL da janela —
+// atômico, sem race condition entre instâncias concorrentes.
+const INCR_WITH_TTL_SCRIPT = `
+local current = redis.call("INCR", KEYS[1])
+if tonumber(current) == 1 then
+  redis.call("PEXPIRE", KEYS[1], ARGV[1])
+end
+return current
+`;
+
+async function rateLimitRedis(key: string, limit: number, windowMs: number): Promise<{ allowed: boolean } | null> {
+  if (!redis) return null;
+  try {
+    const count = (await redis.eval(INCR_WITH_TTL_SCRIPT, 1, `ratelimit:${key}`, windowMs)) as number;
+    return { allowed: count <= limit };
+  } catch (err) {
+    console.error("[rate-limit] Falha ao falar com Redis, usando fallback em memória:", (err as Error).message);
+    return null;
+  }
+}
+
+export async function rateLimit(key: string, limit: number, windowMs: number): Promise<{ allowed: boolean }> {
+  const redisResult = await rateLimitRedis(key, limit, windowMs);
+  if (redisResult) return redisResult;
+  return rateLimitMemory(key, limit, windowMs);
 }

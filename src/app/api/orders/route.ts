@@ -45,7 +45,7 @@ const createOrderSchema = z
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const { allowed } = rateLimit(`orders:${ip}`, 5, 5 * 60 * 1000);
+  const { allowed } = await rateLimit(`orders:${ip}`, 5, 5 * 60 * 1000);
   if (!allowed) {
     return NextResponse.json(
       { error: "Muitos pedidos em pouco tempo. Aguarde alguns minutos e tente novamente." },

@@ -91,7 +91,17 @@ O `cardapio-web` foi **deliberadamente** desenhado desde o primeiro commit pra v
 - LGPD: aviso de privacidade + script de anonimização de dado antigo (`lgpd:anonymize`) — ainda não agendado via cron
 - Rate limiting em memória, por processo — **não escala** se um dia rodar múltiplas instâncias (precisaria migrar pra algo tipo Redis)
 
-**Importante**: a proteção IDOR atual foi suficiente pra um cliente confiando no próprio sistema. Com múltiplos restaurantes pagantes reais no mesmo banco, um vazamento de dado entre tenants deixa de ser hipotético e vira incidente de verdade — vale uma auditoria de segurança formal (testes automatizados específicos de cross-tenant leakage) antes de onboardar o segundo cliente de verdade.
+**Importante**: a proteção IDOR atual foi suficiente pra um cliente confiando no próprio sistema. Com múltiplos restaurantes pagantes reais no mesmo banco, um vazamento de dado entre tenants deixa de ser hipotético e vira incidente de verdade.
+
+**Auditoria formal de isolamento cross-tenant**: existe uma suite Playwright dedicada em `tests/security/cross-tenant.spec.ts` que cria dois restaurantes reais do zero a cada execução (via `tests/security/seed.ts`, direto no Prisma) e tenta, autenticado como o Tenant A, ler/editar/apagar recurso do Tenant B em toda rota `/api/admin/*` e `/api/platform/*` relevante — produtos, categorias, cupons, taxas de entrega, pedidos (status/pagamento/histórico), exportação CSV do financeiro, e acesso indevido às rotas de plataforma a partir de uma sessão de admin de restaurante. Roda com:
+
+```bash
+npm run test:security
+```
+
+(precisa do `npm run dev` rodando em paralelo, aponta pra `http://localhost:3000` por padrão). **Todo teste tem que passar** — qualquer falha é um vazamento cross-tenant real, não falso positivo, já que os dois tenants e todos os IDs usados no ataque são gerados na hora, a cada rodada.
+
+**Regra prática**: rodar essa suite sempre que uma rota nova `/api/admin/*` ou `/api/platform/*` for criada, ou uma existente for alterada — antes de mergear, não depois de um incidente. Resultado da última rodada conhecida: 20/20 passando (04/2026 → confirma a data real de quando você rodou).
 
 ## Pontos a resolver pro SaaS (o motivo desta conversa existir)
 
@@ -104,7 +114,7 @@ O `cardapio-web` foi **deliberadamente** desenhado desde o primeiro commit pra v
 3. **Planos e feature gating** — campo `plan` no `Restaurant`, checagens no código habilitando/desabilitando funcionalidade por plano
 4. **Cobrança recorrente dos donos de restaurante** (diferente de qualquer gateway de pedido) — decisão grande, pode esperar validar demanda primeiro
 5. **Customização visual por restaurante** — hoje a paleta de cor (`chili` laranja, etc.) é fixa no `tailwind.config.ts`. Pro SaaS, isso precisa virar dado (`Restaurant.primaryColor`, `Restaurant.logoUrl`) aplicado dinamicamente
-6. **Auditoria de segurança formal** de isolamento entre tenants (ver seção acima)
+6. **Auditoria de segurança formal** de isolamento entre tenants~~ — ✅ feito, ver `tests/security/` e seção "Segurança já implementada" acima. Manter rodando a cada rota nova/alterada, não é "fez uma vez e esqueceu".
 7. **Rate limiting compartilhado** entre instâncias (se escalar horizontalmente)
 8. **Decisão sobre `notifications-api`**: investir e hospedar de verdade pra WebSocket real (tempo real de verdade pra todos os tenants), ou manter só polling in-app (mais simples de manter, já funciona)
 9. **Gateway de pagamento pro SaaS**: provavelmente Pagar.me ou Asaas, por causa do **split de pagamento nativo** (cobra comissão automática de cada restaurante repassando o resto pro dono) — Mercado Pago tem via "Marketplace", mais burocrático

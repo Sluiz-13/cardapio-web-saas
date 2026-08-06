@@ -15,7 +15,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const { allowed } = rateLimit(`coupon-validate:${ip}`, 15, 5 * 60 * 1000);
+  const { allowed } = await rateLimit(`coupon-validate:${ip}`, 15, 5 * 60 * 1000);
   if (!allowed) {
     return NextResponse.json({ valid: false, error: "Muitas tentativas. Aguarde um instante." }, { status: 429 });
   }
