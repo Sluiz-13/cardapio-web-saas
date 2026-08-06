@@ -1,13 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Truck } from "lucide-react";
+import { Plus, Trash2, Truck, MapPinOff } from "lucide-react";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Label } from "@/components/ui/Input";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 
 type Fee = { id: string; neighborhood: string; feeCents: number };
 
 const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 
 export default function EntregasPage() {
+  const { show } = useToast();
   const [fees, setFees] = useState<Fee[]>([]);
   const [defaultFee, setDefaultFee] = useState("0");
   const [loading, setLoading] = useState(true);
@@ -40,6 +47,7 @@ export default function EntregasPage() {
       body: JSON.stringify({ defaultDeliveryFeeCents: Math.round(Number(defaultFee) * 100) }),
     });
     setSavingDefault(false);
+    show("Taxa padrão salva.", "success");
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -63,85 +71,111 @@ export default function EntregasPage() {
     }
     setNeighborhood("");
     setFeeValue("");
+    show("Bairro adicionado.", "success");
     load();
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Remover essa taxa de bairro?")) return;
     await fetch(`/api/admin/delivery-fees/${id}`, { method: "DELETE" });
+    show("Bairro removido.", "info");
     load();
   }
 
-  if (loading) return <div className="p-6 text-sm text-gray-400">Carregando…</div>;
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6">
+        <Skeleton className="h-8 w-40 mb-6" />
+        <Skeleton className="h-24 mb-6" />
+        <Skeleton className="h-14 mb-2" />
+        <Skeleton className="h-14" />
+      </div>
+    );
+  }
 
   const inputClass =
-    "px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-chili/30 focus:border-chili transition-shadow";
+    "px-3.5 py-2.5 rounded-xl border border-surface-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-shadow duration-[180ms]";
 
   return (
-    <div className="p-6 max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Taxas de Entrega</h1>
+    <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6">
+      <h1 className="text-xl font-bold text-gray-900 mb-6">Taxas de Entrega</h1>
 
-      <div className="p-4 rounded-xl bg-white shadow-sm border border-gray-100 mb-6">
-        <p className="font-bold text-sm text-gray-900 mb-1">Taxa padrão</p>
-        <p className="text-xs text-gray-500 mb-3">
-          Cobrada quando o bairro digitado pelo cliente não está na lista abaixo.
-        </p>
-        <div className="flex gap-2">
-          <input
-            value={defaultFee}
-            onChange={(e) => setDefaultFee(e.target.value)}
-            type="number"
-            step="0.01"
-            min="0"
-            className={`${inputClass} w-32`}
-          />
-          <button
-            onClick={saveDefaultFee}
-            disabled={savingDefault}
-            className="px-4 py-2 rounded-full font-semibold text-sm bg-gray-900 text-white disabled:opacity-50"
-          >
-            {savingDefault ? "Salvando…" : "Salvar"}
-          </button>
-        </div>
-      </div>
+      <Card className="mb-6">
+        <CardBody>
+          <p className="font-bold text-sm text-gray-900 mb-1">Taxa padrão</p>
+          <p className="text-xs text-gray-500 mb-3">
+            Cobrada quando o bairro digitado pelo cliente não está na lista abaixo.
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={defaultFee}
+              onChange={(e) => setDefaultFee(e.target.value)}
+              type="number"
+              step="0.01"
+              min="0"
+              className={`${inputClass} w-32`}
+            />
+            <Button onClick={saveDefaultFee} isLoading={savingDefault} variant="secondary">
+              Salvar
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
 
       <p className="text-xs uppercase tracking-wide font-semibold text-gray-400 mb-2">Taxas por bairro</p>
 
-      <form onSubmit={handleCreate} className="flex gap-2 mb-4">
-        <input
-          value={neighborhood}
-          onChange={(e) => setNeighborhood(e.target.value)}
-          placeholder="Nome do bairro"
-          className={`flex-1 ${inputClass}`}
-        />
-        <input
-          value={feeValue}
-          onChange={(e) => setFeeValue(e.target.value)}
-          type="number"
-          step="0.01"
-          min="0"
-          placeholder="R$"
-          className={`w-28 ${inputClass}`}
-        />
-        <button disabled={saving} className="flex items-center gap-1 px-4 py-2.5 rounded-full font-semibold text-sm bg-emerald-600 text-white shadow-sm disabled:opacity-50">
-          <Plus size={14} /> Adicionar
-        </button>
-      </form>
-      {error && <p className="text-chili text-xs mb-3">{error}</p>}
+      <Card className="mb-4">
+        <CardBody>
+          <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-2">
+            <input
+              value={neighborhood}
+              onChange={(e) => setNeighborhood(e.target.value)}
+              placeholder="Nome do bairro"
+              className={`flex-1 ${inputClass}`}
+            />
+            <input
+              value={feeValue}
+              onChange={(e) => setFeeValue(e.target.value)}
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="R$"
+              className={`sm:w-28 ${inputClass}`}
+            />
+            <Button type="submit" isLoading={saving} className="shrink-0">
+              <Plus size={14} /> Adicionar
+            </Button>
+          </form>
+          {error && <p className="text-red-600 text-xs mt-2">{error}</p>}
+        </CardBody>
+      </Card>
 
-      <div className="space-y-2">
-        {fees.map((f) => (
-          <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl bg-white shadow-sm border border-gray-100">
-            <Truck size={15} className="text-chili shrink-0" />
-            <span className="flex-1 font-semibold text-sm text-gray-800">{f.neighborhood}</span>
-            <span className="text-emerald-600 font-bold text-sm">{currency(f.feeCents)}</span>
-            <button onClick={() => handleDelete(f.id)} className="text-gray-300 hover:text-chili transition-colors">
-              <Trash2 size={15} />
-            </button>
-          </div>
-        ))}
-        {fees.length === 0 && <p className="text-sm text-gray-400">Nenhum bairro cadastrado — todos pagam a taxa padrão.</p>}
-      </div>
+      {fees.length === 0 ? (
+        <EmptyState
+          icon={<MapPinOff size={18} />}
+          title="Nenhum bairro cadastrado"
+          description="Todos os clientes pagam a taxa padrão até você cadastrar um bairro específico."
+        />
+      ) : (
+        <div className="space-y-2">
+          {fees.map((f) => (
+            <Card key={f.id}>
+              <CardBody className="flex items-center gap-3 !py-3.5">
+                <Truck size={15} className="text-brand shrink-0" />
+                <span className="flex-1 font-semibold text-sm text-gray-800">{f.neighborhood}</span>
+                <span className="text-emerald-600 font-bold text-sm">{currency(f.feeCents)}</span>
+                <button
+                  onClick={() => handleDelete(f.id)}
+                  className="text-gray-300 hover:text-red-500 transition-colors duration-[180ms]"
+                  aria-label="Remover"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

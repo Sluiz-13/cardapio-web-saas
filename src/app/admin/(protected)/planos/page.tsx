@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Crown } from "lucide-react";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/Table";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 type PlanInfo = {
   plan: "START" | "PRO";
@@ -16,6 +21,8 @@ const FEATURES: { label: string; start: boolean; pro: boolean }[] = [
   { label: "Até 50 produtos / Ilimitado", start: true, pro: true },
   { label: "Até 6 categorias / Ilimitado", start: true, pro: true },
   { label: "Financeiro", start: true, pro: true },
+  { label: "Dashboard com gráfico", start: false, pro: true },
+  { label: "Relatórios avançados", start: false, pro: true },
   { label: "Cupons de desconto", start: false, pro: true },
   { label: "Notificações sonoras", start: false, pro: true },
   { label: "Exportação CSV", start: false, pro: true },
@@ -69,7 +76,14 @@ export default function PlanosPage() {
     setCharge({ payload: data.payload, amountCents: data.amountCents });
   }
 
-  if (loading || !info) return <p className="p-6 text-sm text-gray-400">Carregando…</p>;
+  if (loading || !info) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6">
+        <Skeleton className="h-8 w-40 mb-6" />
+        <Skeleton className="h-56" />
+      </div>
+    );
+  }
 
   const dueDateFormatted = new Date(info.dueDate).toLocaleDateString("pt-BR");
   const overdue = info.daysUntilDue < 0;
@@ -77,108 +91,112 @@ export default function PlanosPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Seu plano</h1>
+      <div className="flex items-center gap-2 mb-1">
+        <h1 className="text-xl font-bold text-gray-900">Seu plano</h1>
+        <Badge tone={info.plan === "PRO" ? "brand" : "neutral"}>{info.plan}</Badge>
+      </div>
       <p className="text-sm text-gray-500 mb-4">
-        Plano atual: <span className="font-semibold text-gray-800">{info.plan}</span> · Vencimento:{" "}
-        <span className="font-semibold text-gray-800">{dueDateFormatted}</span>
+        Vencimento: <span className="font-semibold text-gray-800">{dueDateFormatted}</span>
       </p>
 
       {(overdue || dueSoon) && (
-        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3 mb-4">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-          <span>
-            {overdue
-              ? `Sua mensalidade venceu há ${Math.abs(info.daysUntilDue)} dia(s). Regularize para evitar suspensão.`
-              : `Sua mensalidade vence em ${info.daysUntilDue} dia(s).`}
-          </span>
-        </div>
+        <Card className="mb-4 !border-amber-200 !bg-amber-50">
+          <CardBody className="flex items-start gap-2 !py-3.5">
+            <AlertTriangle size={16} className="text-amber-600 mt-0.5 shrink-0" />
+            <span className="text-sm text-amber-800">
+              {overdue
+                ? `Sua mensalidade venceu há ${Math.abs(info.daysUntilDue)} dia(s). Regularize para evitar suspensão.`
+                : `Sua mensalidade vence em ${info.daysUntilDue} dia(s).`}
+            </span>
+          </CardBody>
+        </Card>
       )}
 
       {info.pendingPlanRequest && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-800 text-sm rounded-xl px-4 py-3 mb-4">
-          Solicitação de troca pra <strong>{info.pendingPlanRequest}</strong> registrada. Gere a cobrança abaixo e
-          pague — a troca é confirmada assim que o pagamento cair.
-          <button
-            onClick={generateCharge}
-            disabled={charging}
-            className="block mt-2 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white disabled:opacity-50"
-          >
-            {charging ? "Gerando…" : "Gerar cobrança Pix"}
-          </button>
-        </div>
+        <Card className="mb-4 !border-blue-200 !bg-blue-50">
+          <CardBody className="!py-3.5">
+            <p className="text-sm text-blue-800">
+              Solicitação de troca pra <strong>{info.pendingPlanRequest}</strong> registrada. Gere a cobrança e
+              pague — a troca é confirmada assim que o pagamento cair.
+            </p>
+            <Button
+              onClick={generateCharge}
+              isLoading={charging}
+              size="sm"
+              className="mt-3 !bg-blue-600 hover:!bg-blue-700"
+            >
+              Gerar cobrança Pix
+            </Button>
+          </CardBody>
+        </Card>
       )}
 
-      {error && <p className="text-chili text-sm mb-4">{error}</p>}
+      {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
-      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm mb-6">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400">
-              <th className="px-4 py-3 font-medium">Recurso</th>
-              <th className="px-4 py-3 font-medium text-center">Start</th>
-              <th className="px-4 py-3 font-medium text-center">Pro</th>
-            </tr>
-          </thead>
-          <tbody>
-            {FEATURES.map((f) => (
-              <tr key={f.label} className="border-b border-gray-50 last:border-0">
-                <td className="px-4 py-3 text-gray-700">{f.label}</td>
-                <td className="px-4 py-3 text-center">
-                  {f.start ? (
-                    <CheckCircle2 size={16} className="inline text-emerald-500" />
-                  ) : (
-                    <XCircle size={16} className="inline text-gray-300" />
-                  )}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  {f.pro ? (
-                    <CheckCircle2 size={16} className="inline text-emerald-500" />
-                  ) : (
-                    <XCircle size={16} className="inline text-gray-300" />
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <Thead>
+          <Tr>
+            <Th>Recurso</Th>
+            <Th className="text-center">Start</Th>
+            <Th className="text-center">Pro</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {FEATURES.map((f) => (
+            <Tr key={f.label}>
+              <Td>{f.label}</Td>
+              <Td className="text-center">
+                {f.start ? (
+                  <CheckCircle2 size={16} className="inline text-emerald-500" />
+                ) : (
+                  <XCircle size={16} className="inline text-gray-300" />
+                )}
+              </Td>
+              <Td className="text-center">
+                {f.pro ? (
+                  <CheckCircle2 size={16} className="inline text-emerald-500" />
+                ) : (
+                  <XCircle size={16} className="inline text-gray-300" />
+                )}
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 mt-6">
         {info.plan !== "PRO" && (
-          <button
+          <Button
             onClick={() => requestPlan("PRO")}
             disabled={requesting || info.pendingPlanRequest === "PRO"}
-            className="flex-1 py-3 rounded-full font-semibold text-sm bg-ink text-white shadow-sm disabled:opacity-50"
+            className="flex-1"
           >
+            <Crown size={14} />
             {info.pendingPlanRequest === "PRO" ? "Upgrade já solicitado" : "Fazer upgrade pra Pro"}
-          </button>
+          </Button>
         )}
         {info.plan !== "START" && (
-          <button
+          <Button
+            variant="secondary"
             onClick={() => requestPlan("START")}
             disabled={requesting || info.pendingPlanRequest === "START"}
-            className="flex-1 py-3 rounded-full font-semibold text-sm border border-gray-200 text-gray-600 disabled:opacity-50"
+            className="flex-1"
           >
             {info.pendingPlanRequest === "START" ? "Downgrade já solicitado" : "Voltar pro Start"}
-          </button>
+          </Button>
         )}
       </div>
 
       {charge && (
-        <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
-          <p className="text-sm font-semibold text-gray-900 mb-1">
-            {(charge.amountCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-          </p>
-          <p className="text-xs text-gray-400 mb-4">Escaneie no app do seu banco</p>
-          <img
-            src={`data:image/svg+xml;base64,${btoa(
-              `<svg xmlns="http://www.w3.org/2000/svg"></svg>`
-            )}`}
-            className="hidden"
-            alt=""
-          />
-          <p className="text-xs break-all bg-gray-50 rounded-lg p-3 font-mono">{charge.payload}</p>
-        </div>
+        <Card className="mt-6">
+          <CardBody className="text-center">
+            <p className="text-sm font-semibold text-gray-900 mb-1">
+              {(charge.amountCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </p>
+            <p className="text-xs text-gray-400 mb-4">Copie o código abaixo no app do seu banco</p>
+            <p className="text-xs break-all bg-gray-50 rounded-lg p-3 font-mono">{charge.payload}</p>
+          </CardBody>
+        </Card>
       )}
     </div>
   );

@@ -92,6 +92,7 @@ export default function FinanceiroPage() {
         ))}
       </div>
 
+      {/*
       <Card className="mb-6">
         <CardBody>
           <p className="text-sm font-semibold text-gray-800 mb-3">Exportar relatório</p>
@@ -140,6 +141,7 @@ export default function FinanceiroPage() {
           </Button>
         </CardBody>
       </Card>
+      */}
 
       <div>
         <h2 className="text-xs uppercase tracking-wide font-semibold text-gray-400 mb-2">Últimas vendas</h2>

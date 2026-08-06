@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Flame, Clock, Printer, MapPin, Phone, Bike, MessageCircle } from "lucide-react";
+import { Flame, Clock, Printer, MapPin, Phone, Bike, MessageCircle, Inbox } from "lucide-react";
 import OrderHistoryModal from "./order-history-modal";
 import { buildWhatsAppLink, buildOrderStatusMessage } from "@/lib/whatsapp";
 import { playNotificationSound } from "@/lib/notification-sound";
+import { Badge } from "@/components/ui/Badge";
+import clsx from "clsx";
 
 const STATUS_FLOW = ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
 type Status = (typeof STATUS_FLOW)[number];
@@ -19,7 +21,7 @@ const STATUS_LABEL: Record<Status, string> = {
 };
 
 const STATUS_BORDER_COLOR: Record<Status, string> = {
-  NEW: "#C1440E",
+  NEW: "#C75A1B",
   PREPARING: "#D97706",
   READY: "#059669",
   OUT_FOR_DELIVERY: "#2563EB",
@@ -157,11 +159,11 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
   }
 
   return (
-    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="px-4 py-6 sm:px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       {STATUS_FLOW.map((status) => (
         <div key={status}>
           <p className="text-xs uppercase tracking-wide font-semibold mb-2.5 flex items-center gap-1.5 text-gray-500">
-            {status === "NEW" && <Flame size={13} className="text-chili" />}
+            {status === "NEW" && <Flame size={13} className="text-brand" />}
             {status === "PREPARING" && <Clock size={13} className="text-amber-500" />}
             {status === "OUT_FOR_DELIVERY" && <Bike size={13} className="text-blue-500" />}
             {STATUS_LABEL[status]}
@@ -176,9 +178,10 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
                   <div
                     key={o.id}
                     onClick={() => setHistoryOrderId(o.id)}
-                    className={`rounded-xl bg-white shadow-sm border-l-4 p-3.5 cursor-pointer hover:shadow-md transition-shadow ${
-                      isFlashing ? "animate-pulse ring-2 ring-chili" : ""
-                    }`}
+                    className={clsx(
+                      "rounded-2xl bg-white shadow-sm border border-surface-border border-l-4 p-3.5 cursor-pointer hover:shadow-md transition-shadow duration-[180ms]",
+                      isFlashing && "animate-pulse ring-2 ring-brand"
+                    )}
                     style={{ borderLeftColor: STATUS_BORDER_COLOR[status] }}
                   >
                     <div className="flex items-center justify-between mb-1">
@@ -206,9 +209,7 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
 
                     <div className="flex items-center justify-between mt-2.5">
                       <span className="text-emerald-600 font-bold text-sm">{currency(o.totalCents)}</span>
-                      <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                        {PAYMENT_LABEL[o.paymentMethod] ?? o.paymentMethod}
-                      </span>
+                      <Badge tone="neutral">{PAYMENT_LABEL[o.paymentMethod] ?? o.paymentMethod}</Badge>
                     </div>
 
                     {o.paymentMethod === "CASH" && o.changeForCents && (
@@ -223,7 +224,7 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
                           e.stopPropagation();
                           confirmPayment(o.id);
                         }}
-                        className="w-full mt-2 text-[11px] font-semibold px-2.5 py-1.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200"
+                        className="w-full mt-2 text-[11px] font-semibold px-2.5 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors duration-[180ms]"
                       >
                         ⏳ Pix aguardando conferência — toque para confirmar
                       </button>
@@ -236,17 +237,18 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
                             e.stopPropagation();
                             advance(o);
                           }}
-                          className="flex-1 text-xs font-semibold px-2.5 py-2 rounded-full bg-chili text-white shadow-sm active:scale-[0.98] transition-transform"
+                          className="flex-1 text-xs font-semibold px-2.5 py-2 rounded-full bg-brand text-white shadow-sm hover:bg-brand-dark active:scale-[0.98] transition-all duration-[180ms]"
                         >
                           {getNextActionLabel(o)}
                         </button>
                       )}
+
                       
-                       <a href={buildWhatsAppLink(o.customerPhone, buildOrderStatusMessage(o.status, o.customerName, o.id.slice(-5)))}
+                      <a href={buildWhatsAppLink(o.customerPhone, buildOrderStatusMessage(o.status, o.customerName, o.id.slice(-5)))}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-emerald-600 hover:bg-emerald-50 transition-colors shrink-0"
+                        className="flex items-center justify-center w-9 h-9 rounded-full border border-surface-border text-emerald-600 hover:bg-emerald-50 transition-colors duration-[180ms] shrink-0"
                         title="Enviar mensagem no WhatsApp"
                       >
                         <MessageCircle size={14} />
@@ -255,7 +257,7 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
                         href={`/admin/pedidos/${o.id}/imprimir`}
                         target="_blank"
                         onClick={(e) => e.stopPropagation()}
-                        className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
+                        className="flex items-center justify-center w-9 h-9 rounded-full border border-surface-border text-gray-500 hover:bg-gray-50 transition-colors duration-[180ms] shrink-0"
                         title="Imprimir pedido"
                       >
                         <Printer size={14} />
@@ -265,14 +267,15 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
                 );
               })}
             {orders.filter((o) => o.status === status).length === 0 && (
-              <p className="text-xs italic text-gray-300">Nenhum pedido</p>
+              <div className="rounded-2xl border border-dashed border-surface-border p-4 flex flex-col items-center text-center gap-1.5">
+                <Inbox size={14} className="text-gray-300" />
+                <p className="text-xs italic text-gray-300">Nenhum pedido</p>
+              </div>
             )}
           </div>
         </div>
       ))}
-      {historyOrderId && (
-        <OrderHistoryModal orderId={historyOrderId} onClose={() => setHistoryOrderId(null)} />
-      )}
+      {historyOrderId && <OrderHistoryModal orderId={historyOrderId} onClose={() => setHistoryOrderId(null)} />}
     </div>
   );
 }

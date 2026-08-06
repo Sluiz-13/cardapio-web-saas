@@ -7,9 +7,9 @@ export default async function PlatformLayout({ children }: { children: React.Rea
   if (!session) redirect("/platform/login");
 
   return (
-    <div className="min-h-screen bg-surface-bg">
+    <div className="min-h-screen flex flex-col sm:flex-row bg-surface-bg">
       <PlatformNav userName={session.user.name} />
-      <main>{children}</main>
+      <main className="flex-1 min-w-0">{children}</main>
     </div>
   );
 }

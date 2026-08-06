@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, X, Pencil } from "lucide-react";
+import { Plus, Trash2, X, Pencil, Package } from "lucide-react";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Label } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 
 type Category = { id: string; name: string };
 type Product = {
@@ -22,6 +29,7 @@ const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", 
 const DAY_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 export default function ProdutosPage() {
+  const { show } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,69 +63,60 @@ export default function ProdutosPage() {
   async function handleDelete(id: string) {
     if (!confirm("Remover esse produto do cardápio?")) return;
     await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    show("Produto removido.", "info");
     load();
   }
 
   const modalOpen = showCreateForm || editingProduct !== null;
 
   return (
-    <div className="p-6">
+    <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          disabled={categories.length === 0}
-          className="flex items-center gap-1 px-4 py-2.5 rounded-full font-semibold text-sm bg-emerald-600 text-white shadow-sm disabled:opacity-40"
-          title={categories.length === 0 ? "Cadastre uma categoria primeiro" : ""}
-        >
+        <h1 className="text-xl font-bold text-gray-900">Produtos</h1>
+        <Button onClick={() => setShowCreateForm(true)} disabled={categories.length === 0}>
           <Plus size={14} /> Novo Produto
-        </button>
+        </Button>
       </div>
 
       {categories.length === 0 && (
-        <p className="text-sm text-chili mb-4">
-          Cadastre pelo menos uma categoria antes de adicionar produtos.
-        </p>
+        <p className="text-sm text-brand mb-4">Cadastre pelo menos uma categoria antes de adicionar produtos.</p>
       )}
 
       {loading ? (
-        <p className="text-sm text-gray-400">Carregando…</p>
+        <div className="space-y-2">
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
+        </div>
+      ) : products.length === 0 ? (
+        <EmptyState icon={<Package size={18} />} title="Nenhum produto cadastrado ainda" description="Adicione o primeiro produto ao seu cardápio." />
       ) : (
-        <div className="space-y-2 max-w-2xl">
+        <div className="space-y-2">
           {products.map((p) => (
-            <div
-              key={p.id}
-              className="flex items-center gap-3 p-3 rounded-xl bg-white shadow-sm border border-gray-100"
-            >
-              {p.imageUrl && (
-                <img src={p.imageUrl} className="w-12 h-12 object-cover rounded-lg shrink-0" alt="" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm text-gray-900 truncate">{p.name}</p>
-                <p className="text-xs text-gray-400">{p.category.name}</p>
-                {p.availableDays.length > 0 && (
-                  <p className="text-[10px] text-amber-600 font-semibold mt-0.5">
-                    Só: {p.availableDays.map((d) => DAY_SHORT[d]).join(", ")}
-                  </p>
-                )}
-              </div>
-              <span className="text-emerald-600 font-bold text-sm shrink-0">{currency(p.priceCents)}</span>
-              <button
-                onClick={() => toggleActive(p)}
-                className="text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0"
-                style={{ background: p.active ? "#059669" : "#D1D5DB", color: "#FFFFFF" }}
-              >
-                {p.active ? "Ativo" : "Inativo"}
-              </button>
-              <button onClick={() => setEditingProduct(p)} className="text-gray-300 hover:text-emerald-600 transition-colors shrink-0">
-                <Pencil size={15} />
-              </button>
-              <button onClick={() => handleDelete(p.id)} className="text-gray-300 hover:text-chili transition-colors shrink-0">
-                <Trash2 size={15} />
-              </button>
-            </div>
+            <Card key={p.id}>
+              <CardBody className="flex items-center gap-3 !py-3">
+                {p.imageUrl && <img src={p.imageUrl} className="w-12 h-12 object-cover rounded-lg shrink-0" alt="" />}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-gray-900 truncate">{p.name}</p>
+                  <p className="text-xs text-gray-400">{p.category.name}</p>
+                  {p.availableDays.length > 0 && (
+                    <p className="text-[10px] text-amber-600 font-semibold mt-0.5">
+                      Só: {p.availableDays.map((d) => DAY_SHORT[d]).join(", ")}
+                    </p>
+                  )}
+                </div>
+                <span className="text-emerald-600 font-bold text-sm shrink-0">{currency(p.priceCents)}</span>
+                <button onClick={() => toggleActive(p)} className="shrink-0">
+                  <Badge tone={p.active ? "success" : "neutral"}>{p.active ? "Ativo" : "Inativo"}</Badge>
+                </button>
+                <button onClick={() => setEditingProduct(p)} className="text-gray-300 hover:text-brand transition-colors duration-[180ms] shrink-0" aria-label="Editar">
+                  <Pencil size={15} />
+                </button>
+                <button onClick={() => handleDelete(p.id)} className="text-gray-300 hover:text-red-500 transition-colors duration-[180ms] shrink-0" aria-label="Remover">
+                  <Trash2 size={15} />
+                </button>
+              </CardBody>
+            </Card>
           ))}
-          {products.length === 0 && <p className="text-sm text-gray-400">Nenhum produto cadastrado ainda.</p>}
         </div>
       )}
 
@@ -132,19 +131,12 @@ export default function ProdutosPage() {
           onSaved={() => {
             setShowCreateForm(false);
             setEditingProduct(null);
+            show(editingProduct ? "Produto atualizado." : "Produto criado.", "success");
             load();
           }}
         />
       )}
     </div>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5 text-gray-400">
-      {children}
-    </label>
   );
 }
 
@@ -166,9 +158,7 @@ function ProductFormModal({
   const [price, setPrice] = useState(initialProduct ? String(initialProduct.priceCents / 100) : "");
   const [imageUrl, setImageUrl] = useState(initialProduct?.imageUrl ?? "");
   const [categoryId, setCategoryId] = useState(initialProduct?.categoryId ?? categories[0]?.id ?? "");
-  const [removables, setRemovables] = useState<string[]>(
-    initialProduct?.removableOptions.map((r) => r.name) ?? []
-  );
+  const [removables, setRemovables] = useState<string[]>(initialProduct?.removableOptions.map((r) => r.name) ?? []);
   const [removableInput, setRemovableInput] = useState("");
   const [extras, setExtras] = useState<{ name: string; priceCents: number }[]>(
     initialProduct?.extraOptions.map((e) => ({ name: e.name, priceCents: e.priceCents })) ?? []
@@ -242,61 +232,56 @@ function ProductFormModal({
   }
 
   const inputBaseClass =
-    "px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-chili/30 focus:border-chili transition-shadow";
+    "px-3.5 py-2.5 rounded-xl border border-surface-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-shadow duration-[180ms]";
   const inputClass = `w-full ${inputBaseClass}`;
 
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-lg bg-white rounded-2xl max-h-[88vh] flex flex-col"
-      >
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
-          <h2 className="text-lg font-bold text-gray-900">
-            {isEditing ? "Editar Produto" : "Novo Produto"}
-          </h2>
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-fade-in" onClick={onClose}>
+      <form onSubmit={handleSubmit} className="w-full max-w-lg bg-white rounded-2xl max-h-[88vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-surface-border shrink-0">
+          <h2 className="text-lg font-bold text-gray-900">{isEditing ? "Editar Produto" : "Novo Produto"}</h2>
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors duration-[180ms]" aria-label="Fechar">
             <X size={18} />
           </button>
         </div>
 
         <div className="overflow-y-auto px-5 py-4 space-y-5">
-          {/* Dados básicos */}
           <div>
-            <SectionLabel>Nome</SectionLabel>
+            <Label>Nome</Label>
             <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <SectionLabel>Preço (R$)</SectionLabel>
+              <Label>Preço (R$)</Label>
               <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" step="0.01" min="0.01" className={inputClass} />
             </div>
             <div>
-              <SectionLabel>Categoria</SectionLabel>
+              <Label>Categoria</Label>
               <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={inputClass}>
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
 
           <div>
-            <SectionLabel>Descrição</SectionLabel>
+            <Label>Descrição</Label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} rows={2} />
           </div>
 
           <div>
-            <SectionLabel>URL da imagem</SectionLabel>
+            <Label>URL da imagem</Label>
             <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className={inputClass} placeholder="https://..." />
           </div>
 
-          <hr className="border-gray-100" />
+          <hr className="border-surface-border" />
 
-          {/* Ingredientes removíveis */}
           <div>
-            <SectionLabel>Ingredientes removíveis</SectionLabel>
+            <Label>Ingredientes removíveis</Label>
             <div className="flex gap-2 mb-2">
               <input
                 value={removableInput}
@@ -304,7 +289,11 @@ function ProductFormModal({
                 placeholder="ex: Cebola"
                 className={`flex-1 ${inputClass}`}
               />
-              <button type="button" onClick={addRemovable} className="px-3.5 py-2 rounded-full border border-gray-200 text-xs font-semibold text-gray-600 shrink-0">
+              <button
+                type="button"
+                onClick={addRemovable}
+                className="px-3.5 py-2 rounded-full border border-surface-border text-xs font-semibold text-gray-600 shrink-0 hover:bg-gray-50 transition-colors duration-[180ms]"
+              >
                 Adicionar
               </button>
             </div>
@@ -312,7 +301,7 @@ function ProductFormModal({
               {removables.map((r, i) => (
                 <span key={i} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
                   {r}
-                  <button type="button" onClick={() => removeRemovable(i)} className="text-gray-400 hover:text-chili">
+                  <button type="button" onClick={() => removeRemovable(i)} className="text-gray-400 hover:text-red-500">
                     <X size={11} />
                   </button>
                 </span>
@@ -321,9 +310,8 @@ function ProductFormModal({
             </div>
           </div>
 
-          {/* Extras pagos */}
           <div>
-            <SectionLabel>Extras pagos</SectionLabel>
+            <Label>Extras pagos</Label>
             <div className="flex gap-2 mb-3">
               <input
                 value={extraName}
@@ -340,7 +328,11 @@ function ProductFormModal({
                 placeholder="R$"
                 className={`w-20 shrink-0 ${inputBaseClass}`}
               />
-              <button type="button" onClick={addExtra} className="px-3.5 py-2 rounded-full border border-gray-200 text-xs font-semibold text-gray-600 shrink-0">
+              <button
+                type="button"
+                onClick={addExtra}
+                className="px-3.5 py-2 rounded-full border border-surface-border text-xs font-semibold text-gray-600 shrink-0 hover:bg-gray-50 transition-colors duration-[180ms]"
+              >
                 Adicionar
               </button>
             </div>
@@ -348,7 +340,7 @@ function ProductFormModal({
               {extras.map((ex, i) => (
                 <span key={i} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
                   {ex.name} · {currency(ex.priceCents)}
-                  <button type="button" onClick={() => removeExtra(i)} className="text-gray-400 hover:text-chili">
+                  <button type="button" onClick={() => removeExtra(i)} className="text-gray-400 hover:text-red-500">
                     <X size={11} />
                   </button>
                 </span>
@@ -357,11 +349,10 @@ function ProductFormModal({
             </div>
           </div>
 
-          <hr className="border-gray-100" />
+          <hr className="border-surface-border" />
 
-          {/* Disponibilidade por dia */}
           <div>
-            <SectionLabel>Disponível em (deixe tudo desmarcado para aparecer todo dia)</SectionLabel>
+            <Label>Disponível em (deixe tudo desmarcado para aparecer todo dia)</Label>
             <div className="flex flex-wrap gap-1.5">
               {DAY_SHORT.map((label, day) => {
                 const active = availableDays.includes(day);
@@ -369,10 +360,8 @@ function ProductFormModal({
                   <button
                     key={day}
                     type="button"
-                    onClick={() =>
-                      setAvailableDays((cur) => (active ? cur.filter((d) => d !== day) : [...cur, day]))
-                    }
-                    className="text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors"
+                    onClick={() => setAvailableDays((cur) => (active ? cur.filter((d) => d !== day) : [...cur, day]))}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors duration-[180ms]"
                     style={{
                       borderColor: active ? "#059669" : "#E5E7EB",
                       background: active ? "#059669" : "#FFFFFF",
@@ -386,16 +375,13 @@ function ProductFormModal({
             </div>
           </div>
 
-          {error && <p className="text-chili text-xs">{error}</p>}
+          {error && <p className="text-red-600 text-xs">{error}</p>}
         </div>
 
-        <div className="px-5 py-4 border-t border-gray-100 shrink-0">
-          <button
-            disabled={saving}
-            className="w-full py-3 rounded-full font-semibold text-sm bg-chili text-white shadow-sm disabled:opacity-50"
-          >
-            {saving ? "Salvando…" : isEditing ? "Salvar Alterações" : "Salvar Produto"}
-          </button>
+        <div className="px-5 py-4 border-t border-surface-border shrink-0">
+          <Button type="submit" isLoading={saving} className="w-full">
+            {isEditing ? "Salvar Alterações" : "Salvar Produto"}
+          </Button>
         </div>
       </form>
     </div>

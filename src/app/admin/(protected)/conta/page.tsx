@@ -1,24 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input, Label } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/Toast";
 
 export default function ContaPage() {
+  const { show } = useToast();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+
   const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [emailError, setEmailError] = useState("");
-  const [emailSuccess, setEmailSuccess] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setSuccess(false);
 
     if (newPassword.length < 8) {
       setError("A nova senha precisa ter pelo menos 8 caracteres.");
@@ -43,7 +46,7 @@ export default function ContaPage() {
       return;
     }
 
-    setSuccess(true);
+    show("Senha alterada com sucesso.", "success");
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
@@ -52,7 +55,6 @@ export default function ContaPage() {
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
     setEmailError("");
-    setEmailSuccess(false);
 
     if (!newEmail.trim() || !currentPasswordForEmail) {
       setEmailError("Preencha a senha atual e o novo e-mail.");
@@ -73,94 +75,56 @@ export default function ContaPage() {
       return;
     }
 
-    setEmailSuccess(true);
+    show("E-mail alterado. Use o novo e-mail no próximo login.", "success");
     setCurrentPasswordForEmail("");
     setNewEmail("");
   }
 
-  const inputClass =
-    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-chili/30 focus:border-chili transition-shadow";
-
   return (
-    <div className="p-4 sm:p-6 max-w-sm">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Minha Conta</h1>
+    <div className="max-w-sm mx-auto px-4 py-6 sm:px-6">
+      <h1 className="text-xl font-bold text-gray-900 mb-6">Minha Conta</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Senha atual</label>
-          <input
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Nova senha</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Confirmar nova senha</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className={inputClass}
-          />
-        </div>
+      <Card className="mb-4">
+        <CardBody>
+          <p className="text-sm font-semibold text-gray-800 mb-3">Trocar Senha</p>
+          <form onSubmit={handleSubmit}>
+            <Label>Senha atual</Label>
+            <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+            <Label>Nova senha</Label>
+            <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+            <Label>Confirmar nova senha</Label>
+            <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
 
-        {error && <p className="text-chili text-xs">{error}</p>}
-        {success && <p className="text-emerald-600 text-xs">Senha alterada com sucesso.</p>}
+            {error && <p className="text-red-600 text-xs mb-3">{error}</p>}
 
-        <button
-          disabled={saving}
-          className="w-full py-3 rounded-full font-semibold text-sm bg-chili text-white shadow-sm disabled:opacity-50"
-        >
-          {saving ? "Salvando…" : "Trocar Senha"}
-        </button>
-      </form>
-      <hr className="my-6 border-gray-100" />
+            <Button type="submit" isLoading={saving} className="w-full">
+              Trocar Senha
+            </Button>
+          </form>
+        </CardBody>
+      </Card>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Trocar E-mail</h2>
-        <form onSubmit={handleEmailSubmit} className="space-y-3">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Senha atual</label>
-            <input
+      <Card>
+        <CardBody>
+          <p className="text-sm font-semibold text-gray-800 mb-3">Trocar E-mail</p>
+          <form onSubmit={handleEmailSubmit}>
+            <Label>Senha atual</Label>
+            <Input
               type="password"
               value={currentPasswordForEmail}
               onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
-              className={inputClass}
             />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Novo e-mail</label>
-            <input
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              className={inputClass}
-            />
-          </div>
+            <Label>Novo e-mail</Label>
+            <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
 
-          {emailError && <p className="text-chili text-xs">{emailError}</p>}
-          {emailSuccess && (
-            <p className="text-emerald-600 text-xs">
-              E-mail alterado. Use o novo e-mail no próximo login.
-            </p>
-          )}
+            {emailError && <p className="text-red-600 text-xs mb-3">{emailError}</p>}
 
-          <button
-            disabled={savingEmail}
-            className="w-full py-3 rounded-full font-semibold text-sm bg-chili text-white shadow-sm disabled:opacity-50"
-          >
-            {savingEmail ? "Salvando…" : "Trocar E-mail"}
-          </button>
-        </form>
+            <Button type="submit" isLoading={savingEmail} className="w-full">
+              Trocar E-mail
+            </Button>
+          </form>
+        </CardBody>
+      </Card>
     </div>
   );
 }

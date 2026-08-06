@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, FolderOpen } from "lucide-react";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 
 type Category = { id: string; name: string; order: number };
 
 export default function CategoriasPage() {
+  const { show } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -44,54 +51,68 @@ export default function CategoriasPage() {
     }
 
     setName("");
+    show("Categoria criada.", "success");
     load();
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Remover essa categoria? Produtos vinculados também serão afetados.")) return;
     await fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
+    show("Categoria removida.", "info");
     load();
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Categorias</h1>
+    <div className="max-w-xl mx-auto px-4 py-6 sm:px-6">
+      <h1 className="text-xl font-bold text-gray-900 mb-6">Categorias</h1>
 
-      <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-2 mb-6">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nome da categoria (ex: Carnes)"
-          className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-chili/30 focus:border-chili transition-shadow"
-        />
-        <button
-          disabled={saving}
-          className="flex items-center gap-1 px-4 py-2.5 rounded-full font-semibold text-sm bg-emerald-600 text-white shadow-sm disabled:opacity-50"
-        >
-          <Plus size={14} /> Adicionar
-        </button>
-      </form>
-
-      {error && <p className="text-chili text-sm mb-4">{error}</p>}
+      <Card className="mb-6">
+        <CardBody>
+          <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-2 items-start">
+            <div className="flex-1 w-full">
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Nome da categoria (ex: Carnes)"
+                className="mb-0"
+                error={error || undefined}
+              />
+            </div>
+            <Button type="submit" isLoading={saving} className="shrink-0">
+              <Plus size={14} /> Adicionar
+            </Button>
+          </form>
+        </CardBody>
+      </Card>
 
       {loading ? (
-        <p className="text-sm text-gray-400">Carregando…</p>
+        <div className="space-y-2">
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
+        </div>
       ) : categories.length === 0 ? (
-        <p className="text-sm text-gray-400">Nenhuma categoria cadastrada ainda.</p>
+        <EmptyState
+          icon={<FolderOpen size={18} />}
+          title="Nenhuma categoria cadastrada ainda"
+          description="Crie a primeira categoria acima."
+        />
       ) : (
-        <ul className="space-y-2">
+        <div className="space-y-2">
           {categories.map((cat) => (
-            <li
-              key={cat.id}
-              className="flex items-center justify-between px-4 py-3 rounded-xl bg-white shadow-sm border border-gray-100"
-            >
-              <span className="font-semibold text-sm text-gray-800">{cat.name}</span>
-              <button onClick={() => handleDelete(cat.id)} className="text-gray-300 hover:text-chili transition-colors">
-                <Trash2 size={15} />
-              </button>
-            </li>
+            <Card key={cat.id}>
+              <CardBody className="flex items-center justify-between !py-3.5">
+                <span className="font-semibold text-sm text-gray-800">{cat.name}</span>
+                <button
+                  onClick={() => handleDelete(cat.id)}
+                  className="text-gray-300 hover:text-red-500 transition-colors duration-[180ms]"
+                  aria-label="Remover categoria"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </CardBody>
+            </Card>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

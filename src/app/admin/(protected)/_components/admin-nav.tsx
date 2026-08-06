@@ -1,60 +1,43 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import clsx from "clsx";
+import {
+  ClipboardList,
+  LayoutDashboard,
+  Package,
+  Tags,
+  Wallet,
+  FileBarChart,
+  CreditCard,
+  UserCircle,
+  Settings,
+  Ticket,
+  Truck,
+} from "lucide-react";
+import { Sidebar, type SidebarLink } from "@/components/ui/Sidebar";
 
-const LINKS = [
-  { href: "/admin", label: "Pedidos" },
-  { href: "/admin/dashboard", label: "Dashboard" },
-  { href: "/admin/produtos", label: "Produtos" },
-  { href: "/admin/categorias", label: "Categorias" },
-  { href: "/admin/cupons", label: "Cupons" },
-  { href: "/admin/entregas", label: "Entregas" },
-  { href: "/admin/relatorios", label: "Relatórios" },
-  { href: "/admin/financeiro", label: "Financeiro" },
-  { href: "/admin/planos", label: "Meu Plano" },
-  { href: "/admin/configuracoes", label: "Configurações" },
-  { href: "/admin/conta", label: "Conta" },
-  
-  
+const LINKS: SidebarLink[] = [
+  { href: "/admin", label: "Pedidos", icon: ClipboardList },
+  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/produtos", label: "Produtos", icon: Package },
+  { href: "/admin/categorias", label: "Categorias", icon: Tags },
+  { href: "/admin/financeiro", label: "Financeiro", icon: Wallet },
+  { href: "/admin/relatorios", label: "Relatórios", icon: FileBarChart },
+  { href: "/admin/planos", label: "Plano", icon: CreditCard },
+  { href: "/admin/conta", label: "Conta", icon: UserCircle },
+  { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
+  { href: "/admin/cupons", label: "Cupons", icon: Ticket },
+  { href: "/admin/entregas", label: "Entregas", icon: Truck },
 ];
 
 export default function AdminNav({ restaurantName, userName }: { restaurantName: string; userName: string }) {
-  const pathname = usePathname();
-
   return (
-    <header className="sticky top-0 z-40 flex flex-col gap-3 px-4 py-3.5 bg-white/90 backdrop-blur border-b border-surface-border sm:flex-row sm:items-center sm:justify-between sm:px-6">
-      <div className="min-w-0 w-full sm:w-auto">
-        <p className="text-[11px] uppercase tracking-wide text-gray-400 font-medium mb-1.5">{restaurantName}</p>
-        <nav className="flex gap-1 overflow-x-auto whitespace-nowrap pb-1 -mb-1 scrollbar-none">
-          {LINKS.map((link) => {
-            const active = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={clsx(
-                  "px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-[180ms]",
-                  active ? "bg-brand-light text-brand" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-                )}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-      <div className="flex items-center justify-between gap-3 sm:justify-start">
-        <span className="text-sm text-gray-500 truncate">{userName}</span>
-        <button
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
-          className="text-xs font-semibold px-3.5 py-1.5 rounded-full border border-surface-border text-gray-600 hover:bg-gray-50 transition-colors duration-[180ms]"
-        >
-          Sair
-        </button>
-      </div>
-    </header>
+    <Sidebar
+      brand={restaurantName}
+      links={LINKS}
+      userName={userName}
+      onSignOut={() => signOut({ callbackUrl: "/admin/login" })}
+      tone="light"
+    />
   );
 }

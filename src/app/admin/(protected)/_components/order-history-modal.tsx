@@ -26,15 +26,15 @@ export default function OrderHistoryModal({ orderId, onClose }: { orderId: strin
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-sm bg-white rounded-2xl p-5">
+      <div className="w-full max-w-sm bg-white rounded-2xl p-5 shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">Pedido #{orderId.slice(-5)}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors duration-[180ms]" aria-label="Fechar">
             <X size={18} />
           </button>
         </div>
@@ -59,9 +59,7 @@ export default function OrderHistoryModal({ orderId, onClose }: { orderId: strin
                     <Clock size={10} />
                     {new Date(entry.changedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   </p>
-                  <p className="text-sm font-semibold text-gray-800 mt-0.5">
-                    {STATUS_LABEL[entry.status] ?? entry.status}
-                  </p>
+                  <p className="text-sm font-semibold text-gray-800 mt-0.5">{STATUS_LABEL[entry.status] ?? entry.status}</p>
                 </div>
               </div>
             ))}
