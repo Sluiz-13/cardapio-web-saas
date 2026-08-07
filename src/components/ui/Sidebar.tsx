@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut, type LucideIcon } from "lucide-react";
 import clsx from "clsx";
 
 export type SidebarLink = {
   href: string;
   label: string;
-  icon: ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
 };
 
 interface SidebarProps {
