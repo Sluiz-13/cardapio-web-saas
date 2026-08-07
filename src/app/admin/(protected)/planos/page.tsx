@@ -101,13 +101,18 @@ export default function PlanosPage() {
 
       {(overdue || dueSoon) && (
         <Card className="mb-4 !border-amber-200 !bg-amber-50">
-          <CardBody className="flex items-start gap-2 !py-3.5">
-            <AlertTriangle size={16} className="text-amber-600 mt-0.5 shrink-0" />
-            <span className="text-sm text-amber-800">
-              {overdue
-                ? `Sua mensalidade venceu há ${Math.abs(info.daysUntilDue)} dia(s). Regularize para evitar suspensão.`
-                : `Sua mensalidade vence em ${info.daysUntilDue} dia(s).`}
-            </span>
+          <CardBody className="!py-3.5">
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={16} className="text-amber-600 mt-0.5 shrink-0" />
+              <span className="text-sm text-amber-800">
+                {overdue
+                  ? `Sua mensalidade venceu há ${Math.abs(info.daysUntilDue)} dia(s). Regularize para evitar suspensão.`
+                  : `Sua mensalidade vence em ${info.daysUntilDue} dia(s).`}
+              </span>
+            </div>
+            <Button onClick={generateCharge} isLoading={charging} size="sm" className="mt-3 !bg-amber-600 hover:!bg-amber-700">
+              Gerar cobrança Pix pra renovar
+            </Button>
           </CardBody>
         </Card>
       )}

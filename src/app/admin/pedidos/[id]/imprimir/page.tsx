@@ -75,8 +75,6 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
         <span>{currency(order.totalCents)}</span>
       </div>
       <p className="mt-1"><strong>Pagamento:</strong> {PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}</p>
-
-      <p className="mt-1"><strong>Pagamento:</strong> {PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}</p>
       {order.paymentMethod === "CASH" && order.changeForCents && (
         <p>
           <strong>Troco para:</strong> {currency(order.changeForCents)} (levar {currency(order.changeForCents - order.totalCents)})

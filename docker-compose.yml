@@ -12,5 +12,21 @@ services:
     volumes:
       - cardapio_web_pgdata:/var/lib/postgresql/data
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cardapio-web-saas-app
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    env_file:
+      - .env.production
+    ports:
+      - "3000:3000"
+    volumes:
+      - cardapio_web_uploads:/app/public/uploads
+
 volumes:
   cardapio_web_pgdata:
+  cardapio_web_uploads:

@@ -186,15 +186,17 @@ export default function RestaurantsTable({ initialRestaurants }: { initialRestau
                   >
                     Cobrar
                   </button>
-                  {r.paymentPending && (
-                    <button
-                      onClick={() => handleConfirmPayment(r)}
-                      disabled={loadingId === r.id}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      Confirmar pagamento
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleConfirmPayment(r)}
+                    disabled={loadingId === r.id}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-full disabled:opacity-50 ${
+                      r.paymentPending
+                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                        : "border border-gray-200 text-gray-500 hover:bg-gray-50"
+                    }`}
+                  >
+                    Confirmar pagamento
+                  </button>
                   {r.pendingPlanRequest && (
                     <button
                       onClick={() => handleApprovePlanRequest(r)}
