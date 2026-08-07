@@ -44,7 +44,7 @@ export default function PlatformFinanceiroPage() {
             <BarChart data={data.monthlyRevenue}>
               <XAxis dataKey="month" fontSize={11} stroke="#9CA3AF" />
               <YAxis tickFormatter={(v) => `R$${Math.round(v / 100)}`} fontSize={11} stroke="#9CA3AF" width={50} />
-              <Tooltip formatter={(v: number) => currency(v)} />
+              <Tooltip formatter={(v) => currency(Number(v))} />
               <Bar dataKey="totalCents" fill="#C75A1B" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

@@ -21,32 +21,29 @@ export async function GET() {
     }),
   ]);
 
-  // Últimos 6 meses de receita, agrupado por mês (feito em memória — volume baixo).
+  // Últimos 6 meses, um bucket por mês, com o range de datas guardado
+  // separado do que vai pra resposta (evita misturar tipo "interno" com
+  // o formato final que o front espera).
   const monthsBack = 6;
-  const monthlyRevenue: { month: string; totalCents: number }[] = [];
-  for (let i = monthsBack - 1; i >= 0; i--) {
+  const buckets = Array.from({ length: monthsBack }, (_, idx) => {
+    const i = monthsBack - 1 - idx;
     const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-    monthlyRevenue.push({
-      month: start.toISOString().slice(0, 7),
-      totalCents: 0,
-      start,
-      end,
-    } as any);
-  }
+    return { month: start.toISOString().slice(0, 7), start, end };
+  });
 
-  const allPaymentsForChart = await db.platformPayment.findMany({
-    where: { confirmedAt: { gte: monthlyRevenue[0].start as any } },
+  const earliestStart = buckets[0].start;
+  const paymentsForChart = await db.platformPayment.findMany({
+    where: { confirmedAt: { gte: earliestStart } },
     select: { amountCents: true, confirmedAt: true },
   });
 
-  for (const bucket of monthlyRevenue as any[]) {
-    bucket.totalCents = allPaymentsForChart
+  const monthlyRevenue = buckets.map((bucket) => ({
+    month: bucket.month,
+    totalCents: paymentsForChart
       .filter((p) => p.confirmedAt >= bucket.start && p.confirmedAt < bucket.end)
-      .reduce((sum, p) => sum + p.amountCents, 0);
-    delete bucket.start;
-    delete bucket.end;
-  }
+      .reduce((sum, p) => sum + p.amountCents, 0),
+  }));
 
   const overdue = overdueCandidates
     .map((r) => {

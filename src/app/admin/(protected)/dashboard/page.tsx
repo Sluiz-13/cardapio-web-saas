@@ -105,7 +105,7 @@ export default function DashboardPage() {
             <AreaChart data={data.revenueChart}>
               <XAxis dataKey="date" tickFormatter={(d) => d.slice(8, 10) + "/" + d.slice(5, 7)} fontSize={11} stroke="#9CA3AF" />
               <YAxis tickFormatter={(v) => `R$${Math.round(v / 100)}`} fontSize={11} stroke="#9CA3AF" width={50} />
-              <Tooltip formatter={(v: number) => currency(v)} labelFormatter={(d) => d} />
+              <Tooltip formatter={(v) => currency(Number(v))} labelFormatter={(d) => d} />
               <Area type="monotone" dataKey="totalCents" stroke="#C75A1B" fill="#C75A1B22" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
