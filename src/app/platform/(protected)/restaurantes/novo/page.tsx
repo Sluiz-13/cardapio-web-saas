@@ -13,6 +13,7 @@ export default function NovoRestaurantePage() {
     ownerPassword: "",
     plan: "START" as "START" | "PRO",
     couponCode: "",
+    contactEmail: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -118,8 +119,18 @@ export default function NovoRestaurantePage() {
           value={form.ownerPassword}
           onChange={(e) => setForm((f) => ({ ...f, ownerPassword: e.target.value }))}
         />
+        <label className={labelClass}>E-mail de contato do restaurante (opcional)</label>
+        <input
+          type="email"
+          className={inputClass}
+          placeholder="contato@restaurante.com"
+          value={form.contactEmail}
+          onChange={(e) => setForm((f) => ({ ...f, contactEmail: e.target.value }))}
+        />
+        <p className="text-xs text-gray-400 -mt-3 mb-4">Separado do e-mail de login do dono. Usado pra notificações futuras.</p>
 
         <label className={labelClass}>Cupom de boas-vindas (opcional)</label>
+        
         <input
           className={inputClass}
           placeholder="Ex: BEMVINDO20"

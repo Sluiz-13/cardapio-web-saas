@@ -11,6 +11,7 @@ import {
   CircleDot,
   ImageOff,
   MapPin,
+  Phone,
 } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import PixQrCode from "./pix-qr-code";
@@ -33,6 +34,7 @@ type Restaurant = {
   name: string;
   isOpen: boolean;
   phone?: string | null;
+  logoUrl?: string | null;
   address?: string | null;
   avgDeliveryTime?: string | null;
 };
@@ -120,10 +122,9 @@ export default function MenuClient({
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 text-center">
         <div>
           <ChefHat size={32} className="mx-auto mb-3 text-chili" />
-          <h1 className="font-bold text-2xl text-gray-900">{restaurant.name}</h1>
+              </div>
           <p className="text-gray-500 mt-2">No momento estamos fechados. Volte mais tarde!</p>
         </div>
-      </div>
     );
   }
 
@@ -140,9 +141,18 @@ export default function MenuClient({
                 </span>
               </div>
 
-              <h1 className="font-bold text-2xl sm:text-3xl text-chili leading-tight">
-                {restaurant.name}
-              </h1>
+              <div className="flex items-center gap-2.5">
+                {restaurant.logoUrl && (
+                  <img
+                    src={restaurant.logoUrl}
+                    alt={restaurant.name}
+                    className="w-11 h-11 rounded-xl object-cover border border-gray-100 shrink-0"
+                  />
+                )}
+                <h1 className="font-bold text-2xl sm:text-3xl text-chili leading-tight">
+                  {restaurant.name}
+                </h1>
+              </div>
               {restaurant.address && (
                 
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`}
@@ -152,6 +162,15 @@ export default function MenuClient({
                 >
                   <MapPin size={12} />
                   {restaurant.address}
+                </a>
+              )}
+              {restaurant.phone && (
+                
+                <a href={`tel:${restaurant.phone.replace(/\D/g, "")}`}
+                  className="flex items-center gap-1 mt-0.5 text-xs text-gray-500 hover:text-chili hover:underline w-fit"
+                >
+                  <Phone size={12} />
+                  {restaurant.phone}
                 </a>
               )}
               <div className="flex items-center gap-1.5 mt-1.5">

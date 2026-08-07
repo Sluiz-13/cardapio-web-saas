@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getPlatformSession } from "@/lib/platform-session";
 import { generatePixPayload } from "@/lib/pix";
-import { PLAN_PRICE_CENTS } from "@/lib/plan-pricing";
+import { computeChargeAmount } from "@/lib/plan-billing";
 
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const session = await getPlatformSession();
@@ -12,7 +12,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     db.platformSettings.findUnique({ where: { id: "singleton" } }),
     db.restaurant.findUnique({
       where: { id: params.id },
-      select: { slug: true, name: true, plan: true, welcomeCouponCode: true, lastPaymentConfirmedAt: true },
+      select: { slug: true, plan: true, welcomeCouponCode: true, lastPaymentConfirmedAt: true },
     }),
   ]);
 
@@ -24,23 +24,13 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     );
   }
 
-  const fullPriceCents = PLAN_PRICE_CENTS[restaurant.plan];
-  let amountCents = fullPriceCents;
-  let discountApplied = false;
-
-  // Cupom de boas-vindas só vale enquanto o restaurante nunca pagou ainda.
   const isFirstCharge = restaurant.lastPaymentConfirmedAt === null;
-  if (isFirstCharge && restaurant.welcomeCouponCode) {
-    const coupon = await db.platformCoupon.findUnique({ where: { code: restaurant.welcomeCouponCode } });
-    if (coupon?.active && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
-      const discountCents =
-        coupon.discountType === "PERCENTAGE"
-          ? Math.round((fullPriceCents * coupon.discountValue) / 100)
-          : coupon.discountValue;
-      amountCents = Math.max(0, fullPriceCents - discountCents);
-      discountApplied = true;
-    }
-  }
+  const coupon =
+    isFirstCharge && restaurant.welcomeCouponCode
+      ? await db.platformCoupon.findUnique({ where: { code: restaurant.welcomeCouponCode } })
+      : null;
+
+  const { amountCents, fullPriceCents, discountApplied } = computeChargeAmount(restaurant.plan, isFirstCharge, coupon);
 
   const payload = generatePixPayload({
     pixKey: settings.pixKey,
@@ -51,11 +41,5 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     txid: restaurant.slug,
   });
 
-  return NextResponse.json({
-    payload,
-    amountCents,
-    fullPriceCents,
-    discountApplied,
-    plan: restaurant.plan,
-  });
+  return NextResponse.json({ payload, amountCents, fullPriceCents, discountApplied, plan: restaurant.plan });
 }

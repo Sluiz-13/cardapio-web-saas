@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Lock, TrendingUp, TrendingDown, PieChart } from "lucide-react";
+import { Lock, TrendingUp, TrendingDown, PieChart, Download } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -97,9 +97,16 @@ export default function RelatoriosPage() {
           <Button onClick={load} variant="primary" size="md">
             Aplicar
           </Button>
+          <Button
+            onClick={() => window.open(`/api/admin/financeiro/export?from=${range.from}&to=${range.to}`, "_blank")}
+            variant="secondary"
+            size="md"
+            className="!bg-emerald-600 !text-white !border-emerald-600 hover:!bg-emerald-700"
+          >
+            <Download size={14} /> Exportar CSV
+          </Button>
         </CardBody>
       </Card>
-
       {loading || !data ? (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

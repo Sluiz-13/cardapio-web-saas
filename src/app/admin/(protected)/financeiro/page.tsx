@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DollarSign, Receipt, TrendingUp, Download, Inbox } from "lucide-react";
+import { DollarSign, Receipt, TrendingUp, Inbox } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import clsx from "clsx";
 
 const PAYMENT_LABEL: Record<string, string> = {
   PIX: "Pix",
@@ -28,33 +26,12 @@ type FinanceiroData = {
 
 export default function FinanceiroPage() {
   const [data, setData] = useState<FinanceiroData | null>(null);
-  const [rangeMode, setRangeMode] = useState<"today" | "week" | "custom">("today");
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/financeiro")
       .then((r) => r.json())
       .then(setData);
   }, []);
-
-  function getRangeDates(): { from: string; to: string } {
-    const today = new Date();
-    const toStr = today.toISOString().slice(0, 10);
-    if (rangeMode === "today") return { from: toStr, to: toStr };
-    if (rangeMode === "week") {
-      const weekAgo = new Date(today);
-      weekAgo.setDate(weekAgo.getDate() - 6);
-      return { from: weekAgo.toISOString().slice(0, 10), to: toStr };
-    }
-    return { from: customFrom, to: customTo };
-  }
-
-  function handleExport() {
-    const { from, to } = getRangeDates();
-    if (!from || !to) return;
-    window.open(`/api/admin/financeiro/export?from=${from}&to=${to}`, "_blank");
-  }
 
   if (!data) {
     return (
@@ -91,57 +68,6 @@ export default function FinanceiroPage() {
           </Card>
         ))}
       </div>
-
-      {/*
-      <Card className="mb-6">
-        <CardBody>
-          <p className="text-sm font-semibold text-gray-800 mb-3">Exportar relatório</p>
-          <div className="flex gap-2 mb-3">
-            {(["today", "week", "custom"] as const).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setRangeMode(mode)}
-                className={clsx(
-                  "px-3.5 py-2 rounded-full text-xs font-semibold border transition-colors duration-[180ms]",
-                  rangeMode === mode
-                    ? "bg-gray-900 text-white border-gray-900"
-                    : "bg-white text-gray-600 border-surface-border hover:bg-gray-50"
-                )}
-              >
-                {mode === "today" ? "Hoje" : mode === "week" ? "Últimos 7 dias" : "Personalizado"}
-              </button>
-            ))}
-          </div>
-
-          {rangeMode === "custom" && (
-            <div className="flex items-center gap-2 mb-3">
-              <input
-                type="date"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-surface-border text-sm"
-              />
-              <span className="text-gray-400 text-sm">até</span>
-              <input
-                type="date"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-surface-border text-sm"
-              />
-            </div>
-          )}
-
-          <Button
-            onClick={handleExport}
-            disabled={rangeMode === "custom" && (!customFrom || !customTo)}
-            variant="primary"
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            <Download size={14} /> Exportar CSV
-          </Button>
-        </CardBody>
-      </Card>
-      */}
 
       <div>
         <h2 className="text-xs uppercase tracking-wide font-semibold text-gray-400 mb-2">Últimas vendas</h2>

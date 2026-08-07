@@ -7,8 +7,9 @@ const patchSchema = z
   .object({
     active: z.boolean().optional(),
     plan: z.enum(["START", "PRO"]).optional(),
+    contactEmail: z.string().email().optional().or(z.literal("")),
   })
-  .refine((data) => data.active !== undefined || data.plan !== undefined, {
+  .refine((data) => data.active !== undefined || data.plan !== undefined || data.contactEmail !== undefined, {
     message: "Nada para atualizar",
   });
 

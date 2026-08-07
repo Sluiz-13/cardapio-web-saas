@@ -31,6 +31,7 @@ export default async function RestaurantMenuPage({ params }: { params: { slug: s
         phone: restaurant.phone,
         address: restaurant.address,
         avgDeliveryTime: restaurant.avgDeliveryTime,
+        logoUrl: restaurant.logoUrl,
       }}
       categories={categories}
       products={products}

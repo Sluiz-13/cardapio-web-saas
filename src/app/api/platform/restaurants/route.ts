@@ -15,6 +15,7 @@ const createRestaurantSchema = z.object({
   ownerPassword: z.string().min(8),
   plan: z.enum(["START", "PRO"]).default("START"),
   couponCode: z.string().optional(),
+  contactEmail: z.string().email().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { restaurantName, slug, ownerName, ownerEmail, ownerPassword, plan, couponCode } = parsed.data;
+  const { restaurantName, slug, ownerName, ownerEmail, ownerPassword, plan, couponCode, contactEmail } = parsed.data;
 
   const [slugTaken, emailTaken] = await Promise.all([
     db.restaurant.findUnique({ where: { slug } }),
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
         isOpen: true,
         active: true,
         welcomeCouponCode: normalizedCouponCode,
+        contactEmail: contactEmail || undefined,
       },
     });
     await tx.adminUser.create({

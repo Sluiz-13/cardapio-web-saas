@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Power } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
+
 
 const DAY_LABELS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
@@ -41,6 +42,9 @@ export default function ConfiguracoesPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [avgDeliveryTime, setAvgDeliveryTime] = useState("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -62,6 +66,7 @@ export default function ConfiguracoesPage() {
         setPhone(data.restaurant.phone ?? "");
         setAddress(data.restaurant.address ?? "");
         setAvgDeliveryTime(data.restaurant.avgDeliveryTime ?? "");
+        setLogoUrl(data.restaurant.logoUrl ?? null);
         setLoading(false);
       });
   }, []);
@@ -69,6 +74,35 @@ export default function ConfiguracoesPage() {
   function updateDay(dayOfWeek: number, patch: Partial<BusinessHour>) {
     setHours((hs) => hs.map((h) => (h.dayOfWeek === dayOfWeek ? { ...h, ...patch } : h)));
   }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/admin/logo", { method: "POST", body: formData });
+    setUploadingLogo(false);
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      show(data?.error ?? "Não foi possível enviar a logo.", "error");
+      return;
+    }
+    const data = await res.json();
+    setLogoUrl(data.logoUrl);
+    show("Logo atualizada.", "success");
+  }
+
+  async function handleLogoRemove() {
+    if (!confirm("Remover a logo do restaurante?")) return;
+    await fetch("/api/admin/logo", { method: "DELETE" });
+    setLogoUrl(null);
+    show("Logo removida.", "info");
+  }
+
 
   async function handleSave() {
     setSaving(true);
@@ -109,6 +143,39 @@ export default function ConfiguracoesPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6">
       <h1 className="text-xl font-bold text-gray-900 mb-6">Configurações</h1>
+
+      <Card className="mb-6">
+        <CardBody className="flex items-center gap-4">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo do restaurante" className="w-16 h-16 rounded-2xl object-cover border border-surface-border shrink-0" />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-300 text-xs font-semibold shrink-0">
+              Logo
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm text-gray-900 mb-1">Logo do restaurante</p>
+            <p className="text-xs text-gray-500 mb-2">PNG, JPG ou WEBP, até 2MB.</p>
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleLogoUpload}
+                className="hidden"
+              />
+              <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} isLoading={uploadingLogo}>
+                {logoUrl ? "Trocar" : "Enviar logo"}
+              </Button>
+              {logoUrl && (
+                <Button variant="ghost" size="sm" onClick={handleLogoRemove}>
+                  Remover
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardBody>
+      </Card>
 
       <Card className="mb-6">
         <CardBody className="flex items-center justify-between">

@@ -1,4 +1,4 @@
-import { test, expect, APIRequestContext } from "@playwright/test";
+import { test, expect, request, APIRequestContext } from "@playwright/test";
 import { seedFixtures, teardownFixtures, TenantFixture } from "./seed";
 import { createAuthedContext } from "./helpers";
 
@@ -7,16 +7,21 @@ test.describe.configure({ mode: "serial" });
 let tenantA: TenantFixture;
 let tenantB: TenantFixture;
 let ctxA: APIRequestContext;
+let ctxAnon: APIRequestContext;
 
 test.beforeAll(async () => {
   const seeded = await seedFixtures();
   tenantA = seeded.tenantA;
   tenantB = seeded.tenantB;
   ctxA = await createAuthedContext(tenantA.adminEmail, tenantA.adminPassword);
+  ctxAnon = await request.newContext({ baseURL: process.env.TEST_BASE_URL ?? "http://localhost:3000" });
 });
+
+
 
 test.afterAll(async () => {
   await ctxA.dispose();
+  await ctxAnon.dispose();
   await teardownFixtures([tenantA.restaurantId, tenantB.restaurantId]);
 });
 
@@ -158,5 +163,94 @@ test("Sessão de admin de restaurante não desativa restaurante via rota de plat
   const res = await ctxA.patch(`/api/platform/restaurants/${tenantB.restaurantId}`, {
     data: { active: false },
   });
+  expect(res.status()).toBe(401);
+});
+
+// --- Rotas novas do /api/admin/* recusam acesso sem sessão ---
+// (não têm parâmetro :id — o próprio design já impede IDOR direto, já que
+// tudo é resolvido a partir do restaurantId da sessão — mas TODAS precisam
+// recusar visitante anônimo, senão qualquer um lê dado de qualquer tenant)
+
+test("GET /api/admin/dashboard sem sessão retorna 401", async () => {
+  const res = await ctxAnon.get("/api/admin/dashboard");
+  expect(res.status()).toBe(401);
+});
+
+test("GET /api/admin/reports sem sessão retorna 401", async () => {
+  const res = await ctxAnon.get("/api/admin/reports?from=2026-01-01&to=2026-01-31");
+  expect(res.status()).toBe(401);
+});
+
+test("POST /api/admin/logo sem sessão retorna 401", async () => {
+  const res = await ctxAnon.post("/api/admin/logo");
+  expect(res.status()).toBe(401);
+});
+
+test("DELETE /api/admin/logo sem sessão retorna 401", async () => {
+  const res = await ctxAnon.delete("/api/admin/logo");
+  expect(res.status()).toBe(401);
+});
+
+test("GET /api/admin/plan sem sessão retorna 401", async () => {
+  const res = await ctxAnon.get("/api/admin/plan");
+  expect(res.status()).toBe(401);
+});
+
+test("POST /api/admin/plan/request sem sessão retorna 401", async () => {
+  const res = await ctxAnon.post("/api/admin/plan/request", { data: { plan: "PRO" } });
+  expect(res.status()).toBe(401);
+});
+
+test("POST /api/admin/plan/charge sem sessão retorna 401", async () => {
+  const res = await ctxAnon.post("/api/admin/plan/charge");
+  expect(res.status()).toBe(401);
+});
+
+// --- Rotas novas do /platform recusam sessão de admin de restaurante ---
+// (cookie diferente do platform-session-token — testa isolamento de sessão)
+
+test("Sessão de admin de restaurante não acessa /api/platform/finance (401)", async () => {
+  const res = await ctxA.get("/api/platform/finance");
+  expect(res.status()).toBe(401);
+});
+
+test("Sessão de admin de restaurante não acessa /api/platform/users (401)", async () => {
+  const res = await ctxA.get("/api/platform/users");
+  expect(res.status()).toBe(401);
+});
+
+test("Sessão de admin de restaurante não acessa /api/platform/plans-overview (401)", async () => {
+  const res = await ctxA.get("/api/platform/plans-overview");
+  expect(res.status()).toBe(401);
+});
+
+test("Sessão de admin de restaurante não troca e-mail do Super Admin (401)", async () => {
+  const res = await ctxA.patch("/api/platform/account/email", {
+    data: { currentPassword: "qualquer", newEmail: "invasor@example.com" },
+  });
+  expect(res.status()).toBe(401);
+});
+
+test("Sessão de admin de restaurante não troca senha do Super Admin (401)", async () => {
+  const res = await ctxA.patch("/api/platform/account/password", {
+    data: { currentPassword: "qualquer", newPassword: "12345678" },
+  });
+  expect(res.status()).toBe(401);
+});
+
+test("Sessão de admin de restaurante não aprova solicitação de plano de outro restaurante (401)", async () => {
+  const res = await ctxA.post(`/api/platform/restaurants/${tenantB.restaurantId}/approve-plan-request`);
+  expect(res.status()).toBe(401);
+});
+
+// --- Rotas novas do /platform recusam acesso totalmente anônimo ---
+
+test("GET /api/platform/finance sem sessão retorna 401", async () => {
+  const res = await ctxAnon.get("/api/platform/finance");
+  expect(res.status()).toBe(401);
+});
+
+test("GET /api/platform/users sem sessão retorna 401", async () => {
+  const res = await ctxAnon.get("/api/platform/users");
   expect(res.status()).toBe(401);
 });

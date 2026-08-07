@@ -29,6 +29,7 @@ model Restaurant {
   updatedAt DateTime @updatedAt
   pendingPlanRequest     Plan?    // plano que o dono pediu (upgrade/downgrade) — só vira `plan` de verdade quando o Super Admin confirma
   pendingPlanRequestedAt DateTime?
+  payments               PlatformPayment[]
 
   adminUsers AdminUser[]
   categories Category[]
@@ -47,6 +48,8 @@ model Restaurant {
   phone           String?
   address         String?
   avgDeliveryTime String?
+  contactEmail String?
+  logoUrl   String?
 
   @@map("restaurants")
 }
@@ -345,4 +348,17 @@ model PlatformSettings {
   updatedAt       DateTime @updatedAt
 
   @@map("platform_settings")
+}
+
+
+model PlatformPayment {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  amountCents  Int
+  confirmedAt  DateTime   @default(now())
+
+  @@index([restaurantId])
+  @@index([confirmedAt])
+  @@map("platform_payments")
 }
