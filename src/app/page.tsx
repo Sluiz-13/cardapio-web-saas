@@ -62,6 +62,9 @@ function FeatureCell({ value }: { value: boolean | string }) {
 }
 
 export default function LandingPage() {
+  const devWhatsApp =
+    "https://wa.me/5535999603944?text=" +
+    encodeURIComponent("Olá! Vi um cardápio digital feito por você e gostaria de saber mais.");
   return (
     <div className="bg-surface-bg text-gray-900">
       {/* NAV */}
@@ -278,14 +281,23 @@ export default function LandingPage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="py-8 border-t border-surface-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400">
-          <span>© {new Date().getFullYear()} Cardápio Digital. Todos os direitos reservados.</span>
-          <Link href="/privacidade" className="hover:text-gray-600 transition-colors duration-[180ms]">
-            Aviso de Privacidade
-          </Link>
-        </div>
-      </footer>
+      
+      <footer className="px-5 py-6 border-t border-gray-100 mt-2">
+      <p className="text-center text-[11px] text-gray-400">
+        © 2026 Desenvolvido por{" "}
+        
+        <a href={devWhatsApp}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-gray-500 hover:text-chili underline"
+        >
+          Luiz Felippe
+        </a>
+      </p>
+      <p className="text-center text-[11px] text-gray-400">
+        Todos os direitos reservados
+      </p>
+    </footer>
     </div>
   );
 }

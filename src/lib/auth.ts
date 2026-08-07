@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -15,8 +16,14 @@ export const authOptions: NextAuthOptions = {
         email: { label: "E-mail", type: "email" },
         password: { label: "Senha", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        // Rate limit por IP + e-mail tentado: 5 tentativas a cada 5 minutos.
+        // Mesmo padrão já usado no login da plataforma (platform-auth.ts).
+        const ip = (req?.headers?.["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? "unknown";
+        const { allowed } = await rateLimit(`admin-login:${ip}:${credentials.email}`, 5, 5 * 60 * 1000);
+        if (!allowed) return null;
 
         const admin = await db.adminUser.findUnique({
           where: { email: credentials.email },
