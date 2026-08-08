@@ -36,7 +36,7 @@ export default function PlatformLoginPage() {
         <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center mb-4">
           <ShieldCheck size={18} className="text-brand" />
         </div>
-        <p className="text-[11px] uppercase tracking-wide text-gray-400 font-semibold mb-1">cardapio-saas</p>
+        <p className="text-[11px] uppercase tracking-wide text-gray-400 font-semibold mb-1">Menuair</p>
         <h1 className="text-xl font-bold text-gray-900 mb-1">Painel da Plataforma</h1>
         <p className="text-xs text-gray-500 mb-6">Acesso restrito à equipe do SaaS.</p>
 

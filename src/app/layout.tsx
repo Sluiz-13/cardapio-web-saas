@@ -3,8 +3,8 @@ import "./global.css";
 import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
-  title: "Cardápio Digital",
-  description: "Cardápio online com pedido e pagamento",
+  title: "Menuair — Cardápio Digital para Restaurantes",
+  description: "Cardápio online, pedidos e Pix pro seu restaurante — sem taxa por venda.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

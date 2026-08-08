@@ -18,7 +18,7 @@ const LINKS: SidebarLink[] = [
 export default function PlatformNav({ userName }: { userName: string }) {
   return (
     <Sidebar
-      brand="cardapio-saas"
+      brand="Menuair"
       links={LINKS}
       userName={userName}
       onSignOut={() => platformSignOut()}

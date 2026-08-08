@@ -14,8 +14,8 @@ import { landingWhatsAppLink } from "@/lib/landing-whatsapp";
 
 const currency = (cents: number) => `R$ ${Math.floor(cents / 100)}`;
 
-const CTA_START = landingWhatsAppLink("Olá! Quero contratar o Cardápio Digital para o meu restaurante.");
-const CTA_CONTACT = landingWhatsAppLink("Olá! Tenho uma dúvida sobre o Cardápio Digital.");
+const CTA_START = landingWhatsAppLink("Olá! Quero contratar o Menuair para o meu restaurante.");
+const CTA_CONTACT = landingWhatsAppLink("Olá! Tenho uma dúvida sobre o Menuair.");
 
 const FEATURES = [
   {
@@ -74,7 +74,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 rounded-xl bg-brand-light flex items-center justify-center">
               <UtensilsCrossed size={16} className="text-brand" />
             </div>
-            Cardápio Digital
+            Menuair
           </div>
           <nav className="hidden sm:flex items-center gap-6 text-sm font-medium text-gray-600">
             <a href="#recursos" className="hover:text-gray-900 transition-colors duration-[180ms]">Recursos</a>
