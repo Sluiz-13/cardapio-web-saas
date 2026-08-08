@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Flame, Clock, Printer, MapPin, Phone, Bike, MessageCircle, Inbox } from "lucide-react";
+import { Flame, Clock, Printer, MapPin, Phone, Bike, MessageCircle, Inbox, Trash2 } from "lucide-react";
 import OrderHistoryModal from "./order-history-modal";
 import { buildWhatsAppLink, buildOrderStatusMessage } from "@/lib/whatsapp";
 import { playNotificationSound } from "@/lib/notification-sound";
@@ -158,6 +158,12 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
     await fetch(`/api/admin/orders/${orderId}/confirm-payment`, { method: "PATCH" });
   }
 
+  async function deleteOrder(orderId: string) {
+    if (!confirm("Excluir esse pedido? Ele sai do painel, mas fica registrado como cancelado.")) return;
+    setOrders((os) => os.filter((o) => o.id !== orderId));
+    await fetch(`/api/admin/orders/${orderId}`, { method: "DELETE" });
+  }
+
   return (
     <div className="px-4 py-6 sm:px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       {STATUS_FLOW.map((status) => (
@@ -253,8 +259,8 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
                       >
                         <MessageCircle size={14} />
                       </a>
-                      <Link
-                        href={`/admin/pedidos/${o.id}/imprimir`}
+                     <Link
+                       href={`/admin/pedidos/${o.id}/imprimir`}
                         target="_blank"
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center justify-center w-9 h-9 rounded-full border border-surface-border text-gray-500 hover:bg-gray-50 transition-colors duration-[180ms] shrink-0"
@@ -262,6 +268,16 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
                       >
                         <Printer size={14} />
                       </Link>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteOrder(o.id);
+                        }}
+                        className="flex items-center justify-center w-9 h-9 rounded-full border border-surface-border text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors duration-[180ms] shrink-0"
+                        title="Excluir pedido"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 );

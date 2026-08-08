@@ -25,8 +25,10 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - cardapio_web_uploads:/app/public/uploads
+      # Bind mount (não volume nomeado) — precisa ser um caminho real no disco
+      # da VPS pra o Nginx também conseguir servir os arquivos direto,
+      # contornando o cache de rotas estáticas do Next.js em produção.
+      - /srv/menuair/uploads:/app/public/uploads
 
 volumes:
   cardapio_web_pgdata:
-  cardapio_web_uploads:

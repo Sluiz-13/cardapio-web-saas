@@ -106,6 +106,7 @@ const restaurant = await db.restaurant.findUnique({
   where: { id: restaurantId },
   select: {
     active: true,
+    isOpen: true,
     defaultDeliveryFeeCents: true,
     pixKey: true,
     pixKeyType: true,
@@ -117,6 +118,9 @@ const restaurant = await db.restaurant.findUnique({
 
 if (!restaurant || !restaurant.active) {
   return NextResponse.json({ error: "Restaurante indisponível no momento." }, { status: 403 });
+}
+if (!restaurant.isOpen) {
+  return NextResponse.json({ error: "Restaurante fechado no momento." }, { status: 403 });
 }
 
   let deliveryFeeCents = 0;

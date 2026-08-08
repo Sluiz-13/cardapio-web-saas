@@ -14,6 +14,7 @@ import {
   Phone,
 } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { getSavedCustomerInfo, saveCustomerInfo } from "@/lib/customer-storage";
 import PixQrCode from "./pix-qr-code";
 
 type Extra = { id: string; name: string; priceCents: number };
@@ -117,17 +118,6 @@ export default function MenuClient({
     );
   }
 
-  if (!restaurant.isOpen) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 text-center">
-        <div>
-          <ChefHat size={32} className="mx-auto mb-3 text-chili" />
-              </div>
-          <p className="text-gray-500 mt-2">No momento estamos fechados. Volte mais tarde!</p>
-        </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto bg-gray-50">
@@ -174,8 +164,8 @@ export default function MenuClient({
                 </a>
               )}
               <div className="flex items-center gap-1.5 mt-1.5">
-                <CircleDot size={10} className="text-emerald-500" fill="currentColor" />
-                <span className="text-xs text-gray-500">Aberto agora</span>
+                <CircleDot size={10} className={restaurant.isOpen ? "text-emerald-500" : "text-gray-400"} fill="currentColor" />
+                <span className="text-xs text-gray-500">{restaurant.isOpen ? "Aberto agora" : "Fechado agora"}</span>
                 {restaurant.avgDeliveryTime && (
                   <>
                     <span className="text-gray-300">•</span>
@@ -219,6 +209,12 @@ export default function MenuClient({
             </button>
           ))}
         </div>
+
+        {!restaurant.isOpen && (
+          <div className="mx-5 mt-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+            Estamos fechados no momento. 
+          </div>
+        )}
 
         <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((product) => (
@@ -270,6 +266,7 @@ export default function MenuClient({
         {drawer === "checkout" && (
           <CheckoutDrawer
             restaurantId={restaurant.id}
+            restaurantIsOpen={restaurant.isOpen}
             cart={cart}
             total={total}
             onClose={() => setDrawer("cart")}
@@ -577,12 +574,14 @@ function CartDrawer({
 
 function CheckoutDrawer({
   restaurantId,
+  restaurantIsOpen,
   cart,
   total,
   onClose,
   onSuccess,
 }: {
   restaurantId: string;
+  restaurantIsOpen: boolean;
   cart: CartLine[];
   total: number;
   onClose: () => void;
@@ -597,6 +596,8 @@ function CheckoutDrawer({
   const [neighborhood, setNeighborhood] = useState("");
   const [city, setCity] = useState("");
   const [referenceNote, setReferenceNote] = useState("");
+  const [savedInfo, setSavedInfo] = useState(() => getSavedCustomerInfo(restaurantId));
+  const [confirmingSaved, setConfirmingSaved] = useState(() => getSavedCustomerInfo(restaurantId) !== null);
   const [paymentMethod, setPaymentMethod] = useState<(typeof PAYMENT_OPTIONS)[number]["value"]>("PIX");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -630,6 +631,25 @@ function CheckoutDrawer({
       return;
     }
     setCouponStatus({ discountCents: data.discountCents, code: data.code });
+  }
+
+  function useSavedInfo() {
+    if (!savedInfo) return;
+    setCustomerName(savedInfo.customerName);
+    setCustomerPhone(savedInfo.customerPhone);
+    setDeliveryType(savedInfo.deliveryType);
+    setStreet(savedInfo.street);
+    setNumber(savedInfo.number);
+    setComplement(savedInfo.complement);
+    setNeighborhood(savedInfo.neighborhood);
+    setCity(savedInfo.city);
+    setReferenceNote(savedInfo.referenceNote);
+    setConfirmingSaved(false);
+  }
+
+  function rejectSavedInfo() {
+    setSavedInfo(null);
+    setConfirmingSaved(false);
   }
 
   async function checkDeliveryFee() {
@@ -694,6 +714,17 @@ function CheckoutDrawer({
       return;
     }
     const data = await res.json();
+    saveCustomerInfo(restaurantId, {
+      customerName,
+      customerPhone,
+      deliveryType,
+      street,
+      number,
+      complement,
+      neighborhood,
+      city,
+      referenceNote,
+    });
     onSuccess({ status: data.status, pixPayload: data.pixPayload });
   }
 
@@ -709,6 +740,34 @@ function CheckoutDrawer({
         </div>
 
         <div className="overflow-y-auto px-5 flex-1">
+          {confirmingSaved && savedInfo && (
+            <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
+              <p className="text-sm font-semibold text-gray-800 mb-1">Usar seus dados salvos?</p>
+              <p className="text-xs text-gray-600 mb-3">
+                {savedInfo.customerName} · {savedInfo.customerPhone}
+                {savedInfo.deliveryType === "DELIVERY" && savedInfo.street && (
+                  <> · {savedInfo.street}, {savedInfo.number} — {savedInfo.neighborhood}</>
+                )}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={useSavedInfo}
+                  className="flex-1 py-2 rounded-full text-xs font-semibold bg-chili text-white"
+                >
+                  Sim, é esse mesmo
+                </button>
+                <button
+                  type="button"
+                  onClick={rejectSavedInfo}
+                  className="flex-1 py-2 rounded-full text-xs font-semibold border border-gray-200 text-gray-600"
+                >
+                  Não, outro endereço
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-3 mb-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Nome</label>
@@ -856,10 +915,10 @@ function CheckoutDrawer({
           </div>
 
           <button
-            disabled={submitting}
+            disabled={submitting || !restaurantIsOpen}
             className="w-full py-3.5 rounded-full font-semibold text-sm bg-chili text-white shadow-sm disabled:opacity-50 active:scale-[0.98] transition-transform"
           >
-            {submitting ? "Enviando…" : "Finalizar Pedido"}
+            {!restaurantIsOpen ? "Restaurante fechado no momento" : submitting ? "Enviando…" : "Finalizar Pedido"}
           </button>
         </div>
       </form>
