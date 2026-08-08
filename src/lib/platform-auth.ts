@@ -21,7 +21,7 @@ export const platformAuthOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false,
       },
     },
     callbackUrl: {
@@ -29,7 +29,7 @@ export const platformAuthOptions: NextAuthOptions = {
       options: {
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false,
       },
     },
     csrfToken: {
@@ -38,7 +38,7 @@ export const platformAuthOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false,
       },
     },
   },
