@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Prisma precisa de OpenSSL pra funcionar — não vem por padrão no Alpine.
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Instala dependências primeiro (aproveita cache do Docker se só o código mudar)
