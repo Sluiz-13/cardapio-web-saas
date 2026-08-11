@@ -1,47 +1,49 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import {
-  UtensilsCrossed,
   QrCode,
+  ClipboardList,
+  Store,
   Wallet,
-  LayoutDashboard,
-  CheckCircle2,
+  Smartphone,
+  Check,
+  ChevronDown,
   ArrowRight,
   MessageCircle,
+  Mail,
+  SlidersHorizontal
 } from "lucide-react";
 import { PLAN_PRICE_CENTS } from "@/lib/plan-pricing";
 import { PLAN_LIMITS } from "@/lib/plan-features";
 import { landingWhatsAppLink } from "@/lib/landing-whatsapp";
 
+const CONTACT_EMAIL = "contato@menuair.com.br";
 const currency = (cents: number) => `R$ ${Math.floor(cents / 100)}`;
 
-const CTA_START = landingWhatsAppLink("Olá! Quero contratar o Menuair para o meu restaurante.");
-const CTA_CONTACT = landingWhatsAppLink("Olá! Tenho uma dúvida sobre o Menuair.");
+const BENEFITS = [
+  { icon: QrCode, title: "Cardápio digital", text: "Seu cliente acessa pelo celular, por link ou QR Code na mesa." },
+  { icon: ClipboardList, title: "Pedidos organizados", text: "Chega tudo no painel — sem depender de mensagem espalhada no WhatsApp." },
+  { icon: SlidersHorizontal, title: "Você no controle", text: "Produtos, preços, categorias e pedidos, tudo num só lugar." },
+];
 
-const FEATURES = [
-  {
-    icon: QrCode,
-    title: "Cardápio Online",
-    description: "Seu cardápio sempre atualizado, com QR Code pra mesa e link pra compartilhar no WhatsApp e redes sociais.",
-  },
-  {
-    icon: UtensilsCrossed,
-    title: "Pedidos Online",
-    description: "Cliente monta o carrinho, escolhe entrega ou retirada, e o pedido cai direto no seu painel — sem app pra baixar.",
-  },
-  {
-    icon: Wallet,
-    title: "Pagamento Pix",
-    description: "QR Code Pix gerado na hora, direto na sua chave. Sem intermediário, sem taxa por venda.",
-  },
-  {
-    icon: LayoutDashboard,
-    title: "Painel Completo",
-    description: "Pedidos em tempo quase real, financeiro, relatórios e dashboard com gráfico — tudo no plano Pro.",
-  },
+const STEPS = [
+  { n: "01", title: "Abre o cardápio", text: "O cliente acessa seu cardápio pelo link ou QR Code.", src: "/screenshots/menu.jpeg" },
+  { n: "02", title: "Escolhe os produtos", text: "Personaliza removíveis e extras de cada item.", src: "/screenshots/product.jpeg" },
+  { n: "03", title: "Envia o pedido", text: "Preenche os dados, escolhe a forma de pagamento e finaliza.", src: "/screenshots/checkout.jpeg" },
+  { n: "04", title: "Pedido confirmado", text: "Recebe a confirmação e o pedido já vai pra cozinha.", src: "/screenshots/confirm.jpeg" },
+];
+
+const OWNER_BENEFITS = [
+  { icon: ClipboardList, title: "Pedidos organizados", text: "Informação clara, direto no painel." },
+  { icon: Store, title: "Seu próprio cardápio", text: "Logo, cores e produtos do seu jeito." },
+  { icon: Wallet, title: "Pagamento por Pix", text: "Sem intermediário, sem comissão." },
+  { icon: Smartphone, title: "Acesso pelo celular", text: "Gerencie de onde estiver." },
 ];
 
 const PLAN_FEATURE_ROWS: { label: string; start: boolean | string; pro: boolean | string }[] = [
-  { label: "Cardápio online + QR Code", start: true, pro: true },
+  { label: "Cardápio online + QR Code do seu cardápio", start: true, pro: true },
   { label: "Produtos", start: `Até ${PLAN_LIMITS.START.maxProducts}`, pro: "Ilimitado" },
   { label: "Categorias", start: `Até ${PLAN_LIMITS.START.maxCategories}`, pro: "Ilimitado" },
   { label: "Pedido pelo site + Pix", start: true, pro: true },
@@ -53,251 +55,430 @@ const PLAN_FEATURE_ROWS: { label: string; start: boolean | string; pro: boolean 
 ];
 
 function FeatureCell({ value }: { value: boolean | string }) {
-  if (typeof value === "string") return <span className="text-sm font-medium text-gray-700">{value}</span>;
-  return value ? (
-    <CheckCircle2 size={16} className="text-emerald-500" />
-  ) : (
-    <span className="text-gray-300 text-sm">—</span>
+  if (typeof value === "string") return <span className="text-sm font-medium text-slate-700">{value}</span>;
+  return value ? <Check size={18} className="text-[#D35400] mx-auto" /> : <span className="text-slate-300">—</span>;
+}
+
+const FAQ = [
+  { q: "Preciso instalar algum aplicativo?", a: "Não. O Menuair funciona no navegador, tanto pra você quanto pro seu cliente." },
+  { q: "Como meu cliente acessa o cardápio?", a: "Por um link do seu restaurante ou por QR Code, direto do celular." },
+  { q: "O Menuair cobra comissão por pedido?", a: "Não. Você paga só a mensalidade do plano escolhido." },
+  { q: "Posso receber pagamento por Pix?", a: "Sim, o Pix é gerado na hora, direto na sua chave — sem intermediário." },
+  { q: "Preciso ter conhecimento técnico?", a: "Não. A gente ajuda a configurar tudo, e o dia a dia é feito em telas simples." },
+];
+
+function FaqAccordion() {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <div className="divide-y divide-slate-200">
+      {FAQ.map((item, i) => (
+        <div key={item.q} className="py-5">
+          <button
+            onClick={() => setOpen(open === i ? null : i)}
+            className="w-full flex items-center justify-between text-left font-medium text-slate-800 hover:text-[#D35400] transition-colors"
+          >
+            {item.q}
+            <ChevronDown size={20} className={`text-slate-400 shrink-0 transition-transform duration-[180ms] ${open === i ? "rotate-180" : ""}`} />
+          </button>
+          {open === i && <p className="mt-4 text-sm text-slate-500 leading-relaxed">{item.a}</p>}
+        </div>
+      ))}
+    </div>
   );
 }
 
 export default function LandingPage() {
-  const devWhatsApp =
-    "https://wa.me/5535999603944?text=" +
-    encodeURIComponent("Olá! Vi um cardápio digital feito por você e gostaria de saber mais.");
+  const [form, setForm] = useState({ restaurantName: "", yourName: "", phone: "", plan: "START" as "START" | "PRO" });
+  const formValid = form.restaurantName.trim() && form.yourName.trim() && form.phone.trim();
+
+  const devWhatsApp = "https://wa.me/5535999603944?text=" + encodeURIComponent("Olá! Vi um cardápio digital feito por você e gostaria de saber mais.");
+
+  function buildMessage() {
+    return [
+      "Olá! Quero contratar o Menuair.",
+      `Restaurante: ${form.restaurantName || "-"}`,
+      `Meu nome: ${form.yourName || "-"}`,
+      `Telefone: ${form.phone || "-"}`,
+      `Plano de interesse: ${form.plan === "PRO" ? "Pro" : "Start"}`,
+    ].join("\n");
+  }
+
+  function handleWhatsApp(e: React.FormEvent) {
+    e.preventDefault();
+    window.open(landingWhatsAppLink(buildMessage()), "_blank");
+  }
+
+  function handleEmail() {
+    const subject = encodeURIComponent(`Quero contratar o Menuair — ${form.restaurantName || "novo restaurante"}`);
+    window.open(`mailto:${CONTACT_EMAIL}?subject=${subject}&body=${encodeURIComponent(buildMessage())}`, "_blank");
+  }
+
   return (
-    <div className="bg-surface-bg text-gray-900">
-      {/* NAV */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-surface-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-gray-900">
-            <div className="w-8 h-8 rounded-xl bg-brand-light flex items-center justify-center">
-              <UtensilsCrossed size={16} className="text-brand" />
+    <div className="min-h-screen bg-[#FCFBF8] text-slate-900 font-sans scroll-smooth">
+      
+      {/* NAVBAR */}
+      {/* NAVBAR */}
+      <nav className="sticky top-0 z-40 bg-[#FCFBF8]/95 backdrop-blur border-b border-slate-200">
+        <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+          <div className="flex items-center gap-8 lg:gap-12">
+            <div className="flex items-center gap-2 font-bold text-xl text-slate-900">
+              <div className="bg-slate-900 text-white p-1 rounded-md w-8 h-8 flex items-center justify-center text-sm">M</div>
+              Menuair
             </div>
-            Menuair
+            <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
+              <a href="#como-funciona" className="hover:text-slate-900 transition-colors">Como funciona</a>
+              <a href="#planos" className="hover:text-slate-900 transition-colors">Planos</a>
+              <a href="#faq" className="hover:text-slate-900 transition-colors">Dúvidas</a>
+            </div>
           </div>
-          <nav className="hidden sm:flex items-center gap-6 text-sm font-medium text-gray-600">
-            <a href="#recursos" className="hover:text-gray-900 transition-colors duration-[180ms]">Recursos</a>
-            <a href="#planos" className="hover:text-gray-900 transition-colors duration-[180ms]">Planos</a>
-            <a href="#como-funciona" className="hover:text-gray-900 transition-colors duration-[180ms]">Como funciona</a>
-            <a href={CTA_CONTACT} target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors duration-[180ms]">Contato</a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link href="/admin/login" className="hidden sm:inline text-sm font-semibold text-gray-600 hover:text-gray-900 px-3 py-2">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <a href="#contato" className="bg-[#D35400] text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#b84a00] transition-colors text-center">
+              Falar com a gente
+            </a>
+            <Link href="/admin/login" className="hidden sm:block text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
               Entrar
             </Link>
-            
-            <a href={CTA_START}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-semibold px-4 py-2.5 rounded-full bg-brand text-white shadow-sm hover:bg-brand-dark transition-colors duration-[180ms]"
-            >
-              Começar Agora
-            </a>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* HERO */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      {/* HERO SECTION */}
+      <section className="max-w-7xl mx-auto px-6 pt-16 pb-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand bg-brand-light px-3 py-1.5 rounded-full mb-5">
-            Solução completa para restaurantes
+          <span className="inline-block border border-slate-200 text-slate-500 text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-6 bg-white">
+            Cardápio Digital
           </span>
-          <h1 className="text-4xl sm:text-5xl font-bold leading-tight text-gray-900 mb-5">
-            Cardápio Digital para Restaurantes
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] mb-6 tracking-tight">
+            Seu restaurante <br/> online. <br/>
+            <span className="text-[#D35400]">Seus pedidos</span> em <br/>
+            um só lugar.
           </h1>
-          <p className="text-lg text-gray-500 mb-8 max-w-md">
-            Receba pedidos online, gerencie seu restaurante e aumente suas vendas — sem taxa por pedido, sem complicação.
+          <p className="text-slate-600 text-lg mb-8 max-w-md">
+            Cardápio digital próprio, pedidos organizados e pagamento por Pix. Simples para você e fácil para o seu cliente.
           </p>
-          <div className="flex flex-wrap gap-3">
-            
-            <a href={CTA_START}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-5 py-3 rounded-full font-semibold text-sm bg-brand text-white shadow-sm hover:bg-brand-dark transition-colors duration-[180ms]"
-            >
-              Começar Agora <ArrowRight size={15} />
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <a href="#contato" className="bg-[#D35400] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#b84a00] transition-colors text-center inline-flex justify-center items-center gap-2">
+              Quero meu cardápio digital <ArrowRight size={18} />
             </a>
-            
-            <a href="#como-funciona"
-              className="inline-flex items-center px-5 py-3 rounded-full font-semibold text-sm border border-surface-border text-gray-700 hover:bg-gray-50 transition-colors duration-[180ms]"
-            >
+            <a href="#como-funciona" className="bg-white border border-slate-300 text-slate-700 px-6 py-3 rounded-full font-semibold hover:bg-slate-50 transition-colors text-center">
               Ver como funciona
             </a>
           </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-surface-border shadow-lg p-5 max-w-sm mx-auto w-full">
-          <div className="flex items-center justify-between mb-4">
-            <p className="font-bold text-sm">Pizzaria Exemplo</p>
-            <span className="text-emerald-600 text-xs font-semibold">R$ 67,90</span>
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Check size={16} className="text-[#D35400] shrink-0" />
+            <span>Sem comissão sobre suas vendas — você paga só a mensalidade.</span>
           </div>
-          {[
-            { name: "Pizza Margherita", desc: "Molho, muçarela, manjericão", price: "R$ 45,90" },
-            { name: "Coca-Cola 350ml", desc: "Gelada", price: "R$ 6,00" },
-            { name: "Combo Família", desc: "2 pizzas grandes + refrigerante", price: "R$ 88,90" },
-          ].map((item) => (
-            <div key={item.name} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
-              <div>
-                <p className="text-sm font-semibold text-gray-800">{item.name}</p>
-                <p className="text-xs text-gray-400">{item.desc}</p>
+        </div>
+
+        {/* HERO MOCKUP CELULAR */}
+        <div className="flex justify-center md:justify-end items-center mt-10 md:mt-0">
+          <div className="relative w-full max-w-[300px] sm:max-w-[320px]">
+            {/* Moldura do celular */}
+            <div className="bg-[#0F172A] p-3 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-4 border-[#1E293B]">
+              {/* Tela do celular */}
+              <div className="bg-white rounded-[2.2rem] overflow-hidden aspect-[9/19] relative w-full">
+                <img 
+                  src="/screenshots/menu.jpeg" 
+                  alt="Cardápio digital do Menuair aberto" 
+                  className="w-full h-auto object-top" 
+                />
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-semibold text-gray-600">{item.price}</span>
-                <div className="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold">+</div>
-              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3 FEATURES BENEATH HERO */}
+      <section className="max-w-7xl mx-auto px-6 pb-24">
+        <div className="grid md:grid-cols-3 gap-12 border-t border-slate-200 pt-16">
+          {BENEFITS.map((b) => (
+            <div key={b.title}>
+              <b.icon className="text-[#D35400] mb-4" size={28} />
+              <h3 className="font-bold text-lg mb-2 text-slate-900">{b.title}</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">{b.text}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section id="recursos" className="max-w-6xl mx-auto px-4 sm:px-6 py-16 scroll-mt-20">
-        <h2 className="text-2xl font-bold text-center mb-2">Tudo que seu restaurante precisa</h2>
-        <p className="text-gray-500 text-center mb-10">Sem mensalidade escondida, sem taxa por pedido.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="bg-white rounded-2xl border border-surface-border shadow-sm p-5">
-              <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center mb-3">
-                <f.icon size={18} className="text-brand" />
-              </div>
-              <p className="font-bold text-sm text-gray-900 mb-1">{f.title}</p>
-              <p className="text-xs text-gray-500 leading-relaxed">{f.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* COMO FUNCIONA */}
-      <section id="como-funciona" className="bg-white border-y border-surface-border py-16 scroll-mt-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <h2 className="text-2xl font-bold text-center mb-10">Como funciona</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {[
-              { step: "1", title: "Você fala com a gente", desc: "Manda mensagem no WhatsApp e a gente configura seu cardápio pra você." },
-              { step: "2", title: "Cliente faz o pedido", desc: "Pelo link do seu cardápio, sem precisar instalar nada." },
-              { step: "3", title: "Você recebe e prepara", desc: "Pedido cai no seu painel, com aviso sonoro e status em tempo quase real." },
-            ].map((s) => (
-              <div key={s.step} className="text-center">
-                <div className="w-10 h-10 rounded-full bg-brand text-white font-bold flex items-center justify-center mx-auto mb-3">
-                  {s.step}
+      {/* HOW IT WORKS */}
+      <section id="como-funciona" className="bg-[#FCFBF8] border-t border-slate-200 py-24 scroll-mt-16">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="mb-16 max-w-2xl">
+            <h2 className="text-4xl font-extrabold mb-4 tracking-tight">Do primeiro contato<br/>ao pedido na cozinha</h2>
+            <p className="text-slate-600">Veja como seu cliente faz um pedido pelo Menuair.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {STEPS.map((step) => (
+              <div key={step.n} className="flex flex-col">
+                
+                {/* Moldura de Celular para os Steps */}
+                <div className="flex justify-center mb-6">
+                  <div className="relative w-full max-w-[220px]">
+                    <div className="bg-[#0F172A] p-2.5 rounded-[2.5rem] shadow-lg border-4 border-[#1E293B]">
+                      <div className="bg-white rounded-[1.8rem] overflow-hidden aspect-[9/19] relative w-full">
+                        <img 
+                          src={step.src} 
+                          alt={step.title} 
+                          className="w-full h-auto object-top" 
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p className="font-bold text-sm text-gray-900 mb-1">{s.title}</p>
-                <p className="text-xs text-gray-500">{s.desc}</p>
+
+                <h4 className="font-bold mb-2 text-slate-900"><span className="text-[#D35400] mr-2">{step.n}</span>{step.title}</h4>
+                <p className="text-sm text-slate-500 leading-relaxed">{step.text}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* PLANOS */}
-      <section id="planos" className="max-w-5xl mx-auto px-4 sm:px-6 py-16 scroll-mt-20">
-        <h2 className="text-2xl font-bold text-center mb-2">Planos para o seu negócio</h2>
-        <p className="text-gray-500 text-center mb-10">Escolha o plano ideal pro seu restaurante.</p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto mb-10">
-          <div className="bg-white rounded-2xl border border-surface-border shadow-sm p-6">
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Start</p>
-            <p className="text-3xl font-bold text-gray-900 mb-1">
-              {currency(PLAN_PRICE_CENTS.START)}<span className="text-sm font-medium text-gray-400">/mês</span>
-            </p>
-            <p className="text-xs text-gray-400 mb-5">Ideal para pequenos restaurantes</p>
+      {/* RESTAURANT DASHBOARD */}
+      <section className="border-t border-slate-200 py-24">
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+          <div>
+            <h2 className="text-4xl font-extrabold mb-6 tracking-tight">Enquanto seu cliente faz o pedido, você acompanha tudo.</h2>
+            <p className="text-slate-600 mb-10 leading-relaxed">Cada pedido chega com os itens, os extras, os dados de entrega e a forma de pagamento — direto no painel, com aviso sonoro.</p>
             
-            <a href={CTA_START}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-center py-2.5 rounded-full font-semibold text-sm border border-surface-border text-gray-700 hover:bg-gray-50 transition-colors duration-[180ms]"
-            >
-              Começar Agora
-            </a>
-          </div>
-
-          <div className="bg-ink rounded-2xl shadow-lg p-6 relative overflow-hidden">
-            <span className="absolute top-4 right-4 text-[10px] font-bold uppercase tracking-wide bg-brand text-white px-2 py-1 rounded-full">
-              Popular
-            </span>
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Pro</p>
-            <p className="text-3xl font-bold text-white mb-1">
-              {currency(PLAN_PRICE_CENTS.PRO)}<span className="text-sm font-medium text-gray-400">/mês</span>
-            </p>
-            <p className="text-xs text-gray-400 mb-5">Para restaurantes que querem crescer</p>
-            
-            <a href={CTA_START}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-center py-2.5 rounded-full font-semibold text-sm bg-brand text-white hover:bg-brand-dark transition-colors duration-[180ms]"
-            >
-              Começar Agora
-            </a>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto rounded-2xl border border-surface-border bg-white shadow-sm">
-          <table className="w-full text-sm table-fixed">
-            <colgroup>
-              <col className="w-1/2" />
-              <col className="w-1/4" />
-              <col className="w-1/4" />
-            </colgroup>
-            <thead>
-              <tr className="border-b border-surface-border text-left text-xs uppercase tracking-wide text-gray-400">
-                <th className="px-4 py-3 font-medium">Recurso</th>
-                <th className="px-4 py-3 font-medium text-center">Start</th>
-                <th className="px-4 py-3 font-medium text-center">Pro</th>
-              </tr>
-            </thead>
-            <tbody>
-              {PLAN_FEATURE_ROWS.map((row) => (
-                <tr key={row.label} className="border-b border-gray-50 last:border-0">
-                  <td className="px-4 py-3 text-gray-700">{row.label}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-center"><FeatureCell value={row.start} /></div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-center"><FeatureCell value={row.pro} /></div>
-                  </td>
-                </tr>
+            <div className="grid grid-cols-2 gap-8">
+              {OWNER_BENEFITS.map((b) => (
+                <div key={b.title}>
+                  <b.icon className="text-[#D35400] mb-3" size={24} />
+                  <h4 className="font-bold mb-1 text-slate-900">{b.title}</h4>
+                  <p className="text-sm text-slate-500">{b.text}</p>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </div>
+
+          {/* Imagens do Dashboard com Moldura de Celular */}
+          <div className="grid gap-6 sm:grid-cols-2 items-start justify-items-center md:justify-items-end">
+            
+            {/* Celular Principal (Painel) */}
+            <div className="relative w-full max-w-[260px]">
+              <div className="bg-[#0F172A] p-3 rounded-[3rem] shadow-xl border-4 border-[#1E293B]">
+                <div className="bg-white rounded-[2.2rem] overflow-hidden aspect-[9/19] relative w-full">
+                  <img 
+                    src="/screenshots/admin-pedidos.jpeg" 
+                    alt="Painel de pedidos" 
+                    className="w-full h-auto object-top" 
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* 2 Celulares Menores Empilhados */}
+            <div className="grid gap-8 w-full max-w-[220px]">
+              <div className="bg-[#0F172A] p-2.5 rounded-[2.5rem] shadow-lg border-4 border-[#1E293B]">
+                <div className="bg-white rounded-[1.8rem] overflow-hidden aspect-[9/19] relative w-full">
+                  <img 
+                    src="/screenshots/confirm.jpeg" 
+                    alt="Confirmação" 
+                    className="w-full h-auto object-top" 
+                  />
+                </div>
+              </div>
+              
+              <div className="bg-[#0F172A] p-2.5 rounded-[2.5rem] shadow-lg border-4 border-[#1E293B]">
+                <div className="bg-white rounded-[1.8rem] overflow-hidden aspect-[9/19] relative w-full">
+                  <img 
+                    src="/screenshots/product.jpeg" 
+                    alt="Produto" 
+                    className="w-full h-auto object-top" 
+                  />
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="bg-ink py-16">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center">
-          <h2 className="text-2xl font-bold text-white mb-3">Pronto pra digitalizar seu cardápio?</h2>
-          <p className="text-gray-400 mb-7">Fala com a gente no WhatsApp e comece hoje mesmo.</p>
-          
-          <a href={CTA_START}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm bg-brand text-white shadow-sm hover:bg-brand-dark transition-colors duration-[180ms]"
-          >
-            <MessageCircle size={16} /> Falar no WhatsApp
-          </a>
+      {/* PRICING */}
+      <section id="planos" className="bg-[#FCFBF8] border-t border-slate-200 py-24 scroll-mt-16">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-extrabold mb-4 tracking-tight">Planos</h2>
+            <p className="text-slate-600">Mensalidade fixa, sem comissão por pedido.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-16">
+            {/* Start Plan */}
+            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col">
+              <h3 className="font-bold text-xl mb-4 uppercase tracking-wide text-slate-900">Start</h3>
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="text-4xl font-extrabold text-slate-900">{currency(PLAN_PRICE_CENTS.START)}</span>
+                <span className="text-slate-500">/mês</span>
+              </div>
+              <p className="text-slate-500 text-sm mb-8 flex-grow">Para colocar o cardápio no ar e começar a receber pedidos.</p>
+              <a 
+                href="#contato"
+                onClick={() => setForm((f) => ({ ...f, plan: "START" }))}
+                className="block text-center w-full py-3 rounded-full border border-slate-300 font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Começar com o Start
+              </a>
+            </div>
+
+            {/* Pro Plan */}
+            <div className="bg-[#111827] text-white rounded-3xl p-8 shadow-xl relative flex flex-col">
+              <div className="absolute top-0 right-8 -translate-y-1/2 bg-[#D35400] text-white text-xs font-bold px-3 py-1 rounded-full">
+                POPULAR
+              </div>
+              <h3 className="font-bold text-xl mb-4 uppercase tracking-wide text-white">Pro</h3>
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="text-4xl font-extrabold text-white">{currency(PLAN_PRICE_CENTS.PRO)}</span>
+                <span className="text-slate-300">/mês</span>
+              </div>
+              <p className="text-slate-300 text-sm mb-8 flex-grow">Tudo do Start, mais financeiro, dashboard, relatórios, cupons e exportação.</p>
+              <a 
+                href="#contato"
+                onClick={() => setForm((f) => ({ ...f, plan: "PRO" }))}
+                className="block text-center w-full py-3 rounded-full bg-[#D35400] text-white font-bold hover:bg-[#b84a00] transition-colors"
+              >
+                Começar com o Pro
+              </a>
+            </div>
+          </div>
+
+          {/* Pricing Table */}
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="py-4 px-6 font-semibold text-slate-700">Recursos</th>
+                  <th className="py-4 px-6 font-semibold text-center text-slate-700 w-28 sm:w-32">Start</th>
+                  <th className="py-4 px-6 font-semibold text-center text-slate-700 w-28 sm:w-32">Pro</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {PLAN_FEATURE_ROWS.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-4 px-6 text-slate-600">{row.label}</td>
+                    <td className="py-4 px-6 text-center"><FeatureCell value={row.start} /></td>
+                    <td className="py-4 px-6 text-center"><FeatureCell value={row.pro} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ SECTION */}
+      <section id="faq" className="py-24 max-w-3xl mx-auto px-6 scroll-mt-16">
+        <h2 className="text-3xl font-extrabold text-center mb-12 tracking-tight">Perguntas frequentes</h2>
+        <FaqAccordion />
+      </section>
+
+      {/* CTA FOOTER & CONTACT FORM */}
+      <section id="contato" className="max-w-5xl mx-auto px-6 pb-24 scroll-mt-16">
+        <div className="bg-[#111827] rounded-[2rem] p-8 md:p-16 text-center text-white relative overflow-hidden shadow-2xl">
+          <div className="relative z-10 max-w-md mx-auto">
+            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4 tracking-tight">Pronto para colocar<br/>seu restaurante online?</h2>
+            <p className="text-slate-400 mb-10">Preenche rapidinho, a gente te chama para configurar o seu cardápio digital.</p>
+            
+            <form onSubmit={handleWhatsApp} className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl text-left">
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-slate-500">Nome do restaurante</label>
+              <input
+                value={form.restaurantName}
+                onChange={(e) => setForm((f) => ({ ...f, restaurantName: e.target.value }))}
+                placeholder="Ex: Pizzaria da Praça"
+                className="w-full mb-5 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#D35400]/20 focus:border-[#D35400] transition-all"
+              />
+              
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-slate-500">Seu nome</label>
+              <input
+                value={form.yourName}
+                onChange={(e) => setForm((f) => ({ ...f, yourName: e.target.value }))}
+                placeholder="Como gosta de ser chamado"
+                className="w-full mb-5 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#D35400]/20 focus:border-[#D35400] transition-all"
+              />
+              
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-slate-500">Telefone / WhatsApp</label>
+              <input
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="(35) 99999-9999"
+                className="w-full mb-6 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#D35400]/20 focus:border-[#D35400] transition-all"
+              />
+              
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-slate-500">Plano de interesse</label>
+              <div className="flex gap-3 mb-8">
+                {(["START", "PRO"] as const).map((p) => (
+                  <button
+                    type="button"
+                    key={p}
+                    onClick={() => setForm((f) => ({ ...f, plan: p }))}
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all ${
+                      form.plan === p 
+                        ? "bg-slate-900 text-white border-slate-900 shadow-md" 
+                        : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {p === "START" ? "Start" : "Pro"}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="submit"
+                disabled={!formValid}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-full font-bold text-sm bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 disabled:opacity-50 disabled:hover:bg-emerald-500 transition-colors mb-3"
+              >
+                <MessageCircle size={18} /> Enviar pelo WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={handleEmail}
+                disabled={!formValid}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-full font-bold text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                <Mail size={18} /> Enviar por e-mail
+              </button>
+            </form>
+          </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      
-      <footer className="px-5 py-6 border-t border-gray-100 mt-2">
-      <p className="text-center text-[11px] text-gray-400">
-        © 2026 Desenvolvido por{" "}
-        
-        <a href={devWhatsApp}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-semibold text-gray-500 hover:text-chili underline"
-        >
-          Luiz Felippe
-        </a>
-      </p>
-      <p className="text-center text-[11px] text-gray-400">
-        Todos os direitos reservados
-      </p>
-    </footer>
+      <footer className="border-t border-slate-200 py-10 px-6">
+        <div className="mmax-w-7xl mx-auto mt-8 pt-8 border-t border-slate-100 flex flex-col items-center justify-center text-sm text-slate-500 gap-6">
+          <div className="flex items-center gap-2 font-bold text-lg text-slate-900">
+            <div className="bg-slate-900 text-white p-1 rounded-md w-7 h-7 flex items-center justify-center text-xs">
+              M
+            </div>
+            Menuair
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-slate-100 flex flex-col items-center justify-center text-sm text-slate-500 gap-6">
+          <div className="text-center leading-relaxed">
+            <p>
+              © {new Date().getFullYear()} Desenvolvido por{" "}
+              <a
+                href={devWhatsApp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-slate-600 hover:text-slate-800 underline transition-colors"
+              >
+                Luiz Felippe
+              </a>
+            </p>
+            <p>Todos os direitos reservados</p>
+          </div>
+          <div className="flex gap-6 text-xs text-slate-400">
+            <Link href="/privacidade" className="hover:text-slate-600 transition-colors">
+              Política de Privacidade
+            </Link>
+            <Link href="/termos" className="hover:text-slate-600 transition-colors">
+              Termos de Uso
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

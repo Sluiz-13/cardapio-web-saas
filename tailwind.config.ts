@@ -32,6 +32,7 @@ const config: Config = {
         display: ["Oswald", "sans-serif"], // segue usado no cardápio público
         mono: ["JetBrains Mono", "monospace"],
         sans: ["Inter", "Work Sans", "system-ui", "sans-serif"],
+        serif: ["Fraunces", "Georgia", "serif"], // só pro título de destaque da landing
       },
     },
   },
