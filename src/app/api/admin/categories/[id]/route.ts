@@ -28,10 +28,21 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const result = await db.category.deleteMany({
+  const category = await db.category.findFirst({
     where: { id: params.id, restaurantId: session.user.restaurantId },
   });
-  if (result.count === 0) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
+  if (!category) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
 
+  const productCount = await db.product.count({ where: { categoryId: params.id } });
+  if (productCount > 0) {
+    return NextResponse.json(
+      {
+        error: `Essa categoria tem ${productCount} produto${productCount > 1 ? "s" : ""}. Mova ou exclua ${productCount > 1 ? "eles" : "ele"} antes de excluir a categoria.`,
+      },
+      { status: 409 }
+    );
+  }
+
+  await db.category.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
 }

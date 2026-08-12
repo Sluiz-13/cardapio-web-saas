@@ -146,7 +146,7 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-6 pt-16 pb-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
           <span className="inline-block border border-slate-200 text-slate-500 text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-6 bg-white">
-            Cardápio Digital
+            Seu próprio canal de pedidos — sem pagar comissão por venda
           </span>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] mb-6 tracking-tight">
             Seu restaurante <br/> online. <br/>

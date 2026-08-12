@@ -55,7 +55,7 @@ type Order = {
 };
 
 const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
-const POLL_INTERVAL_MS = 8000;
+const POLL_INTERVAL_MS = 2000;
 const FLASH_DURATION_MS = 6000;
 
 function isBoardStatus(status: string): status is Status {
@@ -88,7 +88,13 @@ function getNextActionLabel(order: Order): string {
   }
 }
 
-export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] }) {
+export default function OrdersBoard({
+  initialOrders,
+  printMethod,
+}: {
+  initialOrders: Order[];
+  printMethod: string;
+}) {
   const [orders, setOrders] = useState(initialOrders);
   const [historyOrderId, setHistoryOrderId] = useState<string | null>(null);
   const [flashingIds, setFlashingIds] = useState<Set<string>>(new Set());
@@ -121,6 +127,12 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
               });
             }, FLASH_DURATION_MS);
           });
+
+          if (printMethod === "RAWBT") {
+            newOnes.forEach((o, i) => {
+              setTimeout(() => triggerRawBtPrint(o.id), i * 1200);
+            });
+          }
         }
 
         knownIds.current = new Set(fetched.map((o) => o.id));
@@ -134,6 +146,16 @@ export default function OrdersBoard({ initialOrders }: { initialOrders: Order[] 
     const interval = setInterval(poll, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
+
+  async function triggerRawBtPrint(orderId: string) {
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/print`, { method: "POST" });
+      if (!res.ok) return; // falha silenciosa — impressão manual continua disponível
+      const data = await res.json();
+      window.location.href = data.rawbtUrl;
+    } catch {
+    }
+  }
 
   async function advance(order: Order) {
     const next = getNextStatus(order);

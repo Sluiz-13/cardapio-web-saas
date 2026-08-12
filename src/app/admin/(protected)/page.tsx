@@ -8,15 +8,21 @@ export default async function AdminOrdersPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.restaurantId) return null; // middleware já protege, isso é só type-safety
 
-  const orders = await db.order.findMany({
-    where: {
-      restaurantId: session.user.restaurantId,
-      status: { in: ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] },
-    },
-    include: { items: true },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  });
+  const [orders, restaurant] = await Promise.all([
+    db.order.findMany({
+      where: {
+        restaurantId: session.user.restaurantId,
+        status: { in: ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] },
+      },
+      include: { items: true },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+    db.restaurant.findUnique({
+      where: { id: session.user.restaurantId },
+      select: { printMethod: true },
+    }),
+  ]);
 
-  return <OrdersBoard initialOrders={orders} />;
+  return <OrdersBoard initialOrders={orders} printMethod={restaurant?.printMethod ?? "MANUAL"} />;
 }

@@ -15,6 +15,9 @@ const updateSchema = z.object({
   phone: z.string().max(20).optional(),
   address: z.string().max(150).optional(),
   avgDeliveryTime: z.string().max(30).optional(),
+  printMethod: z.enum(["MANUAL", "RAWBT", "AGENT"]).optional(),
+  printerIp: z.string().max(45).optional(),
+  printerPort: z.number().int().min(1).max(65535).optional(),
   businessHours: z
     .array(
       z.object({
@@ -45,6 +48,9 @@ export async function GET() {
     phone: true, 
     address: true, 
     avgDeliveryTime: true,
+    printMethod: true,
+    printerIp: true,
+    printerPort: true,
   },
   });
 
@@ -72,6 +78,9 @@ export async function PATCH(req: NextRequest) {
     phone,
     address,
     avgDeliveryTime,
+    printMethod,
+    printerIp,
+    printerPort,
     businessHours,
   } = parsed.data;
 
@@ -85,6 +94,9 @@ export async function PATCH(req: NextRequest) {
   if (phone !== undefined) restaurantData.phone = phone;
   if (address !== undefined) restaurantData.address = address;
   if (avgDeliveryTime !== undefined) restaurantData.avgDeliveryTime = avgDeliveryTime;
+  if (printMethod !== undefined) restaurantData.printMethod = printMethod;
+  if (printerIp !== undefined) restaurantData.printerIp = printerIp;
+  if (printerPort !== undefined) restaurantData.printerPort = printerPort;
 
   if (Object.keys(restaurantData).length > 0) {
     await db.restaurant.update({ where: { id: session.user.restaurantId }, data: restaurantData });

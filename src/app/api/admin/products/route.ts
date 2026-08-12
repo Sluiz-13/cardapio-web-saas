@@ -9,7 +9,12 @@ const createProductSchema = z.object({
   name: z.string().min(2),
   description: z.string().optional(),
   priceCents: z.number().int().positive(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z
+    .string()
+    .refine((val) => val.startsWith("/") || /^https?:\/\//.test(val), {
+      message: "URL de imagem inválida",
+    })
+    .optional(),
   removableOptions: z.array(z.string()).default([]),
   extraOptions: z.array(z.object({ name: z.string(), priceCents: z.number().int().nonnegative() })).default([]),
   availableDays: z.array(z.number().int().min(0).max(6)).default([]),

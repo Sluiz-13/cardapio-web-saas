@@ -7,7 +7,12 @@ const updateProductSchema = z.object({
   name: z.string().min(2).optional(),
   description: z.string().optional(),
   priceCents: z.number().int().positive().optional(),
-  imageUrl: z.string().url().optional().or(z.literal("")),
+  imageUrl: z
+    .string()
+    .refine((val) => val === "" || val.startsWith("/") || /^https?:\/\//.test(val), {
+      message: "URL de imagem inválida",
+    })
+    .optional(),
   active: z.boolean().optional(),
   categoryId: z.string().optional(),
   removableOptions: z.array(z.string()).optional(),

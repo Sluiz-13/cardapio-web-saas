@@ -18,11 +18,11 @@ export const PLAN_LIMITS: Record<
   }
 > = {
   START: {
-    maxProducts: 50,
-    maxCategories: 6,
+    maxProducts: 150,
+    maxCategories: 15,
     maxAdminUsers: 1,
     coupons: false,
-    soundNotifications: false,
+    soundNotifications: true,
     csvExport: false,
     featuredProducts: false,
     permissionsControl: false,

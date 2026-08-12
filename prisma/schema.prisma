@@ -51,7 +51,19 @@ model Restaurant {
   contactEmail String?
   logoUrl   String?
 
+  // Configuração de impressão automática. MANUAL é o default seguro:
+  // nenhum restaurante existente muda de comportamento com essa migration.
+  printMethod PrintMethod @default(MANUAL)
+  printerIp   String? // usado só quando printMethod = AGENT
+  printerPort Int?    @default(9100) // porta padrão ESC/POS sobre TCP (RAW/9100)
+
   @@map("restaurants")
+}
+
+enum PrintMethod {
+  MANUAL // botão manual — comportamento atual, sempre disponível como fallback
+  RAWBT  // dispara impressão via app RawBT instalado no celular do restaurante
+  AGENT  // serviço local (PC/notebook) que fala ESC/POS direto com a impressora
 }
 
 model BusinessHours {
@@ -206,7 +218,12 @@ model Order {
   statusHistory OrderStatusHistory[]
   changeForCents Int?
 
+  // null = ainda não impresso. Usado pelos 3 métodos de impressão (manual,
+  // RawBT, Agent) pra evitar imprimir o mesmo pedido duas vezes.
+  printedAt DateTime?
+
   @@index([restaurantId, status])
+  @@index([restaurantId, printedAt])
   @@map("orders")
 }
 
@@ -214,8 +231,8 @@ model OrderItem {
   id            String  @id @default(cuid())
   orderId       String
   order         Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId     String
-  product       Product @relation(fields: [productId], references: [id])
+  productId     String?
+  product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   productName   String // snapshot do nome no momento da compra
   unitPriceCents Int    // snapshot do preço no momento da compra
   qty           Int

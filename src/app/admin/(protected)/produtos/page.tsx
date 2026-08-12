@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, X, Pencil, Package } from "lucide-react";
+import { Plus, Trash2, X, Pencil, Package, Upload } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Input";
@@ -61,8 +61,12 @@ export default function ProdutosPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remover esse produto do cardápio?")) return;
-    await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    if (!confirm("Remover esse produto do cardápio? Pedidos antigos continuam salvos, só perdem o vínculo com esse produto específico.")) return;
+    const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      show("Não foi possível remover.", "error");
+      return;
+    }
     show("Produto removido.", "info");
     load();
   }
@@ -167,6 +171,7 @@ function ProductFormModal({
   const [extraPrice, setExtraPrice] = useState("");
   const [availableDays, setAvailableDays] = useState<number[]>(initialProduct?.availableDays ?? []);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   function addRemovable() {
@@ -188,6 +193,27 @@ function ProductFormModal({
 
   function removeExtra(index: number) {
     setExtras((ex) => ex.filter((_, i) => i !== index));
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError("");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/admin/products/image", { method: "POST", body: formData });
+
+    setUploading(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? "Não foi possível enviar a imagem.");
+      return;
+    }
+    const data = await res.json();
+    setImageUrl(data.imageUrl);
+    e.target.value = ""; // permite escolher o mesmo arquivo de novo, se precisar
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -274,8 +300,34 @@ function ProductFormModal({
           </div>
 
           <div>
-            <Label>URL da imagem</Label>
-            <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className={inputClass} placeholder="https://..." />
+            <Label>Imagem do prato</Label>
+            <div className="flex items-center gap-3">
+              {imageUrl && (
+                <img src={imageUrl} alt="" className="w-14 h-14 object-cover rounded-lg border border-surface-border shrink-0" />
+              )}
+              <label
+                className={`flex-1 flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-dashed border-surface-border text-sm text-gray-500 cursor-pointer hover:border-brand hover:text-brand transition-colors duration-[180ms] ${uploading ? "opacity-60 pointer-events-none" : ""}`}
+              >
+                <Upload size={16} />
+                {uploading ? "Enviando..." : imageUrl ? "Trocar imagem" : "Enviar imagem do PC"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                />
+              </label>
+            </div>
+            <details className="mt-2">
+              <summary className="text-xs text-gray-400 cursor-pointer select-none">ou colar uma URL de imagem</summary>
+              <input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                className={`${inputClass} mt-2`}
+                placeholder="https://..."
+              />
+            </details>
           </div>
 
           <hr className="border-surface-border" />

@@ -42,6 +42,7 @@ export default function ConfiguracoesPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [avgDeliveryTime, setAvgDeliveryTime] = useState("");
+  const [printMethod, setPrintMethod] = useState("MANUAL");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +67,7 @@ export default function ConfiguracoesPage() {
         setPhone(data.restaurant.phone ?? "");
         setAddress(data.restaurant.address ?? "");
         setAvgDeliveryTime(data.restaurant.avgDeliveryTime ?? "");
+        setPrintMethod(data.restaurant.printMethod ?? "MANUAL");
         setLogoUrl(data.restaurant.logoUrl ?? null);
         setLoading(false);
       });
@@ -119,6 +121,7 @@ export default function ConfiguracoesPage() {
         phone: phone || undefined,
         address: address || undefined,
         avgDeliveryTime: avgDeliveryTime || undefined,
+        printMethod,
       }),
     });
     setSaving(false);
@@ -254,6 +257,28 @@ export default function ConfiguracoesPage() {
               <input value={avgDeliveryTime} onChange={(e) => setAvgDeliveryTime(e.target.value)} placeholder="ex: 30-45 min" className={inputClass} />
             </div>
           </div>
+        </CardBody>
+     </Card>
+
+      <Card className="mb-6">
+        <CardBody>
+          <p className="font-bold text-sm text-gray-900 mb-1">Impressão automática</p>
+          <p className="text-xs text-gray-500 mb-3">
+            Escolha como os pedidos novos são impressos no seu balcão.
+          </p>
+          <Label>Método</Label>
+          <select value={printMethod} onChange={(e) => setPrintMethod(e.target.value)} className={inputClass}>
+            <option value="MANUAL">Manual (clicar em imprimir)</option>
+            <option value="RAWBT">Automático via app RawBT (celular)</option>
+            <option value="AGENT" disabled>Automático via PC/notebook (em breve)</option>
+          </select>
+          {printMethod === "RAWBT" && (
+            <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 leading-relaxed">
+              Instale o app <strong>RawBT</strong> (gratuito, na Play Store) no celular que fica no balcão e
+              conecte-o na sua impressora térmica. Depois disso, os pedidos novos imprimem sozinhos, sem
+              precisar clicar em nada.
+            </div>
+          )}
         </CardBody>
       </Card>
 
