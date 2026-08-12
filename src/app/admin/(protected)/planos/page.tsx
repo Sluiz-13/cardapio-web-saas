@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle, AlertTriangle, Crown } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/Table";
 import { Skeleton } from "@/components/ui/Skeleton";
 
@@ -18,8 +19,8 @@ type PlanInfo = {
 
 const FEATURES: { label: string; start: boolean; pro: boolean }[] = [
   { label: "Cardápio online", start: true, pro: true },
-  { label: "Até 50 produtos / Ilimitado", start: true, pro: true },
-  { label: "Até 6 categorias / Ilimitado", start: true, pro: true },
+  { label: "Até 150 produtos / Ilimitado", start: true, pro: true },
+  { label: "Até 15 categorias / Ilimitado", start: true, pro: true },
   { label: "Financeiro", start: true, pro: true },
   { label: "Dashboard com gráfico", start: false, pro: true },
   { label: "Relatórios avançados", start: false, pro: true },
@@ -91,11 +92,11 @@ export default function PlanosPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6">
-      <div className="flex items-center gap-2 mb-1">
-        <h1 className="text-xl font-bold text-gray-900">Seu plano</h1>
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <PageHeader icon={Crown} title="Seu plano" />
         <Badge tone={info.plan === "PRO" ? "brand" : "neutral"}>{info.plan}</Badge>
       </div>
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-sm text-gray-500 mb-6 -mt-4">
         Vencimento: <span className="font-semibold text-gray-800">{dueDateFormatted}</span>
       </p>
 

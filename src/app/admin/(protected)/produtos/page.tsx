@@ -6,6 +6,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -75,10 +76,10 @@ export default function ProdutosPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-gray-900">Produtos</h1>
-        <Button onClick={() => setShowCreateForm(true)} disabled={categories.length === 0}>
-          <Plus size={14} /> Novo Produto
+      <div className="flex items-start justify-between gap-3 mb-6">
+        <PageHeader icon={Package} title="Produtos" subtitle="O que aparece no seu cardápio, com preço e categoria." />
+        <Button onClick={() => setShowCreateForm(true)} disabled={categories.length === 0} className="shrink-0">
+          <Plus size={14} /> Novo
         </Button>
       </div>
 

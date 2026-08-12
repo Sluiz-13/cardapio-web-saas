@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DollarSign, Receipt, TrendingUp, Inbox } from "lucide-react";
+import { DollarSign, Receipt, TrendingUp, Inbox, Wallet } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -55,7 +56,7 @@ export default function FinanceiroPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6">
-      <h1 className="text-xl font-bold text-gray-900 mb-6">Financeiro</h1>
+      <PageHeader icon={Wallet} title="Financeiro" subtitle="Faturamento e últimas vendas de hoje." />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {cards.map((c) => (

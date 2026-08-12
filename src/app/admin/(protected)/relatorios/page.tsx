@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Lock, TrendingUp, TrendingDown, PieChart, Download } from "lucide-react";
+import { Lock, TrendingUp, TrendingDown, PieChart, Download, FileBarChart } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -72,7 +73,7 @@ export default function RelatoriosPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
-      <h1 className="text-xl font-bold text-gray-900 mb-4">Relatórios</h1>
+      <PageHeader icon={FileBarChart} title="Relatórios" subtitle="Compare períodos, formas de pagamento e produtos mais vendidos." />
 
       <Card className="mb-6">
         <CardBody className="flex flex-wrap items-end gap-3">

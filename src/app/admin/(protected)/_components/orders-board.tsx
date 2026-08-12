@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Flame, Clock, Printer, MapPin, Phone, Bike, MessageCircle, Inbox, Trash2 } from "lucide-react";
+import { Flame, Clock, Printer, MapPin, Phone, Bike, MessageCircle, Inbox, Trash2, ClipboardList } from "lucide-react";
 import OrderHistoryModal from "./order-history-modal";
 import { buildWhatsAppLink, buildOrderStatusMessage } from "@/lib/whatsapp";
 import { playNotificationSound } from "@/lib/notification-sound";
 import { Badge } from "@/components/ui/Badge";
+import { PageHeader } from "@/components/ui/PageHeader";
 import clsx from "clsx";
 
 const STATUS_FLOW = ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
@@ -186,8 +187,17 @@ export default function OrdersBoard({
     await fetch(`/api/admin/orders/${orderId}`, { method: "DELETE" });
   }
 
+  const activeCount = orders.filter((o) => o.status !== "DELIVERED").length;
+
   return (
-    <div className="px-4 py-6 sm:px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="px-4 py-6 sm:px-6">
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <PageHeader icon={ClipboardList} title="Pedidos" />
+        <span className="text-xs font-semibold text-gray-400 shrink-0">
+          {activeCount} {activeCount === 1 ? "pedido ativo" : "pedidos ativos"}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       {STATUS_FLOW.map((status) => (
         <div key={status}>
           <p className="text-xs uppercase tracking-wide font-semibold mb-2.5 flex items-center gap-1.5 text-gray-500">
@@ -314,6 +324,7 @@ export default function OrdersBoard({
         </div>
       ))}
       {historyOrderId && <OrderHistoryModal orderId={historyOrderId} onClose={() => setHistoryOrderId(null)} />}
+      </div>
     </div>
   );
 }

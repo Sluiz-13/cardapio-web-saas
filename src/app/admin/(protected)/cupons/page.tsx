@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -69,10 +70,10 @@ export default function CuponsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Cupons de Desconto</h1>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus size={14} /> Novo Cupom
+      <div className="flex items-start justify-between gap-3 mb-6">
+        <PageHeader icon={Tag} title="Cupons de Desconto" subtitle="Códigos promocionais pro seu cardápio." />
+        <Button onClick={() => setShowForm(true)} className="shrink-0">
+          <Plus size={14} /> Novo
         </Button>
       </div>
 

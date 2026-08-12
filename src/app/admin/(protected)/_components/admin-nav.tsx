@@ -30,7 +30,15 @@ const LINKS: SidebarLink[] = [
   { href: "/admin/entregas", label: "Entregas", icon: Truck },
 ];
 
-export default function AdminNav({ restaurantName, userName }: { restaurantName: string; userName: string }) {
+export default function AdminNav({
+  restaurantName,
+  userName,
+  logoUrl,
+}: {
+  restaurantName: string;
+  userName: string;
+  logoUrl?: string | null;
+}) {
   return (
     <Sidebar
       brand={restaurantName}
@@ -38,6 +46,7 @@ export default function AdminNav({ restaurantName, userName }: { restaurantName:
       userName={userName}
       onSignOut={() => signOut({ callbackUrl: "/admin/login" })}
       tone="light"
+      logoUrl={logoUrl}
     />
   );
 }

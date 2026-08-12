@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, FolderOpen, Pencil, Check, X, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Trash2, FolderOpen, Pencil, Check, X, ChevronUp, ChevronDown, Tags } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -145,7 +146,7 @@ export default function CategoriasPage() {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6 sm:px-6">
-      <h1 className="text-xl font-bold text-gray-900 mb-6">Categorias</h1>
+      <PageHeader icon={Tags} title="Categorias" subtitle="Organize as seções do seu cardápio e a ordem em que aparecem." />
 
       <Card className="mb-6">
         <CardBody>
@@ -181,7 +182,7 @@ export default function CategoriasPage() {
         <div className="space-y-2">
           {categories.map((cat, index) => (
             <Card key={cat.id}>
-              <CardBody className="flex items-center justify-between !py-3.5 gap-2">
+              <CardBody className="flex items-center justify-between !py-3 gap-3">
                 {editingId === cat.id ? (
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <input
@@ -197,57 +198,59 @@ export default function CategoriasPage() {
                     <button
                       onClick={() => saveRename(cat.id)}
                       disabled={renaming}
-                      className="text-emerald-600 hover:text-emerald-700 shrink-0 disabled:opacity-50"
+                      className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 shrink-0 disabled:opacity-50 transition-colors duration-[180ms]"
                       aria-label="Salvar nome"
                     >
-                      <Check size={17} />
+                      <Check size={15} />
                     </button>
                     <button
                       onClick={cancelEditing}
                       disabled={renaming}
-                      className="text-gray-400 hover:text-gray-600 shrink-0 disabled:opacity-50"
+                      className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 shrink-0 disabled:opacity-50 transition-colors duration-[180ms]"
                       aria-label="Cancelar"
                     >
-                      <X size={17} />
+                      <X size={15} />
                     </button>
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-1 shrink-0">
+                    {/* Pill agrupado: as duas setas compartilham uma borda só,
+                        em vez de dois ícones soltos flutuando no espaço. */}
+                    <div className="flex flex-col rounded-lg border border-surface-border overflow-hidden shrink-0">
                       <button
                         onClick={() => move(index, "up")}
                         disabled={index === 0 || movingId !== null}
-                        className="text-gray-300 hover:text-gray-700 disabled:opacity-20 disabled:hover:text-gray-300 transition-colors duration-[180ms]"
+                        className="flex items-center justify-center w-7 h-6 text-gray-400 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-25 disabled:hover:bg-transparent transition-colors duration-[180ms] border-b border-surface-border"
                         aria-label="Mover para cima"
                       >
-                        <ChevronUp size={16} />
+                        <ChevronUp size={13} />
                       </button>
                       <button
                         onClick={() => move(index, "down")}
                         disabled={index === categories.length - 1 || movingId !== null}
-                        className="text-gray-300 hover:text-gray-700 disabled:opacity-20 disabled:hover:text-gray-300 transition-colors duration-[180ms]"
+                        className="flex items-center justify-center w-7 h-6 text-gray-400 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-25 disabled:hover:bg-transparent transition-colors duration-[180ms]"
                         aria-label="Mover para baixo"
                       >
-                        <ChevronDown size={16} />
+                        <ChevronDown size={13} />
                       </button>
                     </div>
 
                     <span className="font-semibold text-sm text-gray-800 flex-1 min-w-0 truncate">{cat.name}</span>
 
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => startEditing(cat)}
-                        className="text-gray-300 hover:text-brand transition-colors duration-[180ms]"
+                        className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:bg-brand-light hover:text-brand transition-colors duration-[180ms]"
                         aria-label="Editar nome"
                       >
-                        <Pencil size={15} />
+                        <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => handleDelete(cat.id)}
-                        className="text-gray-300 hover:text-red-500 transition-colors duration-[180ms]"
+                        className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors duration-[180ms]"
                         aria-label="Remover categoria"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </>

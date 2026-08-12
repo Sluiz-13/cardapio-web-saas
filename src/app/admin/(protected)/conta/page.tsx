@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardBody } from "@/components/ui/Card";
+import { UserCircle, KeyRound, Mail } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/Toast";
 
 export default function ContaPage() {
@@ -82,11 +84,17 @@ export default function ContaPage() {
 
   return (
     <div className="max-w-sm mx-auto px-4 py-6 sm:px-6">
-      <h1 className="text-xl font-bold text-gray-900 mb-6">Minha Conta</h1>
+      <PageHeader icon={UserCircle} title="Minha conta" subtitle="Login e segurança do seu acesso ao painel." />
 
-      <Card className="mb-4">
+      <Card className="mb-5">
+        <CardHeader className="flex items-center gap-2">
+          <KeyRound size={15} className="text-gray-400" />
+          <div>
+            <CardTitle>Senha</CardTitle>
+            <CardDescription className="mt-0.5">Use pelo menos 8 caracteres.</CardDescription>
+          </div>
+        </CardHeader>
         <CardBody>
-          <p className="text-sm font-semibold text-gray-800 mb-3">Trocar Senha</p>
           <form onSubmit={handleSubmit}>
             <Label>Senha atual</Label>
             <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
@@ -98,15 +106,21 @@ export default function ContaPage() {
             {error && <p className="text-red-600 text-xs mb-3">{error}</p>}
 
             <Button type="submit" isLoading={saving} className="w-full">
-              Trocar Senha
+              Trocar senha
             </Button>
           </form>
         </CardBody>
       </Card>
 
       <Card>
+        <CardHeader className="flex items-center gap-2">
+          <Mail size={15} className="text-gray-400" />
+          <div>
+            <CardTitle>E-mail de login</CardTitle>
+            <CardDescription className="mt-0.5">Pede sua senha atual, por segurança.</CardDescription>
+          </div>
+        </CardHeader>
         <CardBody>
-          <p className="text-sm font-semibold text-gray-800 mb-3">Trocar E-mail</p>
           <form onSubmit={handleEmailSubmit}>
             <Label>Senha atual</Label>
             <Input
@@ -120,7 +134,7 @@ export default function ContaPage() {
             {emailError && <p className="text-red-600 text-xs mb-3">{emailError}</p>}
 
             <Button type="submit" isLoading={savingEmail} className="w-full">
-              Trocar E-mail
+              Trocar e-mail
             </Button>
           </form>
         </CardBody>

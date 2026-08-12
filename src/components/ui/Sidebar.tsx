@@ -19,18 +19,25 @@ interface SidebarProps {
   onSignOut: () => void;
   tone?: "light" | "dark";
   brandDot?: boolean;
+  logoUrl?: string | null;
 }
 
-export function Sidebar({ brand, links, userName, onSignOut, tone = "light", brandDot }: SidebarProps) {
+export function Sidebar({ brand, links, userName, onSignOut, tone = "light", brandDot, logoUrl }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const dark = tone === "dark";
 
   const content = (
     <div className={clsx("flex h-full w-64 flex-col border-r", dark ? "bg-ink border-black/20" : "bg-white border-surface-border")}>
-      <div className={clsx("px-5 py-5 flex items-center gap-2 border-b", dark ? "border-white/10" : "border-surface-border")}>
-        {brandDot && <span className="w-2 h-2 rounded-full bg-brand shrink-0" />}
-        <p className="text-[11px] uppercase tracking-wide font-semibold truncate text-gray-400">{brand}</p>
+      <div className={clsx("px-5 py-4 flex items-center gap-2.5 border-b", dark ? "border-white/10" : "border-surface-border")}>
+        {logoUrl ? (
+          <img src={logoUrl} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0 border border-surface-border" />
+        ) : (
+          brandDot && <span className="w-2 h-2 rounded-full bg-brand shrink-0" />
+        )}
+        <p className={clsx("truncate font-semibold", logoUrl ? "text-sm text-gray-800" : "text-[11px] uppercase tracking-wide text-gray-400")}>
+          {brand}
+        </p>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">

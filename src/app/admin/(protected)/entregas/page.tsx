@@ -5,6 +5,7 @@ import { Plus, Trash2, Truck, MapPinOff } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Input";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -98,7 +99,7 @@ export default function EntregasPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6">
-      <h1 className="text-xl font-bold text-gray-900 mb-6">Taxas de Entrega</h1>
+      <PageHeader icon={Truck} title="Taxas de Entrega" subtitle="Valor cobrado por bairro na entrega." />
 
       <Card className="mb-6">
         <CardBody>

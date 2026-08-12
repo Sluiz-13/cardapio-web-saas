@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Power } from "lucide-react";
-import { Card, CardBody } from "@/components/ui/Card";
+import { Power, Settings, ImageIcon, Wallet, Phone as PhoneIcon, Clock, Printer } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Input";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 
@@ -105,7 +106,6 @@ export default function ConfiguracoesPage() {
     show("Logo removida.", "info");
   }
 
-
   async function handleSave() {
     setSaving(true);
     const res = await fetch("/api/admin/settings", {
@@ -144,10 +144,14 @@ export default function ConfiguracoesPage() {
     "w-full px-3.5 py-2.5 rounded-xl border border-surface-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-shadow duration-[180ms]";
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6">
-      <h1 className="text-xl font-bold text-gray-900 mb-6">Configurações</h1>
+    <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6 pb-28">
+      <PageHeader icon={Settings} title="Configurações" subtitle="Dados do restaurante, Pix, horários e impressão." />
 
-      <Card className="mb-6">
+      <Card className="mb-5">
+        <CardHeader className="flex items-center gap-2">
+          <ImageIcon size={15} className="text-gray-400" />
+          <CardTitle>Logo do restaurante</CardTitle>
+        </CardHeader>
         <CardBody className="flex items-center gap-4">
           {logoUrl ? (
             <img src={logoUrl} alt="Logo do restaurante" className="w-16 h-16 rounded-2xl object-cover border border-surface-border shrink-0" />
@@ -157,8 +161,7 @@ export default function ConfiguracoesPage() {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-sm text-gray-900 mb-1">Logo do restaurante</p>
-            <p className="text-xs text-gray-500 mb-2">PNG, JPG ou WEBP, até 2MB.</p>
+            <CardDescription className="mt-0 mb-2.5">PNG, JPG ou WEBP, até 2MB. Aparece na sua barra lateral e no cardápio público.</CardDescription>
             <div className="flex gap-2">
               <input
                 ref={fileInputRef}
@@ -180,27 +183,32 @@ export default function ConfiguracoesPage() {
         </CardBody>
       </Card>
 
-      <Card className="mb-6">
+      <Card className="mb-5">
         <CardBody className="flex items-center justify-between">
-          <div>
-            <p className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
-              <Power size={14} className={restaurantIsOpen ? "text-emerald-600" : "text-brand"} />
-              Loja {restaurantIsOpen ? "aberta" : "fechada"} manualmente
-            </p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Desligar aqui fecha a loja na hora, mesmo dentro do horário programado. Use para emergências.
-            </p>
+          <div className="flex items-center gap-2.5">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${restaurantIsOpen ? "bg-emerald-50 text-emerald-600" : "bg-brand-light text-brand"}`}>
+              <Power size={15} />
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-gray-900">Loja {restaurantIsOpen ? "aberta" : "fechada"} manualmente</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Desligar aqui fecha a loja na hora, mesmo dentro do horário programado. Use para emergências.
+              </p>
+            </div>
           </div>
           <Toggle checked={restaurantIsOpen} onChange={() => setRestaurantIsOpen((v) => !v)} />
         </CardBody>
       </Card>
 
-      <Card className="mb-6">
+      <Card className="mb-5">
+        <CardHeader className="flex items-center gap-2">
+          <Wallet size={15} className="text-gray-400" />
+          <div>
+            <CardTitle>Pix</CardTitle>
+            <CardDescription className="mt-0.5">Sem gateway: o cliente paga direto na sua chave e você confere manualmente pelo app do banco.</CardDescription>
+          </div>
+        </CardHeader>
         <CardBody>
-          <p className="font-bold text-sm text-gray-900 mb-1">Pix</p>
-          <p className="text-xs text-gray-500 mb-3">
-            Sem gateway: o cliente paga direto na sua chave e você confere manualmente pelo app do banco.
-          </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <Label>Chave Pix</Label>
@@ -240,9 +248,12 @@ export default function ConfiguracoesPage() {
         </CardBody>
       </Card>
 
-      <Card className="mb-6">
+      <Card className="mb-5">
+        <CardHeader className="flex items-center gap-2">
+          <PhoneIcon size={15} className="text-gray-400" />
+          <CardTitle>Informações de contato</CardTitle>
+        </CardHeader>
         <CardBody>
-          <p className="font-bold text-sm text-gray-900 mb-3">Informações de contato</p>
           <div className="space-y-3">
             <div>
               <Label>Endereço</Label>
@@ -258,14 +269,17 @@ export default function ConfiguracoesPage() {
             </div>
           </div>
         </CardBody>
-     </Card>
+      </Card>
 
-      <Card className="mb-6">
+      <Card className="mb-5">
+        <CardHeader className="flex items-center gap-2">
+          <Printer size={15} className="text-gray-400" />
+          <div>
+            <CardTitle>Impressão automática</CardTitle>
+            <CardDescription className="mt-0.5">Escolha como os pedidos novos são impressos no seu balcão.</CardDescription>
+          </div>
+        </CardHeader>
         <CardBody>
-          <p className="font-bold text-sm text-gray-900 mb-1">Impressão automática</p>
-          <p className="text-xs text-gray-500 mb-3">
-            Escolha como os pedidos novos são impressos no seu balcão.
-          </p>
           <Label>Método</Label>
           <select value={printMethod} onChange={(e) => setPrintMethod(e.target.value)} className={inputClass}>
             <option value="MANUAL">Manual (clicar em imprimir)</option>
@@ -282,8 +296,11 @@ export default function ConfiguracoesPage() {
         </CardBody>
       </Card>
 
-      <p className="text-xs uppercase tracking-wide font-semibold text-gray-400 mb-2">Horário de funcionamento</p>
-      <div className="space-y-2 mb-6">
+      <div className="flex items-center gap-2 mb-3 mt-8">
+        <Clock size={13} className="text-gray-400" />
+        <p className="text-xs uppercase tracking-wide font-semibold text-gray-400">Horário de funcionamento</p>
+      </div>
+      <div className="space-y-2 mb-8">
         {hours.map((h) => (
           <Card key={h.dayOfWeek}>
             <CardBody className="flex flex-wrap items-center gap-3 !py-3.5 sm:flex-nowrap">
@@ -313,9 +330,15 @@ export default function ConfiguracoesPage() {
         ))}
       </div>
 
-      <Button onClick={handleSave} isLoading={saving}>
-        Salvar Configurações
-      </Button>
+      {/* Barra fixa no rodapé: evita ter que rolar a tela toda de volta pra
+          achar o botão salvar depois de mexer nos horários lá embaixo. */}
+      <div className="fixed bottom-0 left-0 right-0 sm:left-64 bg-white/90 backdrop-blur border-t border-surface-border px-4 py-3 sm:px-6 z-30">
+        <div className="max-w-2xl mx-auto">
+          <Button onClick={handleSave} isLoading={saving} className="w-full sm:w-auto">
+            Salvar configurações
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
