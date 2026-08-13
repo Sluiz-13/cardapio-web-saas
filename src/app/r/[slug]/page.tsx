@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { isRestaurantOpenNow } from "@/lib/business-hours";
+import { getBrazilTimeParts } from "@/lib/timezone";
 import MenuClient from "./_components/menu-client";
 
 export default async function RestaurantMenuPage({ params }: { params: { slug: string } }) {
@@ -14,7 +15,7 @@ export default async function RestaurantMenuPage({ params }: { params: { slug: s
         where: { restaurantId: restaurant.id, active: true },
         include: { removableOptions: true, extraOptions: true },
     }).then((products) => {
-        const today = new Date().getDay();
+        const { dayOfWeek: today } = getBrazilTimeParts();
         return products.filter((p) => p.availableDays.length === 0 || p.availableDays.includes(today));
     }),
     db.businessHours.findMany({ where: { restaurantId: restaurant.id } }),

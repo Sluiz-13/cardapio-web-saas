@@ -25,7 +25,7 @@ const FEATURES: { label: string; start: boolean; pro: boolean }[] = [
   { label: "Dashboard com gráfico", start: false, pro: true },
   { label: "Relatórios avançados", start: false, pro: true },
   { label: "Cupons de desconto", start: false, pro: true },
-  { label: "Notificações sonoras", start: false, pro: true },
+  { label: "Notificações sonoras", start: true, pro: true },
   { label: "Exportação CSV", start: false, pro: true },
 ];
 

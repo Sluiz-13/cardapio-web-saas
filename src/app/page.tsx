@@ -19,7 +19,7 @@ import { PLAN_PRICE_CENTS } from "@/lib/plan-pricing";
 import { PLAN_LIMITS } from "@/lib/plan-features";
 import { landingWhatsAppLink } from "@/lib/landing-whatsapp";
 
-const CONTACT_EMAIL = "contato@menuair.com.br";
+const CONTACT_EMAIL = "suporte@menuair.com.br";
 const currency = (cents: number) => `R$ ${Math.floor(cents / 100)}`;
 
 const BENEFITS = [
