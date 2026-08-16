@@ -305,7 +305,7 @@ function ProductFormModal({
       name,
       description: description || undefined,
       priceCents,
-      imageUrl: imageUrl || undefined,
+      imageUrl,
       categoryId,
       removableOptions: removables,
       extraOptions: extras,
