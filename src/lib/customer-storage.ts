@@ -1,7 +1,7 @@
 export type SavedCustomerInfo = {
   customerName: string;
   customerPhone: string;
-  deliveryType: "DELIVERY" | "PICKUP";
+  deliveryType: "DELIVERY" | "PICKUP" | "DINE_IN";
   street: string;
   number: string;
   complement: string;

@@ -14,7 +14,7 @@ export default async function AdminOrdersPage() {
         restaurantId: session.user.restaurantId,
         status: { in: ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] },
       },
-      include: { items: true },
+      include: { items: true, table: { select: { label: true } } },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),

@@ -89,6 +89,7 @@ export default function NovoRestaurantePage() {
           onChange={(e) => setForm((f) => ({ ...f, plan: e.target.value as "START" | "PRO" }))}
         >
           <option value="START">START</option>
+          <option value="PRO">PRO</option>
         </select>
 
         <hr className="my-4 border-gray-100" />

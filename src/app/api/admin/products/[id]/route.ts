@@ -18,6 +18,7 @@ const updateProductSchema = z.object({
   removableOptions: z.array(z.string()).optional(),
   extraOptions: z.array(z.object({ name: z.string(), priceCents: z.number().int().nonnegative() })).optional(),
   availableDays: z.array(z.number().int().min(0).max(6)).optional(),
+  order: z.number().int().optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {

@@ -45,7 +45,7 @@ type Order = {
   totalCents: number;
   createdAt: string | Date;
   items: OrderItem[];
-  deliveryType: "DELIVERY" | "PICKUP";
+  deliveryType: "DELIVERY" | "PICKUP" | "DINE_IN";
   paymentMethod: string;
   street: string | null;
   number: string | null;
@@ -53,6 +53,8 @@ type Order = {
   city: string | null;
   changeForCents: number | null;
   paymentConfirmed: boolean;
+  printedAt: string | Date | null;
+  table: { label: string } | null;
 };
 
 const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
@@ -67,7 +69,9 @@ function getNextStatus(order: Order): Status | null {
   if (!isBoardStatus(order.status)) return null;
   const idx = STATUS_FLOW.indexOf(order.status);
   let next = STATUS_FLOW[idx + 1];
-  if (next === "OUT_FOR_DELIVERY" && order.deliveryType === "PICKUP") {
+  // Só pedido DELIVERY passa por "Saiu para entrega" — PICKUP e DINE_IN
+  // pulam direto pra "Entregue" (ninguém "sai para entrega" na mesa).
+  if (next === "OUT_FOR_DELIVERY" && order.deliveryType !== "DELIVERY") {
     next = STATUS_FLOW[idx + 2];
   }
   return next ?? null;
@@ -81,7 +85,8 @@ function getNextActionLabel(order: Order): string {
     case "PREPARING":
       return "Marcar pronto";
     case "READY":
-      return order.deliveryType === "DELIVERY" ? "Saiu para entrega" : "Marcar entregue";
+      if (order.deliveryType === "DELIVERY") return "Saiu para entrega";
+      return order.deliveryType === "DINE_IN" ? "Marcar como servido" : "Marcar entregue";
     case "OUT_FOR_DELIVERY":
       return "Marcar entregue";
     default:
@@ -239,6 +244,12 @@ export default function OrdersBoard({
                         <MapPin size={11} className="mt-0.5 shrink-0" />
                         {o.street}, {o.number} — {o.neighborhood}, {o.city}
                       </p>
+                    )}
+
+                    {o.deliveryType === "DINE_IN" && o.table && (
+                      <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-900 text-white">
+                        🍽️ {o.table.label}
+                      </span>
                     )}
 
                     <p className="text-xs mt-2 text-gray-600">

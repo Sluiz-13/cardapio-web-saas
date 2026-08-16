@@ -27,7 +27,7 @@ export async function GET() {
   const products = await db.product.findMany({
     where: { restaurantId: session.user.restaurantId },
     include: { category: true, removableOptions: true, extraOptions: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ category: { order: "asc" } }, { order: "asc" }],
   });
   return NextResponse.json(products);
 }
@@ -48,9 +48,15 @@ export async function POST(req: NextRequest) {
   });
   if (!category) return NextResponse.json({ error: "categoria inválida" }, { status: 400 });
 
+  // Produto novo entra no fim da categoria dele, não no fim geral.
+  const productCountInCategory = await db.product.count({
+    where: { restaurantId: session.user.restaurantId, categoryId: data.categoryId },
+  });
+
   const product = await db.product.create({
     data: {
       ...data,
+      order: productCountInCategory,
       restaurantId: session.user.restaurantId,
       removableOptions: { create: removableOptions.map((name) => ({ name })) },
       extraOptions: { create: extraOptions },

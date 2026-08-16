@@ -176,3 +176,20 @@ export function buildRawBtIntentUrl(order: OrderForReceipt): string {
   const bytes = buildReceiptEscPos(order);
   return `rawbt:base64,${bytes.toString("base64")}`;
 }
+
+type ComandaForReceipt = {
+  openedAt: Date;
+  table: { label: string };
+  restaurant: { name: string };
+  orders: {
+    customerName: string;
+    totalCents: number;
+    items: { productName: string; qty: number }[];
+  }[];
+};
+
+/**
+ * Recibo da CONTA FECHADA de uma comanda — diferente do cupom de pedido
+ * individual: soma todos os pedidos da mesa numa única via, pro cliente
+ * conferir antes de pagar.
+ */

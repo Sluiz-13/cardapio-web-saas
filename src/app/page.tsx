@@ -44,6 +44,7 @@ const OWNER_BENEFITS = [
 
 const PLAN_FEATURE_ROWS: { label: string; start: boolean | string; pro: boolean | string }[] = [
   { label: "Cardápio online + QR Code do seu cardápio", start: true, pro: true },
+  { label: "QR Code por mesa", start: false, pro: true },
   { label: "Produtos", start: `Até ${PLAN_LIMITS.START.maxProducts}`, pro: "Ilimitado" },
   { label: "Categorias", start: `Até ${PLAN_LIMITS.START.maxCategories}`, pro: "Ilimitado" },
   { label: "Pedido pelo site + Pix", start: true, pro: true },

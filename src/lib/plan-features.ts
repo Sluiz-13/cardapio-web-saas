@@ -15,6 +15,7 @@ export const PLAN_LIMITS: Record<
     onDemandBackup: boolean;
     dashboard: boolean;
     reports: boolean;
+    tableOrdering: boolean;
   }
 > = {
   START: {
@@ -30,6 +31,7 @@ export const PLAN_LIMITS: Record<
     onDemandBackup: false,
     dashboard: false,
     reports: false,
+    tableOrdering: false,
   },
   PRO: {
     maxProducts: null,
@@ -44,6 +46,7 @@ export const PLAN_LIMITS: Record<
     onDemandBackup: true,
     dashboard: true,
     reports: true,
+    tableOrdering: true,
   },
 };
 

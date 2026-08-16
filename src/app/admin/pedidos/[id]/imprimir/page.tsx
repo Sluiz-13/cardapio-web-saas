@@ -21,9 +21,8 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
   // na mão e imprima pedido de outro restaurante só adivinhando o id.
   const order = await db.order.findFirst({
     where: { id: params.id, restaurantId: session.user.restaurantId },
-    include: { items: true, restaurant: true },
+    include: { items: true, restaurant: true, table: { select: { label: true } } },
   });
-
   if (!order) notFound();
 
   return (
@@ -40,7 +39,12 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
 
       <p><strong>Cliente:</strong> {order.customerName}</p>
       <p><strong>Telefone:</strong> {order.customerPhone}</p>
-      <p><strong>Entrega:</strong> {order.deliveryType === "DELIVERY" ? "Entrega" : "Retirada no local"}</p>
+      <p>
+        <strong>{order.deliveryType === "DINE_IN" ? "Mesa:" : "Entrega:"}</strong>{" "}
+        {order.deliveryType === "DELIVERY" && "Entrega"}
+        {order.deliveryType === "PICKUP" && "Retirada no local"}
+        {order.deliveryType === "DINE_IN" && order.table?.label}
+      </p>
       {order.deliveryType === "DELIVERY" && order.street && (
         <p>
           <strong>Endereço:</strong> {order.street}, {order.number}

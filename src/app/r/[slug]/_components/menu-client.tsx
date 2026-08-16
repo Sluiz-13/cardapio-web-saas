@@ -40,6 +40,8 @@ type Restaurant = {
   avgDeliveryTime?: string | null;
 };
 
+type Table = { id: string; label: string };
+
 type CartLine = {
   key: string;
   productId: string;
@@ -63,10 +65,12 @@ export default function MenuClient({
   restaurant,
   categories,
   products,
+  table,
 }: {
   restaurant: Restaurant;
   categories: Category[];
   products: Product[];
+  table: Table | null;
 }) {
   const [activeCat, setActiveCat] = useState(categories[0]?.id ?? "");
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -269,6 +273,7 @@ export default function MenuClient({
             restaurantIsOpen={restaurant.isOpen}
             cart={cart}
             total={total}
+            table={table}
             onClose={() => setDrawer("cart")}
             onSuccess={(result) => {
               setOrderResult(result);
@@ -577,6 +582,7 @@ function CheckoutDrawer({
   restaurantIsOpen,
   cart,
   total,
+  table,
   onClose,
   onSuccess,
 }: {
@@ -584,12 +590,17 @@ function CheckoutDrawer({
   restaurantIsOpen: boolean;
   cart: CartLine[];
   total: number;
+  table: Table | null;
   onClose: () => void;
   onSuccess: (result: { status: string; pixPayload?: string }) => void;
 }) {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
+  // Com mesa: já entra travado em DINE_IN, sem opção de trocar — não faz
+  // sentido perguntar "entrega ou retirada" pra alguém sentado na mesa.
+  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP" | "DINE_IN">(
+    table ? "DINE_IN" : "DELIVERY"
+  );
   const [street, setStreet] = useState("");
   const [number, setNumber] = useState("");
   const [complement, setComplement] = useState("");
@@ -667,12 +678,16 @@ function CheckoutDrawer({
     e.preventDefault();
     setError("");
 
-    if (!customerName.trim() || !customerPhone.trim()) {
+   if (!customerName.trim() || !customerPhone.trim()) {
       setError("Preencha seu nome e telefone.");
       return;
     }
     if (deliveryType === "DELIVERY" && (!street.trim() || !number.trim() || !neighborhood.trim() || !city.trim())) {
       setError("Preencha o endereço completo para entrega.");
+      return;
+    }
+    if (deliveryType === "DINE_IN" && !table) {
+      setError("Mesa inválida. Escaneie o QR Code novamente.");
       return;
     }
 
@@ -695,6 +710,7 @@ function CheckoutDrawer({
         paymentMethod,
         couponCode: couponStatus?.code,
         changeForCents: paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor) * 100) : undefined,
+        tableId: table?.id,
         address:
           deliveryType === "DELIVERY"
             ? { street, number, complement: complement || undefined, neighborhood, city, referenceNote: referenceNote || undefined }
@@ -727,9 +743,9 @@ function CheckoutDrawer({
     });
     onSuccess({ status: data.status, pixPayload: data.pixPayload });
   }
-
-  const inputClass =
-    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-chili/30 focus:border-chili transition-shadow placeholder:text-gray-400";
+const inputClass =
+    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-chili/30 focus:border-chili transition-shadow placeholder:text-gray-400";
+  
 
   return (
     <Overlay onClose={onClose}>
@@ -784,23 +800,29 @@ function CheckoutDrawer({
               />
             </div>
 
-            <div className="flex gap-2">
-              {(["DELIVERY", "PICKUP"] as const).map((opt) => (
-                <button
-                  type="button"
-                  key={opt}
-                  onClick={() => setDeliveryType(opt)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors active:scale-95"
-                  style={{
-                    background: deliveryType === opt ? "#111827" : "#FFFFFF",
-                    color: deliveryType === opt ? "#FFFFFF" : "#374151",
-                    borderColor: "#E5E7EB",
-                  }}
-                >
-                  {opt === "DELIVERY" ? "Entrega" : "Retirar no local"}
-                </button>
-              ))}
-            </div>
+            {table ? (
+              <div className="py-2.5 px-3.5 rounded-xl text-sm font-semibold bg-gray-900 text-white flex items-center gap-2">
+                🍽️ Pedido para {table.label}
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                {(["DELIVERY", "PICKUP"] as const).map((opt) => (
+                  <button
+                    type="button"
+                    key={opt}
+                    onClick={() => setDeliveryType(opt)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors active:scale-95"
+                    style={{
+                      background: deliveryType === opt ? "#111827" : "#FFFFFF",
+                      color: deliveryType === opt ? "#FFFFFF" : "#374151",
+                      borderColor: "#E5E7EB",
+                    }}
+                  >
+                    {opt === "DELIVERY" ? "Entrega" : "Retirar no local"}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {deliveryType === "DELIVERY" && (
               <div className="grid grid-cols-3 gap-2">

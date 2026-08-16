@@ -22,9 +22,10 @@ const createOrderSchema = z
     restaurantId: z.string().min(1),
     customerName: z.string().min(2),
     customerPhone: z.string().min(8),
-    deliveryType: z.enum(["DELIVERY", "PICKUP"]).default("DELIVERY"),
+    deliveryType: z.enum(["DELIVERY", "PICKUP", "DINE_IN"]).default("DELIVERY"),
     paymentMethod: z.enum(["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"]),
     address: addressSchema.optional(),
+    tableId: z.string().optional(),
     couponCode: z.string().optional(),
     changeForCents: z.number().int().positive().optional(),
     items: z
@@ -38,9 +39,13 @@ const createOrderSchema = z
       )
       .min(1),
   })
-  .refine((data) => data.deliveryType === "PICKUP" || !!data.address, {
+  .refine((data) => data.deliveryType !== "DELIVERY" || !!data.address, {
     message: "Endereço é obrigatório para pedidos com entrega.",
     path: ["address"],
+  })
+  .refine((data) => data.deliveryType !== "DINE_IN" || !!data.tableId, {
+    message: "Mesa é obrigatória para pedidos feitos na mesa.",
+    path: ["tableId"],
   });
 
 export async function POST(req: NextRequest) {
@@ -64,6 +69,7 @@ export async function POST(req: NextRequest) {
     deliveryType,
     paymentMethod,
     address,
+    tableId,
     couponCode,
     changeForCents,
     items,
@@ -77,6 +83,17 @@ export async function POST(req: NextRequest) {
 
   if (products.length !== new Set(productIds).size) {
     return NextResponse.json({ error: "Um ou mais produtos são inválidos." }, { status: 400 });
+  }
+
+  let table: { id: string; label: string } | null = null;
+  if (deliveryType === "DINE_IN" && tableId) {
+    table = await db.table.findFirst({
+      where: { id: tableId, restaurantId },
+      select: { id: true, label: true },
+    });
+    if (!table) {
+      return NextResponse.json({ error: "Mesa inválida." }, { status: 400 });
+    }
   }
 
   type ProductWithExtras = (typeof products)[number];
@@ -195,6 +212,20 @@ if (!restaurant.isOpen) {
   const confirmsImmediately = true;
 
   const order = await db.$transaction(async (tx) => {
+    // Mesa: acha a comanda ABERTA dessa mesa, ou abre uma nova se ainda
+    // não tiver nenhuma. O índice único parcial no banco (da migration)
+    // garante que 2 pedidos quase simultâneos nunca criem 2 comandas
+    // para a mesma mesa.
+    let comandaId: string | undefined;
+    if (table) {
+      const openComanda = await tx.comanda.findFirst({
+        where: { tableId: table.id, status: "OPEN" },
+      });
+      comandaId = openComanda
+        ? openComanda.id
+        : (await tx.comanda.create({ data: { restaurantId, tableId: table.id } })).id;
+    }
+
     const created = await tx.order.create({
       data: {
         restaurantId,
@@ -203,6 +234,8 @@ if (!restaurant.isOpen) {
         deliveryType,
         paymentMethod,
         ...(deliveryType === "DELIVERY" ? address : {}),
+        tableId: table?.id,
+        comandaId,
         deliveryFeeCents,
         totalCents,
         discountCents,

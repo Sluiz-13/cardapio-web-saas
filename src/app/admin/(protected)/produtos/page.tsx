@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, X, Pencil, Package, Upload } from "lucide-react";
+import { Plus, Trash2, X, Pencil, Package, Upload, ChevronUp, ChevronDown } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Input";
@@ -21,6 +21,7 @@ type Product = {
   active: boolean;
   category: Category;
   categoryId: string;
+  order: number;
   removableOptions: { id: string; name: string }[];
   extraOptions: { id: string; name: string; priceCents: number }[];
   availableDays: number[];
@@ -36,6 +37,7 @@ export default function ProdutosPage() {
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [movingId, setMovingId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -72,7 +74,52 @@ export default function ProdutosPage() {
     load();
   }
 
+  // Move dentro da MESMA categoria só — trocar posição entre categorias
+  // diferentes não faz sentido aqui (isso é papel do campo "Categoria" no
+  // formulário de edição, não da seta de reordenar).
+  async function moveProduct(categoryItems: Product[], index: number, direction: "up" | "down") {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= categoryItems.length) return;
+
+    const current = categoryItems[index];
+    const target = categoryItems[targetIndex];
+    setMovingId(current.id);
+
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id === current.id) return { ...p, order: target.order };
+        if (p.id === target.id) return { ...p, order: current.order };
+        return p;
+      })
+    );
+
+    await Promise.all([
+      fetch(`/api/admin/products/${current.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: target.order }),
+      }),
+      fetch(`/api/admin/products/${target.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: current.order }),
+      }),
+    ]);
+
+    setMovingId(null);
+    load(); // confirma com o servidor, corrige se algo deu errado
+  }
+
   const modalOpen = showCreateForm || editingProduct !== null;
+
+  // Categorias já vêm ordenadas por `order` da própria API de categorias —
+  // então os grupos aqui aparecem na mesma sequência de sempre.
+  const groups = categories
+    .map((cat) => ({
+      category: cat,
+      items: products.filter((p) => p.categoryId === cat.id).sort((a, b) => a.order - b.order),
+    }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6">
@@ -95,32 +142,59 @@ export default function ProdutosPage() {
       ) : products.length === 0 ? (
         <EmptyState icon={<Package size={18} />} title="Nenhum produto cadastrado ainda" description="Adicione o primeiro produto ao seu cardápio." />
       ) : (
-        <div className="space-y-2">
-          {products.map((p) => (
-            <Card key={p.id}>
-              <CardBody className="flex items-center gap-3 !py-3">
-                {p.imageUrl && <img src={p.imageUrl} className="w-12 h-12 object-cover rounded-lg shrink-0" alt="" />}
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-gray-900 truncate">{p.name}</p>
-                  <p className="text-xs text-gray-400">{p.category.name}</p>
-                  {p.availableDays.length > 0 && (
-                    <p className="text-[10px] text-amber-600 font-semibold mt-0.5">
-                      Só: {p.availableDays.map((d) => DAY_SHORT[d]).join(", ")}
-                    </p>
-                  )}
-                </div>
-                <span className="text-emerald-600 font-bold text-sm shrink-0">{currency(p.priceCents)}</span>
-                <button onClick={() => toggleActive(p)} className="shrink-0">
-                  <Badge tone={p.active ? "success" : "neutral"}>{p.active ? "Ativo" : "Inativo"}</Badge>
-                </button>
-                <button onClick={() => setEditingProduct(p)} className="text-gray-300 hover:text-brand transition-colors duration-[180ms] shrink-0" aria-label="Editar">
-                  <Pencil size={15} />
-                </button>
-                <button onClick={() => handleDelete(p.id)} className="text-gray-300 hover:text-red-500 transition-colors duration-[180ms] shrink-0" aria-label="Remover">
-                  <Trash2 size={15} />
-                </button>
-              </CardBody>
-            </Card>
+        <div className="space-y-6">
+          {groups.map(({ category, items }) => (
+            <div key={category.id}>
+              <p className="text-xs uppercase tracking-wide font-semibold text-gray-400 mb-2">{category.name}</p>
+              <div className="space-y-2">
+                {items.map((p, index) => (
+                  <Card key={p.id}>
+                    <CardBody className="flex items-center gap-3 !py-3">
+                      {/* Pill agrupado igual em Categorias — as duas setas
+                          compartilham uma borda só. */}
+                      <div className="flex flex-col rounded-lg border border-surface-border overflow-hidden shrink-0">
+                        <button
+                          onClick={() => moveProduct(items, index, "up")}
+                          disabled={index === 0 || movingId !== null}
+                          className="flex items-center justify-center w-7 h-6 text-gray-400 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-25 disabled:hover:bg-transparent transition-colors duration-[180ms] border-b border-surface-border"
+                          aria-label="Mover para cima"
+                        >
+                          <ChevronUp size={13} />
+                        </button>
+                        <button
+                          onClick={() => moveProduct(items, index, "down")}
+                          disabled={index === items.length - 1 || movingId !== null}
+                          className="flex items-center justify-center w-7 h-6 text-gray-400 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-25 disabled:hover:bg-transparent transition-colors duration-[180ms]"
+                          aria-label="Mover para baixo"
+                        >
+                          <ChevronDown size={13} />
+                        </button>
+                      </div>
+
+                      {p.imageUrl && <img src={p.imageUrl} className="w-12 h-12 object-cover rounded-lg shrink-0" alt="" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-gray-900 truncate">{p.name}</p>
+                        {p.availableDays.length > 0 && (
+                          <p className="text-[10px] text-amber-600 font-semibold mt-0.5">
+                            Só: {p.availableDays.map((d) => DAY_SHORT[d]).join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-emerald-600 font-bold text-sm shrink-0">{currency(p.priceCents)}</span>
+                      <button onClick={() => toggleActive(p)} className="shrink-0">
+                        <Badge tone={p.active ? "success" : "neutral"}>{p.active ? "Ativo" : "Inativo"}</Badge>
+                      </button>
+                      <button onClick={() => setEditingProduct(p)} className="text-gray-300 hover:text-brand transition-colors duration-[180ms] shrink-0" aria-label="Editar">
+                        <Pencil size={15} />
+                      </button>
+                      <button onClick={() => handleDelete(p.id)} className="text-gray-300 hover:text-red-500 transition-colors duration-[180ms] shrink-0" aria-label="Remover">
+                        <Trash2 size={15} />
+                      </button>
+                    </CardBody>
+                  </Card>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

@@ -18,14 +18,16 @@ type PlanInfo = {
 };
 
 const FEATURES: { label: string; start: boolean; pro: boolean }[] = [
-  { label: "Cardápio online", start: true, pro: true },
+  { label: "Cardápio online + QR Code do seu cardápio", start: true, pro: true },
+  { label: "Notificações sonoras", start: true, pro: true },
+
   { label: "Até 150 produtos / Ilimitado", start: true, pro: true },
   { label: "Até 15 categorias / Ilimitado", start: true, pro: true },
   { label: "Financeiro", start: true, pro: true },
+  { label: "QR Code por mesa", start: false, pro: true },
   { label: "Dashboard com gráfico", start: false, pro: true },
   { label: "Relatórios avançados", start: false, pro: true },
   { label: "Cupons de desconto", start: false, pro: true },
-  { label: "Notificações sonoras", start: true, pro: true },
   { label: "Exportação CSV", start: false, pro: true },
 ];
 
