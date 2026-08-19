@@ -18,11 +18,18 @@ export default async function AdminOrdersPage() {
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
-    db.restaurant.findUnique({
+        db.restaurant.findUnique({
       where: { id: session.user.restaurantId },
-      select: { printMethod: true },
+      select: { printMethod: true, printerIp: true, printerPort: true },
     }),
   ]);
 
-  return <OrdersBoard initialOrders={orders} printMethod={restaurant?.printMethod ?? "MANUAL"} />;
+  return (
+    <OrdersBoard
+      initialOrders={orders}
+      printMethod={restaurant?.printMethod ?? "MANUAL"}
+      printerIp={restaurant?.printerIp}
+      printerPort={restaurant?.printerPort}
+    />
+  );
 }

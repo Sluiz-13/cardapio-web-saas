@@ -8,6 +8,7 @@ import { buildWhatsAppLink, buildOrderStatusMessage } from "@/lib/whatsapp";
 import { playNotificationSound } from "@/lib/notification-sound";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { isMenuairApp, printViaAgent } from "@/lib/print-agent";
 import clsx from "clsx";
 
 const STATUS_FLOW = ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
@@ -97,9 +98,13 @@ function getNextActionLabel(order: Order): string {
 export default function OrdersBoard({
   initialOrders,
   printMethod,
+  printerIp,
+  printerPort,
 }: {
   initialOrders: Order[];
   printMethod: string;
+  printerIp?: string | null;
+  printerPort?: number | null;
 }) {
   const [orders, setOrders] = useState(initialOrders);
   const [historyOrderId, setHistoryOrderId] = useState<string | null>(null);
@@ -134,9 +139,9 @@ export default function OrdersBoard({
             }, FLASH_DURATION_MS);
           });
 
-          if (printMethod === "RAWBT") {
+          if (printMethod === "RAWBT" || printMethod === "AGENT") {
             newOnes.forEach((o, i) => {
-              setTimeout(() => triggerRawBtPrint(o.id), i * 1200);
+              setTimeout(() => triggerAutoPrint(o.id), i * 1200);
             });
           }
         }
@@ -153,12 +158,25 @@ export default function OrdersBoard({
     return () => clearInterval(interval);
   }, []);
 
-  async function triggerRawBtPrint(orderId: string) {
+    async function triggerAutoPrint(orderId: string) {
     try {
       const res = await fetch(`/api/admin/orders/${orderId}/print`, { method: "POST" });
       if (!res.ok) return; // falha silenciosa — impressão manual continua disponível
-      const data = await res.json();
-      window.location.href = data.rawbtUrl;
+      const { rawbtUrl, hex } = await res.json();
+
+      if (printMethod === "AGENT" && printerIp && (await isMenuairApp())) {
+        try {
+          await printViaAgent(hex, printerIp, printerPort ?? 9100);
+        } catch (err) {
+          console.error("Falha ao imprimir via Agent:", err);
+          // impressão manual (botão da impressora no card) continua disponível como fallback
+        }
+        return;
+      }
+
+      if (printMethod === "RAWBT") {
+        window.location.href = rawbtUrl;
+      }
     } catch {
     }
   }

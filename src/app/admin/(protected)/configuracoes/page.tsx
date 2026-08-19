@@ -43,7 +43,9 @@ export default function ConfiguracoesPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [avgDeliveryTime, setAvgDeliveryTime] = useState("");
-  const [printMethod, setPrintMethod] = useState("MANUAL");
+    const [printMethod, setPrintMethod] = useState("MANUAL");
+  const [printerIp, setPrinterIp] = useState("");
+  const [printerPort, setPrinterPort] = useState("9100");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,6 +71,8 @@ export default function ConfiguracoesPage() {
         setAddress(data.restaurant.address ?? "");
         setAvgDeliveryTime(data.restaurant.avgDeliveryTime ?? "");
         setPrintMethod(data.restaurant.printMethod ?? "MANUAL");
+        setPrinterIp(data.restaurant.printerIp ?? "");
+        setPrinterPort(String(data.restaurant.printerPort ?? 9100));
         setLogoUrl(data.restaurant.logoUrl ?? null);
         setLoading(false);
       });
@@ -122,6 +126,8 @@ export default function ConfiguracoesPage() {
         address: address || undefined,
         avgDeliveryTime: avgDeliveryTime || undefined,
         printMethod,
+        printerIp: printMethod === "AGENT" ? printerIp : undefined,
+        printerPort: printMethod === "AGENT" ? Number(printerPort) || 9100 : undefined,
       }),
     });
     setSaving(false);
@@ -280,17 +286,36 @@ export default function ConfiguracoesPage() {
           </div>
         </CardHeader>
         <CardBody>
-          <Label>Método</Label>
+                    <Label>Método</Label>
           <select value={printMethod} onChange={(e) => setPrintMethod(e.target.value)} className={inputClass}>
             <option value="MANUAL">Manual (clicar em imprimir)</option>
             <option value="RAWBT">Automático via app RawBT (celular)</option>
-            <option value="AGENT" disabled>Automático via PC/notebook (em breve)</option>
+            <option value="AGENT">Automático via app Menuair Caixa (zero clique)</option>
           </select>
           {printMethod === "RAWBT" && (
             <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 leading-relaxed">
               Instale o app <strong>RawBT</strong> (gratuito, na Play Store) no celular que fica no balcão e
               conecte-o na sua impressora térmica. Depois disso, os pedidos novos imprimem sozinhos, sem
               precisar clicar em nada.
+            </div>
+          )}
+          {printMethod === "AGENT" && (
+            <div className="mt-3 space-y-3">
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800 leading-relaxed">
+                Precisa do app <strong>Menuair Caixa</strong> instalado no celular do balcão. A impressora
+                precisa estar na mesma rede Wi-Fi. Informe o IP dela abaixo (geralmente aparece nas
+                configurações de rede da própria impressora).
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <Label>IP da impressora</Label>
+                  <input value={printerIp} onChange={(e) => setPrinterIp(e.target.value)} placeholder="192.168.1.50" className={inputClass} />
+                </div>
+                <div>
+                  <Label>Porta</Label>
+                  <input value={printerPort} onChange={(e) => setPrinterPort(e.target.value)} placeholder="9100" className={inputClass} />
+                </div>
+              </div>
             </div>
           )}
         </CardBody>
