@@ -56,8 +56,10 @@ model Restaurant {
   // Configuração de impressão automática. MANUAL é o default seguro:
   // nenhum restaurante existente muda de comportamento com essa migration.
   printMethod PrintMethod @default(MANUAL)
-  printerIp   String? // usado só quando printMethod = AGENT
-  printerPort Int?    @default(9100) // porta padrão ESC/POS sobre TCP (RAW/9100)
+  printerIp                String? // usado quando printMethod = AGENT (TCP/Wi-Fi)
+  printerPort              Int?    @default(9100)
+  printerBluetoothAddress  String? // MAC address da impressora pareada (Bluetooth Classic/SPP)
+  printerBluetoothName     String? // nome amigável, só pra exibir na tela de Configurações
 
   @@map("restaurants")
 }

@@ -7,9 +7,6 @@ export async function isMenuairApp(): Promise<boolean> {
   return Capacitor.isNativePlatform();
 }
 
-// Se a impressora não responder dentro desse tempo, desiste — evita a
-// tentativa de impressão ficar pendurada esperando uma impressora
-// desligada ou fora da rede.
 const CONNECT_TIMEOUT_MS = 5000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -21,11 +18,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   ]);
 }
 
-/**
- * Dispara a impressão silenciosa via Socket TCP direto para o IP da
- * impressora. NUNCA lança erro — sempre devolve true/false, pra quem
- * chama não precisar de try/catch. Falha vira log + false, ponto.
- */
 export async function printViaAgent(
   hexData: string,
   printerIp: string,
@@ -69,12 +61,61 @@ export async function printViaAgent(
         const { TcpSocket } = await import("capacitor-tcp-socket");
         await TcpSocket.disconnect({ client: socketId });
       } catch {
-        // Já deu erro, e agora nem consegue fechar a conexão — não tem
-        // mais nada útil a fazer aqui além de deixar seguir. O próximo
-        // pedido tenta uma conexão nova, independente desta.
+        // Ignora erros ao fechar socket em erro
       }
     }
-
     return false;
+  }
+}
+
+/**
+ * Lista as impressoras Bluetooth já pareadas no celular
+ */
+export async function listPairedBluetoothPrinters(): Promise<{ name: string; address: string }[]> {
+  if (!Capacitor.isNativePlatform()) return [];
+
+  try {
+    const { BluetoothPrinter } = await import(
+      "@kduma-autoid/capacitor-bluetooth-printer"
+    );
+    const { devices } = await BluetoothPrinter.list();
+    return devices.map((d) => ({ name: d.name, address: d.address }));
+  } catch (error) {
+    console.error("Erro ao listar impressoras Bluetooth:", error);
+    return [];
+  }
+}
+
+// Converte hex pra base64 sem depender de Buffer
+function hexToBase64(hex: string): string {
+  const bytes = new Uint8Array(
+    hex.match(/.{1,2}/g)!.map((b) => parseInt(b, 16))
+  );
+  let binary = "";
+  bytes.forEach((b) => (binary += String.fromCharCode(b)));
+  return btoa(binary);
+}
+
+export async function printViaBluetoothAgent(
+  hexData: string,
+  address: string
+): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) {
+    console.warn("Impressão via Bluetooth disponível apenas dentro do App Nativo.");
+    return false;
+  }
+
+  try {
+    const { BluetoothPrinter } = await import(
+      "@kduma-autoid/capacitor-bluetooth-printer"
+    );
+    await BluetoothPrinter.connectAndPrint({
+      address,
+      data: hexToBase64(hexData),
+    });
+    return true;
+  } catch (error) {
+    console.error("Erro ao imprimir via Bluetooth:", error);
+    throw error;
   }
 }
