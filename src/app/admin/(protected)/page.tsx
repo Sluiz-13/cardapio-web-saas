@@ -18,9 +18,9 @@ export default async function AdminOrdersPage() {
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
-        db.restaurant.findUnique({
+       db.restaurant.findUnique({
       where: { id: session.user.restaurantId },
-      select: { printMethod: true, printerIp: true, printerPort: true },
+      select: { printMethod: true, printerIp: true, printerPort: true, printerBluetoothAddress: true },
     }),
   ]);
 
@@ -30,6 +30,7 @@ export default async function AdminOrdersPage() {
       printMethod={restaurant?.printMethod ?? "MANUAL"}
       printerIp={restaurant?.printerIp}
       printerPort={restaurant?.printerPort}
+      printerBluetoothAddress={restaurant?.printerBluetoothAddress}
     />
   );
 }

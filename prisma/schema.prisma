@@ -68,6 +68,7 @@ enum PrintMethod {
   MANUAL // botão manual — comportamento atual, sempre disponível como fallback
   RAWBT  // dispara impressão via app RawBT instalado no celular do restaurante
   AGENT  // serviço local (PC/notebook) que fala ESC/POS direto com a impressora
+  AGENT_BLUETOOTH 
 }
 
 model BusinessHours {

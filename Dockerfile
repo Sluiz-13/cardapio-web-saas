@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Instala dependências primeiro (aproveita cache do Docker se só o código mudar)
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copia o resto do código
 COPY . .

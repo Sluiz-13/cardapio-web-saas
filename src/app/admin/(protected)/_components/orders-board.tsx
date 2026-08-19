@@ -8,7 +8,7 @@ import { buildWhatsAppLink, buildOrderStatusMessage } from "@/lib/whatsapp";
 import { playNotificationSound } from "@/lib/notification-sound";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { isMenuairApp, printViaAgent } from "@/lib/print-agent";
+import { isMenuairApp, printViaAgent, printViaBluetoothAgent } from "@/lib/print-agent";
 import clsx from "clsx";
 
 const STATUS_FLOW = ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
@@ -100,11 +100,13 @@ export default function OrdersBoard({
   printMethod,
   printerIp,
   printerPort,
+  printerBluetoothAddress,
 }: {
   initialOrders: Order[];
   printMethod: string;
   printerIp?: string | null;
   printerPort?: number | null;
+  printerBluetoothAddress?: string | null;
 }) {
   const [orders, setOrders] = useState(initialOrders);
   const [historyOrderId, setHistoryOrderId] = useState<string | null>(null);
@@ -139,7 +141,7 @@ export default function OrdersBoard({
             }, FLASH_DURATION_MS);
           });
 
-          if (printMethod === "RAWBT" || printMethod === "AGENT") {
+          if (printMethod === "RAWBT" || printMethod === "AGENT" || printMethod === "AGENT_BLUETOOTH") {
             newOnes.forEach((o, i) => {
               setTimeout(() => triggerAutoPrint(o.id), i * 1200);
             });
@@ -168,6 +170,14 @@ export default function OrdersBoard({
         const success = await printViaAgent(hex, printerIp, printerPort ?? 9100);
         if (!success) {
           console.warn(`Impressão automática falhou pro pedido ${orderId} — usa o botão manual.`);
+        }
+        return;
+      }
+
+      if (printMethod === "AGENT_BLUETOOTH" && printerBluetoothAddress && (await isMenuairApp())) {
+        const success = await printViaBluetoothAgent(hex, printerBluetoothAddress);
+        if (!success) {
+          console.warn(`Impressão automática (Bluetooth) falhou pro pedido ${orderId} — usa o botão manual.`);
         }
         return;
       }

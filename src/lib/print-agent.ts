@@ -96,6 +96,11 @@ function hexToBase64(hex: string): string {
   return btoa(binary);
 }
 
+// Bluetooth Classic pode legitimamente demorar mais que Wi-Fi pra conectar
+// (reconexão de rádio, handshake), por isso o timeout aqui é maior que o
+// da versão TCP.
+const BLUETOOTH_TIMEOUT_MS = 8000;
+
 export async function printViaBluetoothAgent(
   hexData: string,
   address: string
@@ -105,17 +110,26 @@ export async function printViaBluetoothAgent(
     return false;
   }
 
+  if (!address) {
+    console.warn("Impressão via Bluetooth: endereço da impressora não configurado.");
+    return false;
+  }
+
   try {
     const { BluetoothPrinter } = await import(
       "@kduma-autoid/capacitor-bluetooth-printer"
     );
-    await BluetoothPrinter.connectAndPrint({
-      address,
-      data: hexToBase64(hexData),
-    });
+    await withTimeout(
+      BluetoothPrinter.connectAndPrint({
+        address,
+        data: hexToBase64(hexData),
+      }),
+      BLUETOOTH_TIMEOUT_MS,
+      "impressora Bluetooth"
+    );
     return true;
   } catch (error) {
     console.error("Erro ao imprimir via Bluetooth:", error);
-    throw error;
+    return false;
   }
 }

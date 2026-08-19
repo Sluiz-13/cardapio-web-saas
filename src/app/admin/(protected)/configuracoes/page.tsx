@@ -44,7 +44,6 @@ export default function ConfiguracoesPage() {
   const [address, setAddress] = useState("");
   const [avgDeliveryTime, setAvgDeliveryTime] = useState("");
   const [printMethod, setPrintMethod] = useState("MANUAL");
-  const [printerConnectionType, setPrinterConnectionType] = useState("WIFI");
   const [printerIp, setPrinterIp] = useState("");
   const [printerPort, setPrinterPort] = useState("9100");
   const [printerBluetoothAddress, setPrinterBluetoothAddress] = useState("");
@@ -76,7 +75,6 @@ export default function ConfiguracoesPage() {
         setAddress(data.restaurant.address ?? "");
         setAvgDeliveryTime(data.restaurant.avgDeliveryTime ?? "");
         setPrintMethod(data.restaurant.printMethod ?? "MANUAL");
-        setPrinterConnectionType(data.restaurant.printerConnectionType ?? "WIFI");
         setPrinterIp(data.restaurant.printerIp ?? "");
         setPrinterPort(String(data.restaurant.printerPort ?? 9100));
         setPrinterBluetoothAddress(data.restaurant.printerBluetoothAddress ?? "");
@@ -144,11 +142,10 @@ export default function ConfiguracoesPage() {
         address: address || undefined,
         avgDeliveryTime: avgDeliveryTime || undefined,
         printMethod,
-        printerConnectionType: printMethod === "AGENT" ? printerConnectionType : undefined,
-        printerIp: printMethod === "AGENT" && printerConnectionType === "WIFI" ? printerIp : undefined,
-        printerPort: printMethod === "AGENT" && printerConnectionType === "WIFI" ? Number(printerPort) || 9100 : undefined,
-        printerBluetoothAddress: printMethod === "AGENT" && printerConnectionType === "BLUETOOTH" ? printerBluetoothAddress : undefined,
-        printerBluetoothName: printMethod === "AGENT" && printerConnectionType === "BLUETOOTH" ? printerBluetoothName : undefined,
+        printerIp: printMethod === "AGENT" ? printerIp : undefined,
+        printerPort: printMethod === "AGENT" ? Number(printerPort) || 9100 : undefined,
+        printerBluetoothAddress: printMethod === "AGENT_BLUETOOTH" ? printerBluetoothAddress : undefined,
+        printerBluetoothName: printMethod === "AGENT_BLUETOOTH" ? printerBluetoothName : undefined,
       }),
     });
     setSaving(false);
@@ -308,10 +305,11 @@ export default function ConfiguracoesPage() {
         </CardHeader>
         <CardBody>
                     <Label>Método</Label>
-          <select value={printMethod} onChange={(e) => setPrintMethod(e.target.value)} className={inputClass}>
+                    <select value={printMethod} onChange={(e) => setPrintMethod(e.target.value)} className={inputClass}>
             <option value="MANUAL">Manual (clicar em imprimir)</option>
             <option value="RAWBT">Automático via app RawBT (celular)</option>
-            <option value="AGENT">Automático via app Menuair Caixa (zero clique)</option>
+            <option value="AGENT">Automático via app Menuair Caixa — impressora Wi-Fi/Rede</option>
+            <option value="AGENT_BLUETOOTH">Automático via app Menuair Caixa — impressora Bluetooth</option>
           </select>
           {printMethod === "RAWBT" && (
             <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 leading-relaxed">
@@ -320,70 +318,56 @@ export default function ConfiguracoesPage() {
               precisar clicar em nada.
             </div>
           )}
-                    {printMethod === "AGENT" && (
+          {printMethod === "AGENT" && (
             <div className="mt-3 space-y-3">
               <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800 leading-relaxed">
-                Precisa do app <strong>Menuair Caixa</strong> instalado no celular do balcão.
+                Precisa do app <strong>Menuair Caixa</strong> instalado no celular do balcão. A impressora
+                precisa estar na mesma rede Wi-Fi.
               </div>
-
-              <div>
-                <Label>Como a impressora se conecta</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <Label>IP da impressora</Label>
+                  <input value={printerIp} onChange={(e) => setPrinterIp(e.target.value)} placeholder="192.168.1.50" className={inputClass} />
+                </div>
+                <div>
+                  <Label>Porta</Label>
+                  <input value={printerPort} onChange={(e) => setPrinterPort(e.target.value)} placeholder="9100" className={inputClass} />
+                </div>
+              </div>
+            </div>
+          )}
+          {printMethod === "AGENT_BLUETOOTH" && (
+            <div className="mt-3 space-y-3">
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800 leading-relaxed">
+                Precisa do app <strong>Menuair Caixa</strong> instalado no celular do balcão, com a
+                impressora já pareada no Bluetooth do Android (fora deste app, do mesmo jeito que se
+                pareia um fone de ouvido).
+              </div>
+              <Button variant="secondary" size="sm" onClick={handleScanPrinters} isLoading={scanningPrinters} type="button">
+                Buscar impressoras pareadas
+              </Button>
+              {pairedPrinters.length > 0 && (
                 <select
-                  value={printerConnectionType}
-                  onChange={(e) => setPrinterConnectionType(e.target.value)}
+                  value={printerBluetoothAddress}
+                  onChange={(e) => {
+                    const selected = pairedPrinters.find((p) => p.address === e.target.value);
+                    setPrinterBluetoothAddress(e.target.value);
+                    setPrinterBluetoothName(selected?.name ?? "");
+                  }}
                   className={inputClass}
                 >
-                  <option value="WIFI">Wi-Fi / Rede</option>
-                  <option value="BLUETOOTH">Bluetooth</option>
+                  <option value="">Selecione a impressora</option>
+                  {pairedPrinters.map((p) => (
+                    <option key={p.address} value={p.address}>
+                      {p.name} ({p.address})
+                    </option>
+                  ))}
                 </select>
-              </div>
-
-              {printerConnectionType === "WIFI" && (
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-2">
-                    <Label>IP da impressora</Label>
-                    <input value={printerIp} onChange={(e) => setPrinterIp(e.target.value)} placeholder="192.168.1.50" className={inputClass} />
-                  </div>
-                  <div>
-                    <Label>Porta</Label>
-                    <input value={printerPort} onChange={(e) => setPrinterPort(e.target.value)} placeholder="9100" className={inputClass} />
-                  </div>
-                </div>
               )}
-
-              {printerConnectionType === "BLUETOOTH" && (
-                <div className="space-y-2">
-                  <p className="text-xs text-gray-500">
-                    A impressora precisa já estar pareada no Bluetooth do Android (fora deste app,
-                    do mesmo jeito que se pareia um fone de ouvido) antes de aparecer na lista abaixo.
-                  </p>
-                  <Button variant="secondary" size="sm" onClick={handleScanPrinters} isLoading={scanningPrinters} type="button">
-                    Buscar impressoras pareadas
-                  </Button>
-                  {pairedPrinters.length > 0 && (
-                    <select
-                      value={printerBluetoothAddress}
-                      onChange={(e) => {
-                        const selected = pairedPrinters.find((p) => p.address === e.target.value);
-                        setPrinterBluetoothAddress(e.target.value);
-                        setPrinterBluetoothName(selected?.name ?? "");
-                      }}
-                      className={inputClass}
-                    >
-                      <option value="">Selecione a impressora</option>
-                      {pairedPrinters.map((p) => (
-                        <option key={p.address} value={p.address}>
-                          {p.name} ({p.address})
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {printerBluetoothAddress && (
-                    <p className="text-xs text-emerald-700">
-                      Selecionada: <strong>{printerBluetoothName || printerBluetoothAddress}</strong>
-                    </p>
-                  )}
-                </div>
+              {printerBluetoothAddress && (
+                <p className="text-xs text-emerald-700">
+                  Selecionada: <strong>{printerBluetoothName || printerBluetoothAddress}</strong>
+                </p>
               )}
             </div>
           )}
