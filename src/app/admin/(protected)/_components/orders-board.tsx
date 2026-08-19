@@ -165,11 +165,9 @@ export default function OrdersBoard({
       const { rawbtUrl, hex } = await res.json();
 
       if (printMethod === "AGENT" && printerIp && (await isMenuairApp())) {
-        try {
-          await printViaAgent(hex, printerIp, printerPort ?? 9100);
-        } catch (err) {
-          console.error("Falha ao imprimir via Agent:", err);
-          // impressão manual (botão da impressora no card) continua disponível como fallback
+        const success = await printViaAgent(hex, printerIp, printerPort ?? 9100);
+        if (!success) {
+          console.warn(`Impressão automática falhou pro pedido ${orderId} — usa o botão manual.`);
         }
         return;
       }
