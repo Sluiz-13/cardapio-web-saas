@@ -66,6 +66,7 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
               <span>{item.qty}x {item.productName}</span>
               <span>{currency(item.unitPriceCents * item.qty)}</span>
             </div>
+            {item.categoryName && <p className="pl-3">({item.categoryName})</p>}
             {removed.length > 0 && <p className="pl-3">Sem: {removed.join(", ")}</p>}
             {extras.length > 0 && <p className="pl-3">+ {extras.map((e) => e.name).join(", ")}</p>}
           </div>

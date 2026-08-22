@@ -71,18 +71,24 @@ export async function printViaAgent(
 /**
  * Lista as impressoras Bluetooth já pareadas no celular
  */
-export async function listPairedBluetoothPrinters(): Promise<{ name: string; address: string }[]> {
-  if (!Capacitor.isNativePlatform()) return [];
+export async function listPairedBluetoothPrinters(): Promise<{
+  devices: { name: string; address: string }[];
+  error: string | null;
+}> {
+  if (!Capacitor.isNativePlatform()) return { devices: [], error: null };
 
   try {
     const { BluetoothPrinter } = await import(
       "@kduma-autoid/capacitor-bluetooth-printer"
     );
     const { devices } = await BluetoothPrinter.list();
-    return devices.map((d) => ({ name: d.name, address: d.address }));
+    return { devices: devices.map((d) => ({ name: d.name, address: d.address })), error: null };
   } catch (error) {
     console.error("Erro ao listar impressoras Bluetooth:", error);
-    return [];
+    // Devolve a mensagem de verdade — geralmente é erro de permissão negada
+    // no Android 12+, não "nenhuma impressora encontrada".
+    const message = error instanceof Error ? error.message : String(error);
+    return { devices: [], error: message };
   }
 }
 

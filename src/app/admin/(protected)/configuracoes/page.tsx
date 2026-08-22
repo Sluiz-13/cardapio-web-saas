@@ -90,10 +90,12 @@ export default function ConfiguracoesPage() {
 
     async function handleScanPrinters() {
     setScanningPrinters(true);
-    const devices = await listPairedBluetoothPrinters();
+    const { devices, error } = await listPairedBluetoothPrinters();
     setPairedPrinters(devices);
     setScanningPrinters(false);
-    if (devices.length === 0) {
+    if (error) {
+      show(`Erro ao buscar impressoras: ${error}`, "error");
+    } else if (devices.length === 0) {
       show("Nenhuma impressora pareada encontrada. Pareie primeiro nas Configurações de Bluetooth do Android.", "info");
     }
   }

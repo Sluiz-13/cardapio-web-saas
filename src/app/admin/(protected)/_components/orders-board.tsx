@@ -37,7 +37,7 @@ const PAYMENT_LABEL: Record<string, string> = {
   CASH: "Dinheiro",
 };
 
-type OrderItem = { id: string; productName: string; qty: number };
+type OrderItem = { id: string; productName: string; categoryName: string | null; qty: number };
 type Order = {
   id: string;
   customerName: string;
@@ -279,7 +279,7 @@ export default function OrdersBoard({
                     )}
 
                     <p className="text-xs mt-2 text-gray-600">
-                      {o.items.map((i) => `${i.qty}x ${i.productName}`).join(", ")}
+                      {o.items.map((i) => `${i.qty}x ${i.productName}${i.categoryName ? ` (${i.categoryName})` : ""}`).join(", ")}
                     </p>
 
                     <div className="flex items-center justify-between mt-2.5">

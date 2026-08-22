@@ -1,24 +1,8 @@
 import type { Order, OrderItem, Restaurant } from "@prisma/client";
 
-/**
- * Gera os bytes ESC/POS de um cupom de pedido, a partir dos MESMOS dados
- * usados na tela de impressão manual (src/app/admin/pedidos/[id]/imprimir).
- *
- * Esse módulo é a ÚNICA fonte de verdade do conteúdo/formatação do cupom.
- * Tanto o disparo via RawBT quanto o futuro Print Agent (PC/notebook) devem
- * consumir a saída daqui — nenhum dos dois deve remontar o texto do cupom
- * por conta própria. Se um dia adicionarmos um 4º método de impressão
- * (ex: Epson ePOS via HTTP), ele também consome esses bytes.
- *
- * Decisão de design: removemos acentos do texto impresso. Impressoras
- * genéricas sem marca conhecida variam muito na code page suportada, e
- * configurar isso errado imprime caracteres quebrados (ex: "EndereÃ§o").
- * Sem acento sempre imprime legível, em qualquer modelo.
- */
-
 type OrderItemForReceipt = Pick<
   OrderItem,
-  "productName" | "unitPriceCents" | "qty" | "removedItems" | "extras"
+  "productName" | "categoryName" | "unitPriceCents" | "qty" | "removedItems" | "extras"
 >;
 
 type OrderForReceipt = Pick<
@@ -145,6 +129,8 @@ export function buildReceiptEscPos(order: OrderForReceipt): Buffer {
       : [];
 
     lines.push(padLine(`${item.qty}x ${item.productName}`, currency(item.unitPriceCents * item.qty)));
+    if (item.categoryName) lines.push(...wrapText(item.categoryName, "  "));
+    
     if (removed.length > 0) lines.push(...wrapText(`Sem: ${removed.join(", ")}`, "  "));
     if (extras.length > 0) lines.push(...wrapText(`+ ${extras.map((e) => e.name).join(", ")}`, "  "));
   }

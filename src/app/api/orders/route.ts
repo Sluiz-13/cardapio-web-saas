@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
   const productIds = items.map((i) => i.productId);
   const products = await db.product.findMany({
     where: { id: { in: productIds }, restaurantId, active: true },
-    include: { extraOptions: true },
+    include: { extraOptions: true, category: { select: { name: true } } },
   });
 
   if (products.length !== new Set(productIds).size) {
@@ -110,6 +110,7 @@ export async function POST(req: NextRequest) {
     return {
       productId: product.id,
       productName: product.name,
+      categoryName: product.category?.name ?? null,
       unitPriceCents,
       qty: item.qty,
       removedItems: item.removedItems,

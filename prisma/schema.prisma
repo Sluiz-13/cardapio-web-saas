@@ -286,6 +286,7 @@ model OrderItem {
   productId     String?
   product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   productName   String // snapshot do nome no momento da compra
+  categoryName  String? // snapshot da categoria no momento da compra
   unitPriceCents Int    // snapshot do preço no momento da compra
   qty           Int
   removedItems  Json    @default("[]") // string[]
