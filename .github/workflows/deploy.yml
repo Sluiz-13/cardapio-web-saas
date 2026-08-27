@@ -1,0 +1,35 @@
+name: Deploy MenuAir
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy na VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+
+          script: |
+            set -e
+
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+
+            echo "📥 Atualizando código..."
+            git pull origin main
+
+            echo "🐳 Recriando containers..."
+            docker compose up -d --build
+
+            echo "🗄️ Aplicando migrations..."
+            docker compose exec -T app npx prisma migrate deploy
+
+            echo "✅ Deploy concluído!"

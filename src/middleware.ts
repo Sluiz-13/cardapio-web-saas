@@ -33,10 +33,21 @@ export async function middleware(req: NextRequest) {
     const loginUrl = new URL("/admin/login", req.url);
     return NextResponse.redirect(loginUrl);
   }
+
+  // STAFF (garçom) não tem acesso a NENHUMA rota /api/admin/* — a área dele
+  // é só /api/garcom/*. Isso bloqueia mesmo que a pessoa chame a rota
+  // direto (devtools, curl), não só o link sumindo da tela. A tela do
+  // painel completo (/admin/(protected)) já é bloqueada separadamente no
+  // layout.tsx — aqui é a segunda camada, cobrindo a API.
+  if (pathname.startsWith("/api/admin") && token.role === "STAFF") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  // protege tudo em /admin (exceto login) e tudo em /platform (exceto login)
-  matcher: ["/admin/((?!login).*)", "/platform/((?!login).*)"],
+  // protege tudo em /admin (exceto login), tudo em /platform (exceto login),
+  // e intercepta /api/admin pra checar o papel do usuário.
+  matcher: ["/admin/((?!login).*)", "/platform/((?!login).*)", "/api/admin/:path*"],
 };

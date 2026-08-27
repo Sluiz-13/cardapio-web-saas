@@ -15,8 +15,10 @@ import {
   Settings,
   Ticket,
   Truck,
+  Users,
 } from "lucide-react";
 import { Sidebar, type SidebarLink } from "@/components/ui/Sidebar";
+
 
 const LINKS: SidebarLink[] = [
   { href: "/admin", label: "Pedidos", icon: ClipboardList },
@@ -32,6 +34,7 @@ const LINKS: SidebarLink[] = [
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
   { href: "/admin/cupons", label: "Cupons", icon: Ticket },
   { href: "/admin/entregas", label: "Entregas", icon: Truck },
+  { href: "/admin/equipe", label: "Equipe", icon: Users },
 ];
 
 export default function AdminNav({

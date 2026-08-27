@@ -213,6 +213,7 @@ model Comanda {
   status       ComandaStatus @default(OPEN)
   openedAt     DateTime      @default(now())
   closedAt     DateTime?
+  paymentMethod PaymentMethod? // preenchido só no fechamento — forma de pagamento real usada pelo cliente
 
   orders Order[]
 

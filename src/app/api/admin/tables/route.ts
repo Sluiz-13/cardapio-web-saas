@@ -27,7 +27,11 @@ export async function GET() {
     orderBy: { createdAt: "asc" },
   });
 
-  return NextResponse.json({ tables, restaurantSlug: restaurant.slug });
+  return NextResponse.json({
+    tables,
+    restaurantSlug: restaurant.slug,
+    qrSelfOrderAllowed: planAllows(restaurant.plan, "qrSelfOrder"),
+  });
 }
 
 export async function POST(req: NextRequest) {

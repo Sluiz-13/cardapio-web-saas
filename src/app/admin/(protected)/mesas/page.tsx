@@ -18,6 +18,7 @@ export default function MesasPage() {
   const { show } = useToast();
   const [tables, setTables] = useState<Table[]>([]);
   const [restaurantSlug, setRestaurantSlug] = useState("");
+  const [qrSelfOrderAllowed, setQrSelfOrderAllowed] = useState(true);
   const [label, setLabel] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,6 +37,7 @@ export default function MesasPage() {
     const data = await res.json();
     setTables(data.tables);
     setRestaurantSlug(data.restaurantSlug);
+    setQrSelfOrderAllowed(data.qrSelfOrderAllowed);
     setLoading(false);
   }
 
@@ -141,12 +143,21 @@ export default function MesasPage() {
               <CardBody className="flex items-center justify-between !py-3">
                 <span className="font-semibold text-sm text-gray-800">{t.label}</span>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => setQrTable(t)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-surface-border text-gray-600 hover:bg-brand-light hover:text-brand hover:border-brand/30 transition-colors duration-[180ms]"
-                  >
-                    <QrCode size={13} /> Ver QR Code
-                  </button>
+                  {qrSelfOrderAllowed ? (
+                    <button
+                      onClick={() => setQrTable(t)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-surface-border text-gray-600 hover:bg-brand-light hover:text-brand hover:border-brand/30 transition-colors duration-[180ms]"
+                    >
+                      <QrCode size={13} /> Ver QR Code
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => (window.location.href = "/admin/planos")}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors duration-[180ms]"
+                    >
+                      <QrCode size={13} /> QR Code é Pro
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDelete(t.id)}
                     className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors duration-[180ms]"

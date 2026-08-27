@@ -8,6 +8,7 @@ import { WhatsAppFab } from "@/components/ui/WhatsAppFab";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.restaurantId) redirect("/admin/login");
+  if (session.user.role === "STAFF") redirect("/garcom");
 
   const restaurant = await db.restaurant.findUnique({
     where: { id: session.user.restaurantId },

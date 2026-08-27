@@ -31,7 +31,9 @@ export default function AdminLoginPage() {
       setError("E-mail ou senha inválidos.");
       return;
     }
-    router.push("/admin");
+    const sessionRes = await fetch("/api/auth/session");
+    const sessionData = await sessionRes.json();
+    router.push(sessionData?.user?.role === "STAFF" ? "/garcom" : "/admin");
     router.refresh();
   }
 

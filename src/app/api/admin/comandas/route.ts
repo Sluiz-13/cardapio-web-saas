@@ -9,7 +9,13 @@ export async function GET() {
 
   const restaurant = await db.restaurant.findUnique({
     where: { id: session.user.restaurantId },
-    select: { plan: true },
+    select: {
+      plan: true,
+      printMethod: true,
+      printerIp: true,
+      printerPort: true,
+      printerBluetoothAddress: true,
+    },
   });
   if (!restaurant) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
 
@@ -35,5 +41,11 @@ export async function GET() {
     orderBy: { openedAt: "asc" },
   });
 
-  return NextResponse.json(comandas);
+  return NextResponse.json({
+    comandas,
+    printMethod: restaurant.printMethod,
+    printerIp: restaurant.printerIp,
+    printerPort: restaurant.printerPort,
+    printerBluetoothAddress: restaurant.printerBluetoothAddress,
+  });
 }

@@ -1,10 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAdminSession } from "@/lib/session";
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+const closeSchema = z.object({
+  paymentMethod: z.enum(["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"]),
+});
+
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const parsed = closeSchema.safeParse(await req.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Escolha a forma de pagamento." }, { status: 400 });
+  }
 
   const comanda = await db.comanda.findFirst({
     where: { id: params.id, restaurantId: session.user.restaurantId },
@@ -16,7 +26,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   await db.comanda.update({
     where: { id: params.id },
-    data: { status: "CLOSED", closedAt: new Date() },
+    data: { status: "CLOSED", closedAt: new Date(), paymentMethod: parsed.data.paymentMethod },
   });
 
   return NextResponse.json({ ok: true });

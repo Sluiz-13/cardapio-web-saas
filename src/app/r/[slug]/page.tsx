@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { isRestaurantOpenNow } from "@/lib/business-hours";
 import { getBrazilTimeParts } from "@/lib/timezone";
 import MenuClient from "./_components/menu-client";
+import { planAllows } from "@/lib/plan-features";
 
 export default async function RestaurantMenuPage({
   params,
@@ -26,7 +27,7 @@ export default async function RestaurantMenuPage({
         return products.filter((p) => p.availableDays.length === 0 || p.availableDays.includes(today));
     }),
     db.businessHours.findMany({ where: { restaurantId: restaurant.id } }),
-    searchParams.mesa
+    searchParams.mesa && planAllows(restaurant.plan, "qrSelfOrder")
       ? db.table.findFirst({
           where: { id: searchParams.mesa, restaurantId: restaurant.id },
           select: { id: true, label: true },

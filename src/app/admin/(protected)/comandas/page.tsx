@@ -1,14 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Receipt, Lock, CheckCircle2, Printer } from "lucide-react";
-import Link from "next/link";
+import { Receipt, Lock, CheckCircle2, Printer, Wallet, CreditCard, Banknote } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
+import { isMenuairApp, printViaAgent, printViaBluetoothAgent } from "@/lib/print-agent";
+
+const PAYMENT_OPTIONS = [
+  { value: "PIX", label: "Pix", icon: Wallet },
+  { value: "CREDIT_CARD", label: "Cartão de Crédito", icon: CreditCard },
+  { value: "DEBIT_CARD", label: "Cartão de Débito", icon: CreditCard },
+  { value: "CASH", label: "Dinheiro", icon: Banknote },
+] as const;
 
 type ComandaOrder = {
   id: string;
@@ -17,6 +25,7 @@ type ComandaOrder = {
   createdAt: string;
   items: { productName: string; qty: number }[];
 };
+
 type Comanda = {
   id: string;
   openedAt: string;
@@ -32,6 +41,13 @@ export default function ComandasPage() {
   const [loading, setLoading] = useState(true);
   const [locked, setLocked] = useState(false);
   const [closingId, setClosingId] = useState<string | null>(null);
+  const [printingId, setPrintingId] = useState<string | null>(null);
+  const [closingComanda, setClosingComanda] = useState<Comanda | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+  const [printMethod, setPrintMethod] = useState("MANUAL");
+  const [printerIp, setPrinterIp] = useState<string | null>(null);
+  const [printerPort, setPrinterPort] = useState<number | null>(null);
+  const [printerBluetoothAddress, setPrinterBluetoothAddress] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -41,8 +57,37 @@ export default function ComandasPage() {
       setLoading(false);
       return;
     }
-    setComandas(await res.json());
+    const data = await res.json();
+    setComandas(data.comandas);
+    setPrintMethod(data.printMethod ?? "MANUAL");
+    setPrinterIp(data.printerIp);
+    setPrinterPort(data.printerPort);
+    setPrinterBluetoothAddress(data.printerBluetoothAddress);
     setLoading(false);
+  }
+
+  async function printComanda(comanda: Comanda) {
+    if ((printMethod === "AGENT" || printMethod === "AGENT_BLUETOOTH") && (await isMenuairApp())) {
+      setPrintingId(comanda.id);
+      const res = await fetch(`/api/admin/comandas/${comanda.id}/print`, { method: "POST" });
+      if (!res.ok) {
+        show("Não foi possível gerar o recibo.", "error");
+        setPrintingId(null);
+        return;
+      }
+      const { hex } = await res.json();
+
+      const success =
+        printMethod === "AGENT"
+          ? printerIp && (await printViaAgent(hex, printerIp, printerPort ?? 9100))
+          : printerBluetoothAddress && (await printViaBluetoothAgent(hex, printerBluetoothAddress));
+
+      setPrintingId(null);
+      if (!success) show("Não foi possível imprimir. Confira a impressora.", "error");
+      return;
+    }
+
+    window.open(`/admin/imprimir-comanda/${comanda.id}`, "_blank");
   }
 
   useEffect(() => {
@@ -51,20 +96,32 @@ export default function ComandasPage() {
     return () => clearInterval(interval);
   }, []);
 
-  async function closeComanda(comanda: Comanda) {
-    const total = comanda.orders.reduce((s, o) => s + o.totalCents, 0);
-    if (!confirm(`Fechar a conta de ${comanda.table.label}? Total: ${currency(total)}`)) return;
+  async function confirmCloseComanda() {
+    if (!closingComanda || !selectedPaymentMethod) return;
+    setClosingId(closingComanda.id);
 
-    setClosingId(comanda.id);
-    const res = await fetch(`/api/admin/comandas/${comanda.id}/close`, { method: "POST" });
+    const res = await fetch(`/api/admin/comandas/${closingComanda.id}/close`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentMethod: selectedPaymentMethod }),
+    });
+
     setClosingId(null);
+    const closedTableLabel = closingComanda.table.label;
+    setClosingComanda(null);
+    setSelectedPaymentMethod(null);
 
     if (!res.ok) {
       show("Não foi possível fechar a comanda.", "error");
       return;
     }
-    show(`Conta de ${comanda.table.label} fechada.`, "success");
+    show(`Conta de ${closedTableLabel} fechada.`, "success");
     load();
+  }
+
+  function closeModal() {
+    setClosingComanda(null);
+    setSelectedPaymentMethod(null);
   }
 
   if (loading) {
@@ -134,18 +191,21 @@ export default function ComandasPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Link
-                      href={`/admin/imprimir-comanda/${c.id}`}
-                      target="_blank"
-                      className="shrink-0 flex items-center justify-center w-10 rounded-xl border border-surface-border text-gray-500 hover:bg-gray-50 transition-colors duration-[180ms]"
+                    <button
+                      onClick={() => printComanda(c)}
+                      disabled={printingId === c.id}
+                      className="shrink-0 flex items-center justify-center w-10 rounded-xl border border-surface-border text-gray-500 hover:bg-gray-50 transition-colors duration-[180ms] disabled:opacity-50"
                     >
                       <Printer size={15} />
-                    </Link>
+                    </button>
                     <Button
                       variant="secondary"
                       className="flex-1"
                       isLoading={closingId === c.id}
-                      onClick={() => closeComanda(c)}
+                      onClick={() => {
+                        setSelectedPaymentMethod(null);
+                        setClosingComanda(c);
+                      }}
                     >
                       Fechar conta
                     </Button>
@@ -155,6 +215,46 @@ export default function ComandasPage() {
             );
           })}
         </div>
+      )}
+
+      {closingComanda && (
+        <Modal open={true} onClose={closeModal} title={`Fechar conta — ${closingComanda.table.label}`}>
+          <p className="text-sm text-gray-600 mb-1">Total a receber</p>
+          <p className="text-2xl font-bold text-emerald-600 mb-5">
+            {currency(closingComanda.orders.reduce((s, o) => s + o.totalCents, 0))}
+          </p>
+          <p className="text-xs uppercase tracking-wide font-semibold text-gray-400 mb-2">
+            Como o cliente pagou?
+          </p>
+          <div className="grid grid-cols-2 gap-2 mb-5">
+            {PAYMENT_OPTIONS.map((opt) => {
+              const active = selectedPaymentMethod === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setSelectedPaymentMethod(opt.value)}
+                  disabled={closingId !== null}
+                  className="flex items-center gap-2 px-3.5 py-3 rounded-xl border text-sm font-semibold transition-colors duration-[180ms] disabled:opacity-50"
+                  style={{
+                    borderColor: active ? "var(--brand, #C75A1B)" : undefined,
+                    background: active ? "var(--brand-light, #FDF1EA)" : undefined,
+                    color: active ? "var(--brand, #C75A1B)" : undefined,
+                  }}
+                >
+                  <opt.icon size={16} /> {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          <Button
+            className="w-full"
+            disabled={!selectedPaymentMethod}
+            isLoading={closingId === closingComanda.id}
+            onClick={confirmCloseComanda}
+          >
+            Confirmar pagamento
+          </Button>
+        </Modal>
       )}
     </div>
   );

@@ -16,12 +16,13 @@ export const PLAN_LIMITS: Record<
     dashboard: boolean;
     reports: boolean;
     tableOrdering: boolean;
+    qrSelfOrder: boolean; // QR Code de mesa pro cliente pedir sozinho — exclusivo Pro
   }
 > = {
   START: {
     maxProducts: 150,
     maxCategories: 15,
-    maxAdminUsers: 1,
+    maxAdminUsers: 3,
     coupons: false,
     soundNotifications: true,
     csvExport: false,
@@ -31,7 +32,8 @@ export const PLAN_LIMITS: Record<
     onDemandBackup: false,
     dashboard: false,
     reports: false,
-    tableOrdering: false,
+    tableOrdering: true, // mesa/comanda/garçom — liberado pros dois planos
+    qrSelfOrder: false,  // QR Code de autoatendimento — só Pro
   },
   PRO: {
     maxProducts: null,
@@ -47,6 +49,7 @@ export const PLAN_LIMITS: Record<
     dashboard: true,
     reports: true,
     tableOrdering: true,
+    qrSelfOrder: true,
   },
 };
 

@@ -707,7 +707,7 @@ function CheckoutDrawer({
         customerName,
         customerPhone,
         deliveryType,
-        paymentMethod,
+        paymentMethod: table ? "CASH" : paymentMethod,      
         couponCode: couponStatus?.code,
         changeForCents: paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor) * 100) : undefined,
         tableId: table?.id,
@@ -835,20 +835,22 @@ const inputClass =
               </div>
             )}
 
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Forma de pagamento</label>
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as typeof paymentMethod)}
-                className={inputClass}
-              >
-                {PAYMENT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
+            {!table && (
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Forma de pagamento</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as typeof paymentMethod)}
+                  className={inputClass}
+                >
+                  {PAYMENT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            {paymentMethod === "CASH" && (
+            {!table && paymentMethod === "CASH" && (
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">
                   Precisa de troco para quanto? (opcional)

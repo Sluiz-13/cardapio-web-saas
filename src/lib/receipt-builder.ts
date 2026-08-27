@@ -174,8 +174,34 @@ type ComandaForReceipt = {
   }[];
 };
 
-/**
- * Recibo da CONTA FECHADA de uma comanda — diferente do cupom de pedido
- * individual: soma todos os pedidos da mesa numa única via, pro cliente
- * conferir antes de pagar.
- */
+export function buildComandaReceiptEscPos(comanda: ComandaForReceipt): Buffer {
+  const lines: string[] = [];
+
+  lines.push(centerText(comanda.restaurant.name.toUpperCase()));
+  lines.push(centerText(`CONTA — ${comanda.table.label}`));
+  lines.push(centerText(new Date().toLocaleString("pt-BR")));
+  lines.push("-".repeat(CHARS_PER_LINE));
+
+  let total = 0;
+  for (const order of comanda.orders) {
+    lines.push(...wrapText(order.customerName));
+    for (const item of order.items) {
+      lines.push(`  ${item.qty}x ${item.productName}`);
+    }
+    lines.push(padLine("", currency(order.totalCents)));
+    lines.push("");
+    total += order.totalCents;
+  }
+
+  lines.push("-".repeat(CHARS_PER_LINE));
+  lines.push(padLine("TOTAL DA CONTA", currency(total)));
+
+  const body = lines.join("\n") + "\n";
+
+  return Buffer.concat([
+    CMD.INIT,
+    Buffer.from(body, "ascii"),
+    CMD.FEED(3),
+    CMD.CUT,
+  ]);
+}
