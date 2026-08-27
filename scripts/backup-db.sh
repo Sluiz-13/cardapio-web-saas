@@ -25,3 +25,27 @@ docker exec "$CONTAINER" pg_dump -U "$DB_USER" -d "$DB_NAME" --clean --if-exists
 find "$BACKUP_DIR" -name "backup_*.sql.gz" -mtime +$RETENTION_DAYS -delete
 
 echo "[$(date)] Backup salvo em $BACKUP_DIR/backup_${DATE}.sql.gz"
+
+# enviar notificacao do status do backup no discord
+
+# Configurações do Discord
+
+# Captura o status do comando de backup anterior (0 = sucesso)
+BACKUP_STATUS=$?
+
+# URL do seu Webhook
+WEBHOOK_URL="https://discord.com/api/webhooks/1542595324118306847/LZIFOVB173HkmHCkJW-J-1PrdRdqW1DmUT8F9qPDjgcfCabaB9FNuvtiatemqRbUk8Xj"
+
+if [ $BACKUP_STATUS -eq 0 ]; then
+    # Mensagem de SUCESSO
+    curl -H "Content-Type: application/json" \
+         -X POST \
+         -d '{"content": "✅ **[Cardápio Web]** Backup do banco de dados realizado com sucesso!"}' \
+         "$WEBHOOK_URL"
+else
+    # Mensagem de ERRO
+    curl -H "Content-Type: application/json" \
+         -X POST \
+         -d '{"content": "🚨 **[ERRO CRÍTICO]** O backup do banco de dados FALHOU! Verifique os logs no servidor imediatamente."}' \
+         "$WEBHOOK_URL"
+fi
