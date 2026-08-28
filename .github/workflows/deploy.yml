@@ -29,6 +29,7 @@ jobs:
       DATABASE_URL: postgresql://cardapio:cardapio@localhost:5432/cardapio_test
       TEST_BASE_URL: http://127.0.0.1:3000
       NEXTAUTH_URL: http://127.0.0.1:3000
+      NEXTAUTH_SECRET: "menuair_secret_key_para_testes_123456"
 
     steps:
       - name: Checkout
