@@ -1,4 +1,4 @@
-name: Deploy MenuAir
+name: CI/CD MenuAir
 
 on:
   push:
@@ -6,7 +6,84 @@ on:
       - main
 
 jobs:
+  ci:
+    name: CI - Testes e Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cardapio
+          POSTGRES_PASSWORD: cardapio
+          POSTGRES_DB: cardapio_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U cardapio -d cardapio_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://cardapio:cardapio@localhost:5432/cardapio_test
+      TEST_BASE_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:3000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar Prisma Client
+        run: npm run prisma:generate
+
+      - name: Aplicar migrations
+        run: npx prisma migrate deploy
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Iniciar aplicação
+        run: npm start > next.log 2>&1 &
+
+      - name: Aguardar aplicação
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:3000/api/health > /dev/null; then
+              echo "Aplicação disponível!"
+              exit 0
+            fi
+
+            echo "Aguardando aplicação..."
+            sleep 2
+          done
+
+          echo "Aplicação não iniciou."
+          cat next.log
+          exit 1
+
+      - name: Testes de segurança
+        run: npm run test:security
+
+      - name: Logs da aplicação em caso de falha
+        if: failure()
+        run: cat next.log
+
   deploy:
+    name: CD - Deploy na VPS
+    needs: ci
     runs-on: ubuntu-latest
 
     steps:
@@ -26,10 +103,16 @@ jobs:
             echo "📥 Atualizando código..."
             git pull origin main
 
-            echo "🐳 Recriando containers..."
+            echo "🐳 Recriando aplicação..."
             docker compose up -d --build
 
             echo "🗄️ Aplicando migrations..."
             docker compose exec -T app npx prisma migrate deploy
 
-            echo "✅ Deploy concluído!"
+            echo "🔎 Verificando containers..."
+            docker compose ps
+
+            echo "❤️ Verificando aplicação..."
+            curl -f http://localhost:3000/api/health
+
+            echo "✅ Deploy concluído com sucesso!"

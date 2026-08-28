@@ -63,9 +63,12 @@ test("PATCH produto do Tenant B é recusado (404)", async () => {
   const res = await ctxA.patch(`/api/admin/products/${tenantB.productId}`, {
     data: { name: "Produto invadido" },
   });
+
+  console.log("STATUS:", res.status());
+  console.log("BODY:", await res.text());
+
   expect(res.status()).toBe(404);
 });
-
 test("DELETE produto do Tenant B é recusado (404)", async () => {
   const res = await ctxA.delete(`/api/admin/products/${tenantB.productId}`);
   expect(res.status()).toBe(404);
