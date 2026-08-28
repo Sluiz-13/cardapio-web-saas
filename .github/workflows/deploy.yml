@@ -27,8 +27,8 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://cardapio:cardapio@localhost:5432/cardapio_test
-      TEST_BASE_URL: http://localhost:3000
-      NEXTAUTH_URL: http://localhost:3000
+      TEST_BASE_URL: http://127.0.0.1:3000
+      NEXTAUTH_URL: http://127.0.0.1:3000
 
     steps:
       - name: Checkout
@@ -41,7 +41,10 @@ jobs:
           cache: npm
 
       - name: Instalar dependências
-        run: npm ci
+        run: npm ci --legacy-peer-deps
+
+      - name: Instalar browsers do Playwright
+        run: npx playwright install --with-deps
 
       - name: Gerar Prisma Client
         run: npm run prisma:generate
@@ -56,12 +59,14 @@ jobs:
         run: npm run build
 
       - name: Iniciar aplicação
-        run: npm start > next.log 2>&1 &
+        run: |
+          touch next.log
+          npm start > next.log 2>&1 &
 
       - name: Aguardar aplicação
         run: |
           for i in {1..30}; do
-            if curl -sf http://localhost:3000/api/health > /dev/null; then
+            if curl -sf http://127.0.0.1:3000/api/health > /dev/null; then
               echo "Aplicação disponível!"
               exit 0
             fi
@@ -79,7 +84,7 @@ jobs:
 
       - name: Logs da aplicação em caso de falha
         if: failure()
-        run: cat next.log
+        run: test -f next.log && cat next.log || echo "O arquivo next.log não foi gerado."
 
   deploy:
     name: CD - Deploy na VPS
