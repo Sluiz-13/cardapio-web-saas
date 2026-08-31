@@ -87,7 +87,7 @@ jobs:
         if: failure()
         run: test -f next.log && cat next.log || echo "O arquivo next.log não foi gerado."
 
-  deploy:
+deploy:
     name: CD - Deploy na VPS
     needs: ci
     runs-on: ubuntu-latest
@@ -119,6 +119,14 @@ jobs:
             docker compose ps
 
             echo "❤️ Verificando aplicação..."
-            curl -f http://localhost:3000/api/health
+            for i in {1..10}; do
+              if curl -sf http://localhost:3000/api/health > /dev/null; then
+                echo "✅ Aplicação disponível!"
+                exit 0
+              fi
+              echo "Aguardando container subir..."
+              sleep 3
+            done
 
-            echo "✅ Deploy concluído com sucesso!"
+            echo "❌ Falha ao conectar na aplicação"
+            exit 1
