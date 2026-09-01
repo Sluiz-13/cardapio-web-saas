@@ -1,6 +1,6 @@
 export const BILLING_CYCLE_DAYS = 30;
 export const PAYMENT_GRACE_DAYS = 35; // usado só pro Super Admin marcar "Pendente"
-export const DUE_SOON_WARNING_DAYS = 3;
+export const DUE_SOON_WARNING_DAYS = 5;
 
 export function getNextDueDate(lastPaymentConfirmedAt: Date | null, createdAt: Date): Date {
   const base = lastPaymentConfirmedAt ?? createdAt;
