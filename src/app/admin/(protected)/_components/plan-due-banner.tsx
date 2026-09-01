@@ -3,7 +3,7 @@ import { AlertTriangle } from "lucide-react";
 
 export function PlanDueBanner({ daysUntilDue }: { daysUntilDue: number }) {
   const overdue = daysUntilDue < 0;
-  const dueSoon = daysUntilDue >= 0 && daysUntilDue <= 3;
+  const dueSoon = daysUntilDue >= 0 && daysUntilDue <= 5;
   if (!overdue && !dueSoon) return null;
 
   return (
