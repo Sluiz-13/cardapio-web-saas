@@ -19,7 +19,7 @@ export default async function RestaurantMenuPage({
   const [categories, products, businessHours, table] = await Promise.all([
     db.category.findMany({ where: { restaurantId: restaurant.id }, orderBy: { order: "asc" } }),
     db.product.findMany({
-        where: { restaurantId: restaurant.id, active: true },
+        where: { restaurantId: restaurant.id, active: true, visibleToCustomer: true },
         include: { removableOptions: true, extraOptions: true },
         orderBy: { order: "asc" },
     }).then((products) => {

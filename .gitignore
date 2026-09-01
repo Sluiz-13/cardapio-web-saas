@@ -26,6 +26,10 @@ npm-debug.log*
 public/uploads/logos/*
 !public/uploads/logos/.gitkeep
 
-
+# playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 
 

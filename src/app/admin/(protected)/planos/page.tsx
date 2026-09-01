@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/Table";
 import { Skeleton } from "@/components/ui/Skeleton";
+import PixQrCode from "@/components/ui/PixQrCode";
 
 type PlanInfo = {
   plan: "START" | "PRO";
@@ -201,8 +202,8 @@ export default function PlanosPage() {
             <p className="text-sm font-semibold text-gray-900 mb-1">
               {(charge.amountCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
             </p>
-            <p className="text-xs text-gray-400 mb-4">Copie o código abaixo no app do seu banco</p>
-            <p className="text-xs break-all bg-gray-50 rounded-lg p-3 font-mono">{charge.payload}</p>
+            <p className="text-xs text-gray-400 mb-4">Escaneie o QR Code ou copie o código no app do seu banco</p>
+            <PixQrCode payload={charge.payload} />
           </CardBody>
         </Card>
       )}

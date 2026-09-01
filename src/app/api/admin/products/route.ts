@@ -18,6 +18,8 @@ const createProductSchema = z.object({
   removableOptions: z.array(z.string()).default([]),
   extraOptions: z.array(z.object({ name: z.string(), priceCents: z.number().int().nonnegative() })).default([]),
   availableDays: z.array(z.number().int().min(0).max(6)).default([]),
+  visibleToCustomer: z.boolean().default(true),
+  visibleToStaff: z.boolean().default(true),
 });
 
 export async function GET() {

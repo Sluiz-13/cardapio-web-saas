@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { getSavedCustomerInfo, saveCustomerInfo } from "@/lib/customer-storage";
-import PixQrCode from "./pix-qr-code";
+import PixQrCode from "@/components/ui/PixQrCode";
 
 type Extra = { id: string; name: string; priceCents: number };
 type Removable = { id: string; name: string };

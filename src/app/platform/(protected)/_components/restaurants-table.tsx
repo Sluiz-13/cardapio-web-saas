@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import PixQrCode from "@/app/r/[slug]/_components/pix-qr-code";
+import PixQrCode from "@/components/ui/PixQrCode";
 
 type Restaurant = {
   id: string;

@@ -7,7 +7,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const products = await db.product.findMany({
-    where: { restaurantId: session.user.restaurantId, active: true },
+    where: { restaurantId: session.user.restaurantId, active: true, visibleToStaff: true },
     include: { category: true, removableOptions: true, extraOptions: true },
     orderBy: [{ category: { order: "asc" } }, { order: "asc" }],
   });

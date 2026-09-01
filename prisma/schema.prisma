@@ -132,6 +132,8 @@ model Product {
   priceCents   Int // preço SEMPRE em centavos (nunca float pra dinheiro)
   imageUrl     String?
   active       Boolean    @default(true)
+  visibleToCustomer Boolean @default(true) // aparece no cardápio público (delivery/QR)
+  visibleToStaff    Boolean @default(true) // aparece no app do garçom
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 

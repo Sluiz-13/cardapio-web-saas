@@ -18,6 +18,8 @@ const updateProductSchema = z.object({
   removableOptions: z.array(z.string()).optional(),
   extraOptions: z.array(z.object({ name: z.string(), priceCents: z.number().int().nonnegative() })).optional(),
   availableDays: z.array(z.number().int().min(0).max(6)).optional(),
+  visibleToCustomer: z.boolean().optional(),
+  visibleToStaff: z.boolean().optional(),
   order: z.number().int().optional(),
 });
 

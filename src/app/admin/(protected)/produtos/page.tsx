@@ -25,6 +25,8 @@ type Product = {
   removableOptions: { id: string; name: string }[];
   extraOptions: { id: string; name: string; priceCents: number }[];
   availableDays: number[];
+  visibleToCustomer: boolean;
+  visibleToStaff: boolean;
 };
 
 const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
@@ -245,6 +247,8 @@ function ProductFormModal({
   const [extraName, setExtraName] = useState("");
   const [extraPrice, setExtraPrice] = useState("");
   const [availableDays, setAvailableDays] = useState<number[]>(initialProduct?.availableDays ?? []);
+  const [visibleToCustomer, setVisibleToCustomer] = useState(initialProduct?.visibleToCustomer ?? true);
+  const [visibleToStaff, setVisibleToStaff] = useState(initialProduct?.visibleToStaff ?? true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -310,6 +314,8 @@ function ProductFormModal({
       removableOptions: removables,
       extraOptions: extras,
       availableDays,
+      visibleToCustomer,
+      visibleToStaff,
     };
 
     const res = isEditing
@@ -403,6 +409,33 @@ function ProductFormModal({
                 placeholder="https://..."
               />
             </details>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex items-start gap-2 p-3 rounded-xl border border-surface-border cursor-pointer hover:border-brand transition-colors duration-[180ms]">
+              <input
+                type="checkbox"
+                checked={visibleToCustomer}
+                onChange={(e) => setVisibleToCustomer(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span className="text-xs text-gray-600">
+                <span className="block font-semibold text-gray-800">Visível pro cliente</span>
+                Aparece no cardápio público (delivery / QR code)
+              </span>
+            </label>
+            <label className="flex items-start gap-2 p-3 rounded-xl border border-surface-border cursor-pointer hover:border-brand transition-colors duration-[180ms]">
+              <input
+                type="checkbox"
+                checked={visibleToStaff}
+                onChange={(e) => setVisibleToStaff(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span className="text-xs text-gray-600">
+                <span className="block font-semibold text-gray-800">Visível pro garçom</span>
+                Aparece no app do garçom pra montar pedido
+              </span>
+            </label>
           </div>
 
           <hr className="border-surface-border" />
