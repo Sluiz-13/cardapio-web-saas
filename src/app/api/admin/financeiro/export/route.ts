@@ -11,9 +11,6 @@ const PAYMENT_LABEL: Record<string, string> = {
 
 const currency = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 
-// Separador ; (não vírgula) — padrão do Excel em português, já que vírgula
-// é o separador decimal nesse locale. Isso evita qualquer conflito entre
-// valor monetário (18,00) e o delimitador de coluna do CSV.
 const DELIMITER = ";";
 
 function csvField(value: string): string {
@@ -71,7 +68,7 @@ export async function GET(req: NextRequest) {
       csvField(createdAt.toLocaleDateString("pt-BR")),
       csvField(createdAt.toLocaleTimeString("pt-BR")),
       csvField(o.customerName),
-      csvField(o.customerPhone),
+      csvField(o.customerPhone ?? ""),
       csvField(PAYMENT_LABEL[o.paymentMethod] ?? o.paymentMethod),
       csvField(itemsSummary),
       csvField(currency(subtotalCents)),

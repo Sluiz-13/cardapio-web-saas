@@ -109,7 +109,9 @@ export function buildReceiptEscPos(order: OrderForReceipt): Buffer {
   lines.push("-".repeat(CHARS_PER_LINE));
 
   lines.push(...wrapText(`Cliente: ${order.customerName}`));
-  lines.push(...wrapText(`Telefone: ${order.customerPhone}`));
+  if (order.customerPhone) {
+    lines.push(...wrapText(`Telefone: ${order.customerPhone}`));
+  }
   lines.push(
     `Entrega: ${order.deliveryType === "DELIVERY" ? "Entrega" : "Retirada no local"}`
   );

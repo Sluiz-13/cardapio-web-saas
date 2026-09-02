@@ -38,7 +38,7 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
       <hr className="border-dashed border-black my-2" />
 
       <p><strong>Cliente:</strong> {order.customerName}</p>
-      <p><strong>Telefone:</strong> {order.customerPhone}</p>
+      {order.customerPhone && <p><strong>Telefone:</strong> {order.customerPhone}</p>}
       <p>
         <strong>{order.deliveryType === "DINE_IN" ? "Mesa:" : "Entrega:"}</strong>{" "}
         {order.deliveryType === "DELIVERY" && "Entrega"}

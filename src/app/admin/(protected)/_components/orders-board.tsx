@@ -41,7 +41,7 @@ type OrderItem = { id: string; productName: string; categoryName: string | null;
 type Order = {
   id: string;
   customerName: string;
-  customerPhone: string;
+  customerPhone: string | null;
   status: string;
   totalCents: number;
   createdAt: string | Date;
@@ -261,9 +261,11 @@ export default function OrdersBoard({
                     </div>
                     <p className="font-bold text-sm text-gray-900">{o.customerName}</p>
 
-                    <p className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                      <Phone size={11} /> {o.customerPhone}
-                    </p>
+                    {o.customerPhone && (
+                      <p className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                        <Phone size={11} /> {o.customerPhone}
+                      </p>
+                    )}
 
                     {o.deliveryType === "DELIVERY" && o.street && (
                       <p className="flex items-start gap-1 text-xs text-gray-500 mt-0.5">
