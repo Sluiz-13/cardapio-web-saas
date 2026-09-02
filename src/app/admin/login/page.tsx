@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { UtensilsCrossed } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
 
-export default function AdminLoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -33,7 +34,16 @@ export default function AdminLoginPage() {
     }
     const sessionRes = await fetch("/api/auth/session");
     const sessionData = await sessionRes.json();
-    router.push(sessionData?.user?.role === "STAFF" ? "/garcom" : "/admin");
+
+    if (sessionData?.user?.role === "STAFF") {
+      router.push("/garcom");
+    } else {
+      const callbackUrl = searchParams.get("callbackUrl");
+      // só aceita callbackUrl relativo começando com /admin — nunca redireciona
+      // pra fora do domínio, evita golpe de phishing via link forjado
+      const safeCallbackUrl = callbackUrl && callbackUrl.startsWith("/admin") ? callbackUrl : "/admin";
+      router.push(safeCallbackUrl);
+    }
     router.refresh();
   }
 
@@ -59,5 +69,13 @@ export default function AdminLoginPage() {
         </Button>
       </form>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }
