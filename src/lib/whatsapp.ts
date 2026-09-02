@@ -1,7 +1,14 @@
-export function buildWhatsAppLink(phone: string, message: string): string {
+export function buildWhatsAppLink(phone: string | null | undefined, message: string): string {
+  // Se o telefone for nulo, undefined ou string vazia, retorna um link vazio ou aborta
+  if (!phone) {
+    return "";
+  }
+
   const digits = phone.replace(/\D/g, "");
+  
   // Se já vier com DDI (55), usa como está; senão, assume Brasil e adiciona.
   const withCountryCode = digits.startsWith("55") && digits.length > 11 ? digits : `55${digits}`;
+  
   return `https://wa.me/${withCountryCode}?text=${encodeURIComponent(message)}`;
 }
 

@@ -96,8 +96,8 @@ export default function GarcomMesaPage() {
   }
 
   async function handleSubmit() {
-    if (!customerName.trim() || !customerPhone.trim()) {
-      show("Preencha nome e telefone do cliente.", "error");
+    if (!customerName.trim()) {
+      show("Preencha o nome do cliente.", "error");
       return;
     }
     setSubmitting(true);
@@ -237,7 +237,7 @@ export default function GarcomMesaPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Telefone</label>
+                    <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Telefone (opcional)</label>
                     <input
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}

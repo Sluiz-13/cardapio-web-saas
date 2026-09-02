@@ -139,3 +139,24 @@ export async function printViaBluetoothAgent(
     return false;
   }
 }
+
+/**
+ * Abre uma URL no navegador do sistema (Chrome/Safari de verdade), em vez da
+ * WebView do app. Necessário porque window.print() não funciona dentro da
+ * WebView do Capacitor — só em navegador de verdade.
+ */
+export async function openPrintPageExternally(path: string): Promise<void> {
+  const url = path.startsWith("http") ? path : `${window.location.origin}${path}`;
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const { Browser } = await import("@capacitor/browser");
+      await Browser.open({ url });
+      return;
+    } catch (error) {
+      console.error("Erro ao abrir navegador externo pra impressão manual:", error);
+    }
+  }
+
+  window.open(url, "_blank");
+}
