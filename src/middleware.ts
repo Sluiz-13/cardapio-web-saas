@@ -38,6 +38,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
     const loginUrl = new URL("/admin/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", pathname + req.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
   // STAFF (garçom) não tem acesso a NENHUMA rota /api/admin/* — a área dele

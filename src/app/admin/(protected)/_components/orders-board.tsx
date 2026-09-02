@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { Flame, Clock, Printer, MapPin, Phone, Bike, MessageCircle, Inbox, Trash2, ClipboardList } from "lucide-react";
 import OrderHistoryModal from "./order-history-modal";
 import { buildWhatsAppLink, buildOrderStatusMessage } from "@/lib/whatsapp";
 import { playNotificationSound } from "@/lib/notification-sound";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { isMenuairApp, printViaAgent, printViaBluetoothAgent } from "@/lib/print-agent";
+import { isMenuairApp, printViaAgent, printViaBluetoothAgent, openPrintPageExternally } from "@/lib/print-agent";
 import clsx from "clsx";
 
 const STATUS_FLOW = ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
@@ -330,15 +329,16 @@ export default function OrdersBoard({
                       >
                         <MessageCircle size={14} />
                       </a>
-                     <Link
-                       href={`/admin/pedidos/${o.id}/imprimir`}
-                        target="_blank"
-                        onClick={(e) => e.stopPropagation()}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openPrintPageExternally(`/admin/pedidos/${o.id}/imprimir`);
+                        }}
                         className="flex items-center justify-center w-9 h-9 rounded-full border border-surface-border text-gray-500 hover:bg-gray-50 transition-colors duration-[180ms] shrink-0"
                         title="Imprimir pedido"
                       >
                         <Printer size={14} />
-                      </Link>
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
