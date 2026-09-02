@@ -6,7 +6,7 @@ import { getAdminSession } from "@/lib/session";
 const createSchema = z.object({
   tableId: z.string().min(1),
   customerName: z.string().min(2),
-  customerPhone: z.string().min(8),
+  customerPhone: z.string().min(8).optional().or(z.literal("")),
   items: z
     .array(
       z.object({
@@ -26,7 +26,8 @@ export async function POST(req: NextRequest) {
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
 
-  const { tableId, customerName, customerPhone, items } = parsed.data;
+  const { tableId, customerName, items } = parsed.data;
+  const customerPhone = parsed.data.customerPhone?.trim() || null;
   const restaurantId = session.user.restaurantId;
 
   const table = await db.table.findFirst({ where: { id: tableId, restaurantId } });

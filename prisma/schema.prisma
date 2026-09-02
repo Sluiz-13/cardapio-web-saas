@@ -240,7 +240,7 @@ model Order {
   restaurantId  String
   restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   customerName  String
-  customerPhone String
+  customerPhone String?
   status        OrderStatus   @default(PENDING_PAYMENT)
   totalCents    Int
   createdAt     DateTime      @default(now())

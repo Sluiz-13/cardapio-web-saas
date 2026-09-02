@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
-import { isMenuairApp, printViaAgent, printViaBluetoothAgent } from "@/lib/print-agent";
+import { isMenuairApp, printViaAgent, printViaBluetoothAgent, openPrintPageExternally } from "@/lib/print-agent";
 
 const PAYMENT_OPTIONS = [
   { value: "PIX", label: "Pix", icon: Wallet },
@@ -83,13 +83,16 @@ export default function ComandasPage() {
           : printerBluetoothAddress && (await printViaBluetoothAgent(hex, printerBluetoothAddress));
 
       setPrintingId(null);
-      if (!success) show("Não foi possível imprimir. Confira a impressora.", "error");
+
+      if (!success) {
+        show("Impressora não respondeu — abrindo impressão manual...", "error");
+        await openPrintPageExternally(`/admin/imprimir-comanda/${comanda.id}`);
+      }
       return;
     }
 
     window.open(`/admin/imprimir-comanda/${comanda.id}`, "_blank");
   }
-
   useEffect(() => {
     load();
     const interval = setInterval(load, 15000);
@@ -194,9 +197,17 @@ export default function ComandasPage() {
                     <button
                       onClick={() => printComanda(c)}
                       disabled={printingId === c.id}
+                      title="Imprimir automático"
                       className="shrink-0 flex items-center justify-center w-10 rounded-xl border border-surface-border text-gray-500 hover:bg-gray-50 transition-colors duration-[180ms] disabled:opacity-50"
                     >
                       <Printer size={15} />
+                    </button>
+                    <button
+                      onClick={() => openPrintPageExternally(`/admin/imprimir-comanda/${c.id}`)}
+                      title="Imprimir manualmente"
+                      className="shrink-0 flex items-center justify-center w-10 rounded-xl border border-surface-border text-gray-400 hover:bg-gray-50 transition-colors duration-[180ms]"
+                    >
+                      <Receipt size={15} />
                     </button>
                     <Button
                       variant="secondary"
