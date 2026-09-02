@@ -91,7 +91,7 @@ export default function ComandasPage() {
       return;
     }
 
-    window.open(`/admin/imprimir-comanda/${comanda.id}`, "_blank");
+    await openPrintPageExternally(`/admin/imprimir-comanda/${comanda.id}`);
   }
   useEffect(() => {
     load();
