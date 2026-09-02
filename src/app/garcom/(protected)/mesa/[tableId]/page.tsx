@@ -59,7 +59,7 @@ export default function GarcomMesaPage() {
         if (tableInfo.existingCustomer) {
           setExistingCustomer(tableInfo.existingCustomer);
           setCustomerName(tableInfo.existingCustomer.name);
-          setCustomerPhone(tableInfo.existingCustomer.phone);
+          setCustomerPhone(tableInfo.existingCustomer.phone ?? "");
         }
         setLoading(false);
       })
