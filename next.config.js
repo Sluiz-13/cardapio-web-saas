@@ -23,7 +23,7 @@ const nextConfig = {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: https:",
-        "connect-src 'self'",
+        "connect-src 'self' wss://localhost:8181 wss://localhost:8282 wss://localhost:8383 wss://localhost:8484",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",
