@@ -8,6 +8,7 @@ import { playNotificationSound } from "@/lib/notification-sound";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { isMenuairApp, printViaAgent, printViaBluetoothAgent, openPrintPageExternally } from "@/lib/print-agent";
+import { printViaQzTray } from "@/lib/qz-print";
 import clsx from "clsx";
 
 const STATUS_FLOW = ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
@@ -100,12 +101,14 @@ export default function OrdersBoard({
   printerIp,
   printerPort,
   printerBluetoothAddress,
+  printerQzName,
 }: {
   initialOrders: Order[];
   printMethod: string;
   printerIp?: string | null;
   printerPort?: number | null;
   printerBluetoothAddress?: string | null;
+  printerQzName?: string | null;
 }) {
   const [orders, setOrders] = useState(initialOrders);
   const [historyOrderId, setHistoryOrderId] = useState<string | null>(null);
@@ -140,7 +143,7 @@ export default function OrdersBoard({
             }, FLASH_DURATION_MS);
           });
 
-          if (printMethod === "RAWBT" || printMethod === "AGENT" || printMethod === "AGENT_BLUETOOTH") {
+          if (printMethod === "RAWBT" || printMethod === "AGENT" || printMethod === "AGENT_BLUETOOTH" || printMethod === "QZ_TRAY") {
             newOnes.forEach((o, i) => {
               setTimeout(() => triggerAutoPrint(o.id), i * 1200);
             });
@@ -177,6 +180,14 @@ export default function OrdersBoard({
         const success = await printViaBluetoothAgent(hex, printerBluetoothAddress);
         if (!success) {
           console.warn(`Impressão automática (Bluetooth) falhou pro pedido ${orderId} — usa o botão manual.`);
+        }
+        return;
+      }
+
+      if (printMethod === "QZ_TRAY" && printerQzName) {
+        const success = await printViaQzTray(hex, printerQzName);
+        if (!success) {
+          console.warn(`Impressão automática (QZ Tray) falhou pro pedido ${orderId} — usa o botão manual.`);
         }
         return;
       }
@@ -330,8 +341,16 @@ export default function OrdersBoard({
                         <MessageCircle size={14} />
                       </a>
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
+                          if (printMethod === "QZ_TRAY" && printerQzName) {
+                            const res = await fetch(`/api/admin/orders/${o.id}/print`, { method: "POST" });
+                            if (res.ok) {
+                              const { hex } = await res.json();
+                              const success = await printViaQzTray(hex, printerQzName);
+                              if (success) return;
+                            }
+                          }
                           openPrintPageExternally(`/admin/pedidos/${o.id}/imprimir`);
                         }}
                         className="flex items-center justify-center w-9 h-9 rounded-full border border-surface-border text-gray-500 hover:bg-gray-50 transition-colors duration-[180ms] shrink-0"

@@ -10,6 +10,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { isMenuairApp, printViaAgent, printViaBluetoothAgent, openPrintPageExternally } from "@/lib/print-agent";
+import { printViaQzTray } from "@/lib/qz-print";
+
 
 const PAYMENT_OPTIONS = [
   { value: "PIX", label: "Pix", icon: Wallet },
@@ -48,6 +50,7 @@ export default function ComandasPage() {
   const [printerIp, setPrinterIp] = useState<string | null>(null);
   const [printerPort, setPrinterPort] = useState<number | null>(null);
   const [printerBluetoothAddress, setPrinterBluetoothAddress] = useState<string | null>(null);
+  const [printerQzName, setPrinterQzName] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -63,11 +66,15 @@ export default function ComandasPage() {
     setPrinterIp(data.printerIp);
     setPrinterPort(data.printerPort);
     setPrinterBluetoothAddress(data.printerBluetoothAddress);
+    setPrinterQzName(data.printerQzName);
     setLoading(false);
   }
 
   async function printComanda(comanda: Comanda) {
-    if ((printMethod === "AGENT" || printMethod === "AGENT_BLUETOOTH") && (await isMenuairApp())) {
+    const isAgentMethod = printMethod === "AGENT" || printMethod === "AGENT_BLUETOOTH";
+    const isQzMethod = printMethod === "QZ_TRAY" && !!printerQzName;
+
+    if ((isAgentMethod && (await isMenuairApp())) || isQzMethod) {
       setPrintingId(comanda.id);
       const res = await fetch(`/api/admin/comandas/${comanda.id}/print`, { method: "POST" });
       if (!res.ok) {
@@ -77,8 +84,9 @@ export default function ComandasPage() {
       }
       const { hex } = await res.json();
 
-      const success =
-        printMethod === "AGENT"
+      const success = isQzMethod
+        ? await printViaQzTray(hex, printerQzName!)
+        : printMethod === "AGENT"
           ? printerIp && (await printViaAgent(hex, printerIp, printerPort ?? 9100))
           : printerBluetoothAddress && (await printViaBluetoothAgent(hex, printerBluetoothAddress));
 
@@ -91,8 +99,9 @@ export default function ComandasPage() {
       return;
     }
 
-    window.open(`/admin/imprimir-comanda/${comanda.id}`, "_blank");
+    await openPrintPageExternally(`/admin/imprimir-comanda/${comanda.id}`);
   }
+
   useEffect(() => {
     load();
     const interval = setInterval(load, 15000);
