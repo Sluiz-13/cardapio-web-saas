@@ -15,6 +15,7 @@ export async function GET() {
       printerIp: true,
       printerPort: true,
       printerBluetoothAddress: true,
+      printerQzName: true,
     },
   });
   if (!restaurant) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
@@ -47,5 +48,6 @@ export async function GET() {
     printerIp: restaurant.printerIp,
     printerPort: restaurant.printerPort,
     printerBluetoothAddress: restaurant.printerBluetoothAddress,
+    printerQzName: restaurant.printerQzName,
   });
 }

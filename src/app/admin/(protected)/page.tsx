@@ -20,7 +20,7 @@ export default async function AdminOrdersPage() {
     }),
        db.restaurant.findUnique({
       where: { id: session.user.restaurantId },
-      select: { printMethod: true, printerIp: true, printerPort: true, printerBluetoothAddress: true },
+      select: { printMethod: true, printerIp: true, printerPort: true, printerBluetoothAddress: true, printerQzName: true },
     }),
   ]);
 
@@ -31,6 +31,7 @@ export default async function AdminOrdersPage() {
       printerIp={restaurant?.printerIp}
       printerPort={restaurant?.printerPort}
       printerBluetoothAddress={restaurant?.printerBluetoothAddress}
+      printerQzName={restaurant?.printerQzName}
     />
   );
 }

@@ -60,6 +60,7 @@ model Restaurant {
   printerPort              Int?    @default(9100)
   printerBluetoothAddress  String? // MAC address da impressora pareada (Bluetooth Classic/SPP)
   printerBluetoothName     String? // nome amigável, só pra exibir na tela de Configurações
+  printerQzName            String? // nome exato da impressora reconhecida pelo QZ Tray (Windows/Mac)
 
   @@map("restaurants")
 }
@@ -67,10 +68,10 @@ model Restaurant {
 enum PrintMethod {
   MANUAL // botão manual — comportamento atual, sempre disponível como fallback
   RAWBT  // dispara impressão via app RawBT instalado no celular do restaurante
-  AGENT  // serviço local (PC/notebook) que fala ESC/POS direto com a impressora
-  AGENT_BLUETOOTH 
+  AGENT  // app Menuair Caixa (celular) — impressora Wi-Fi/Rede
+  AGENT_BLUETOOTH // app Menuair Caixa (celular) — impressora Bluetooth
+  QZ_TRAY // agente QZ Tray rodando no PC/notebook do balcão
 }
-
 model BusinessHours {
   id           String     @id @default(cuid())
   restaurantId String

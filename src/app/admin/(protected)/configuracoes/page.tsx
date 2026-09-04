@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { listPairedBluetoothPrinters } from "@/lib/print-agent";
+import { listQzPrinters } from "@/lib/qz-print";
 
 const DAY_LABELS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
@@ -50,6 +51,19 @@ export default function ConfiguracoesPage() {
   const [printerBluetoothName, setPrinterBluetoothName] = useState("");
   const [pairedPrinters, setPairedPrinters] = useState<{ name: string; address: string }[]>([]);
   const [scanningPrinters, setScanningPrinters] = useState(false);
+  const [printerQzName, setPrinterQzName] = useState("");
+  const [qzPrinters, setQzPrinters] = useState<string[]>([]);
+  const [scanningQz, setScanningQz] = useState(false);
+
+  async function handleScanQzPrinters() {
+    setScanningQz(true);
+    const printers = await listQzPrinters();
+    setQzPrinters(printers);
+    if (printers.length === 0) {
+      show("Nenhuma impressora encontrada. O QZ Tray está instalado e aberto neste PC?", "error");
+    }
+    setScanningQz(false);
+  }
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +93,7 @@ export default function ConfiguracoesPage() {
         setPrinterPort(String(data.restaurant.printerPort ?? 9100));
         setPrinterBluetoothAddress(data.restaurant.printerBluetoothAddress ?? "");
         setPrinterBluetoothName(data.restaurant.printerBluetoothName ?? "");
+        setPrinterQzName(data.restaurant.printerQzName ?? "");
         setLogoUrl(data.restaurant.logoUrl ?? null);
         setLoading(false);
       });
@@ -148,6 +163,7 @@ export default function ConfiguracoesPage() {
         printerPort: printMethod === "AGENT" ? Number(printerPort) || 9100 : undefined,
         printerBluetoothAddress: printMethod === "AGENT_BLUETOOTH" ? printerBluetoothAddress : undefined,
         printerBluetoothName: printMethod === "AGENT_BLUETOOTH" ? printerBluetoothName : undefined,
+        printerQzName: printMethod === "QZ_TRAY" ? printerQzName : undefined,
       }),
     });
     setSaving(false);
@@ -312,6 +328,7 @@ export default function ConfiguracoesPage() {
             <option value="RAWBT">Automático via app RawBT (celular)</option>
             <option value="AGENT">Automático via app Menuair Caixa — impressora Wi-Fi/Rede</option>
             <option value="AGENT_BLUETOOTH">Automático via app Menuair Caixa — impressora Bluetooth</option>
+            <option value="QZ_TRAY">Automático via QZ Tray — impressora no PC/notebook</option>
           </select>
           {printMethod === "RAWBT" && (
             <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 leading-relaxed">
@@ -369,6 +386,36 @@ export default function ConfiguracoesPage() {
               {printerBluetoothAddress && (
                 <p className="text-xs text-emerald-700">
                   Selecionada: <strong>{printerBluetoothName || printerBluetoothAddress}</strong>
+                </p>
+              )}
+            </div>
+          )}
+
+          {printMethod === "QZ_TRAY" && (
+            <div className="mt-3 space-y-3">
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800 leading-relaxed">
+                Precisa instalar o <strong>QZ Tray</strong> (gratuito) no PC/notebook do balcão —{" "}
+                <a href="https://qz.io/download/" target="_blank" rel="noopener noreferrer" className="underline font-semibold">
+                  baixar aqui
+                </a>
+                . Deixe ele aberto (ícone na bandeja do sistema) e a impressora térmica instalada normalmente no Windows/Mac.
+              </div>
+              <Button variant="secondary" size="sm" onClick={handleScanQzPrinters} isLoading={scanningQz} type="button">
+                Buscar impressoras do QZ Tray
+              </Button>
+              {qzPrinters.length > 0 && (
+                <select value={printerQzName} onChange={(e) => setPrinterQzName(e.target.value)} className={inputClass}>
+                  <option value="">Selecione a impressora</option>
+                  {qzPrinters.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {printerQzName && (
+                <p className="text-xs text-emerald-700">
+                  Selecionada: <strong>{printerQzName}</strong>
                 </p>
               )}
             </div>
