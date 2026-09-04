@@ -1,9 +1,35 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { isRestaurantOpenNow } from "@/lib/business-hours";
 import { getBrazilTimeParts } from "@/lib/timezone";
 import MenuClient from "./_components/menu-client";
 import { planAllows } from "@/lib/plan-features";
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const restaurant = await db.restaurant.findUnique({
+    where: { slug: params.slug },
+    select: { name: true, logoUrl: true, active: true },
+  });
+
+  if (!restaurant || !restaurant.active) {
+    return { title: "Cardápio não encontrado | Menuair" };
+  }
+
+  const title = `${restaurant.name} - Cardápio Online`;
+  const description = `Peça já no cardápio digital de ${restaurant.name}. Pedidos online, pagamento via Pix e entrega rápida.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: restaurant.logoUrl ? [{ url: restaurant.logoUrl }] : undefined,
+      type: "website",
+    },
+  };
+}
 
 export default async function RestaurantMenuPage({
   params,

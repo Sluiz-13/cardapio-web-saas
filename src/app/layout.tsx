@@ -6,8 +6,15 @@ import { CookieConsent } from "@/components/ui/CookieConsent";
 export const metadata: Metadata = {
   title: "Menuair — Cardápio Digital para Restaurantes",
   description: "Cardápio online, pedidos e Pix pro seu restaurante — sem taxa por venda.",
+  openGraph: {
+    title: "Menuair — Cardápio Digital para Restaurantes",
+    description: "Cardápio online, pedidos e Pix pro seu restaurante — sem taxa por venda.",
+    url: "https://menuair.com.br",
+    siteName: "Menuair",
+    locale: "pt_BR",
+    type: "website",
+  },
 };
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
