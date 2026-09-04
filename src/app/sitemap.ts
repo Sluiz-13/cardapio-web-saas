@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 const BASE_URL = "https://menuair.com.br";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
