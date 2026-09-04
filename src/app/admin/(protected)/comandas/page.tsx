@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Receipt, Lock, CheckCircle2, Printer, Wallet, CreditCard, Banknote } from "lucide-react";
+import { Receipt, Lock, CheckCircle2, Printer, Wallet, CreditCard, Banknote, X } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -25,7 +25,7 @@ type ComandaOrder = {
   customerName: string;
   totalCents: number;
   createdAt: string;
-  items: { productName: string; qty: number }[];
+  items: { id: string; productName: string; qty: number; unitPriceCents: number }[];
 };
 
 type Comanda = {
@@ -51,6 +51,21 @@ export default function ComandasPage() {
   const [printerPort, setPrinterPort] = useState<number | null>(null);
   const [printerBluetoothAddress, setPrinterBluetoothAddress] = useState<string | null>(null);
   const [printerQzName, setPrinterQzName] = useState<string | null>(null);
+  const [cancelingItemId, setCancelingItemId] = useState<string | null>(null);
+  const [serviceFeePercent, setServiceFeePercent] = useState(0);
+
+  async function cancelItem(comandaId: string, itemId: string) {
+    if (!confirm("Cancelar esse item? Ele sai da conta do cliente.")) return;
+    setCancelingItemId(itemId);
+    const res = await fetch(`/api/admin/comandas/${comandaId}/items/${itemId}`, { method: "DELETE" });
+    setCancelingItemId(null);
+    if (!res.ok) {
+      show("Não foi possível cancelar o item.", "error");
+      return;
+    }
+    show("Item cancelado.", "info");
+    load();
+  }
 
   async function load() {
     setLoading(true);
@@ -67,6 +82,7 @@ export default function ComandasPage() {
     setPrinterPort(data.printerPort);
     setPrinterBluetoothAddress(data.printerBluetoothAddress);
     setPrinterQzName(data.printerQzName);
+    setServiceFeePercent(data.serviceFeePercent ?? 0);
     setLoading(false);
   }
 
@@ -190,14 +206,28 @@ export default function ComandasPage() {
 
                   <div className="space-y-2 mb-4">
                     {c.orders.map((o) => (
-                      <div key={o.id} className="flex items-center justify-between text-sm border-t border-surface-border pt-2">
-                        <div className="min-w-0">
+                      <div key={o.id} className="border-t border-surface-border pt-2 text-sm">
+                        <div className="flex items-center justify-between mb-1">
                           <p className="font-medium text-gray-800 truncate">{o.customerName}</p>
-                          <p className="text-xs text-gray-400 truncate">
-                            {o.items.map((i) => `${i.qty}x ${i.productName}`).join(", ")}
-                          </p>
+                          <span className="text-gray-600 font-medium shrink-0 ml-2">{currency(o.totalCents)}</span>
                         </div>
-                        <span className="text-gray-600 font-medium shrink-0 ml-2">{currency(o.totalCents)}</span>
+                        <div className="space-y-1">
+                          {o.items.map((i) => (
+                            <div key={i.id} className="flex items-center justify-between text-xs text-gray-400 pl-1">
+                              <span className="truncate">
+                                {i.qty}x {i.productName}
+                              </span>
+                              <button
+                                onClick={() => cancelItem(c.id, i.id)}
+                                disabled={cancelingItemId === i.id}
+                                title="Cancelar item"
+                                className="shrink-0 ml-2 text-gray-300 hover:text-red-500 transition-colors duration-[180ms] disabled:opacity-50"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -239,10 +269,28 @@ export default function ComandasPage() {
 
       {closingComanda && (
         <Modal open={true} onClose={closeModal} title={`Fechar conta — ${closingComanda.table.label}`}>
-          <p className="text-sm text-gray-600 mb-1">Total a receber</p>
-          <p className="text-2xl font-bold text-emerald-600 mb-5">
-            {currency(closingComanda.orders.reduce((s, o) => s + o.totalCents, 0))}
-          </p>
+          {(() => {
+            const baseTotal = closingComanda.orders.reduce((s, o) => s + o.totalCents, 0);
+            const feeCents = serviceFeePercent > 0 ? Math.round((baseTotal * serviceFeePercent) / 100) : 0;
+            return (
+              <>
+                <p className="text-sm text-gray-600 mb-1">Total a receber</p>
+                {feeCents > 0 && (
+                  <div className="text-xs text-gray-400 mb-1 flex justify-between">
+                    <span>Subtotal</span>
+                    <span>{currency(baseTotal)}</span>
+                  </div>
+                )}
+                {feeCents > 0 && (
+                  <div className="text-xs text-gray-400 mb-1 flex justify-between">
+                    <span>Taxa de serviço ({serviceFeePercent}%)</span>
+                    <span>{currency(feeCents)}</span>
+                  </div>
+                )}
+                <p className="text-2xl font-bold text-emerald-600 mb-5">{currency(baseTotal + feeCents)}</p>
+              </>
+            );
+          })()}
           <p className="text-xs uppercase tracking-wide font-semibold text-gray-400 mb-2">
             Como o cliente pagou?
           </p>

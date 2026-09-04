@@ -16,6 +16,7 @@ export async function GET() {
       printerPort: true,
       printerBluetoothAddress: true,
       printerQzName: true,
+      serviceFeePercent: true,
     },
   });
   if (!restaurant) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
@@ -34,7 +35,7 @@ export async function GET() {
           customerName: true,
           totalCents: true,
           createdAt: true,
-          items: { select: { productName: true, qty: true } },
+          items: { select: { id: true, productName: true, qty: true, unitPriceCents: true } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -49,5 +50,6 @@ export async function GET() {
     printerPort: restaurant.printerPort,
     printerBluetoothAddress: restaurant.printerBluetoothAddress,
     printerQzName: restaurant.printerQzName,
+    serviceFeePercent: restaurant.serviceFeePercent,
   });
 }

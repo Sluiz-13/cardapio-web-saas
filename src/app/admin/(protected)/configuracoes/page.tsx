@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Power, Settings, ImageIcon, Wallet, Phone as PhoneIcon, Clock, Printer } from "lucide-react";
+import { Power, Settings, ImageIcon, Wallet, Phone as PhoneIcon, Clock, Printer, Percent } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Input";
@@ -44,6 +44,7 @@ export default function ConfiguracoesPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [avgDeliveryTime, setAvgDeliveryTime] = useState("");
+  const [serviceFeePercent, setServiceFeePercent] = useState("0");
   const [printMethod, setPrintMethod] = useState("MANUAL");
   const [printerIp, setPrinterIp] = useState("");
   const [printerPort, setPrinterPort] = useState("9100");
@@ -88,6 +89,7 @@ export default function ConfiguracoesPage() {
         setPhone(data.restaurant.phone ?? "");
         setAddress(data.restaurant.address ?? "");
         setAvgDeliveryTime(data.restaurant.avgDeliveryTime ?? "");
+        setServiceFeePercent(String(data.restaurant.serviceFeePercent ?? 0));
         setPrintMethod(data.restaurant.printMethod ?? "MANUAL");
         setPrinterIp(data.restaurant.printerIp ?? "");
         setPrinterPort(String(data.restaurant.printerPort ?? 9100));
@@ -158,6 +160,7 @@ export default function ConfiguracoesPage() {
         phone: phone || undefined,
         address: address || undefined,
         avgDeliveryTime: avgDeliveryTime || undefined,
+        serviceFeePercent: Number(serviceFeePercent) || 0,
         printMethod,
         printerIp: printMethod === "AGENT" ? printerIp : undefined,
         printerPort: printMethod === "AGENT" ? Number(printerPort) || 9100 : undefined,
@@ -309,6 +312,30 @@ export default function ConfiguracoesPage() {
               <Label>Tempo médio de entrega</Label>
               <input value={avgDeliveryTime} onChange={(e) => setAvgDeliveryTime(e.target.value)} placeholder="ex: 30-45 min" className={inputClass} />
             </div>
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card className="mb-5">
+        <CardHeader className="flex items-center gap-2">
+          <Percent size={15} className="text-gray-400" />
+          <CardTitle>Taxa de Serviço</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <CardDescription className="mb-3">
+            Cobrada só no fechamento de comandas (mesas) — não afeta delivery nem balcão. Deixe 0 pra não cobrar.
+          </CardDescription>
+          <div className="flex items-center gap-2">
+            <input
+              value={serviceFeePercent}
+              onChange={(e) => setServiceFeePercent(e.target.value)}
+              type="number"
+              step="1"
+              min="0"
+              max="100"
+              className={`${inputClass} w-24`}
+            />
+            <span className="text-sm text-gray-500">%</span>
           </div>
         </CardBody>
       </Card>

@@ -11,7 +11,7 @@ export async function GET() {
       restaurantId: session.user.restaurantId,
       status: { in: ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] },
     },
-    include: { items: true, table: { select: { label: true } } },
+    include: { items: true, table: { select: { label: true } }, driver: { select: { id: true, name: true } } },
     orderBy: { createdAt: "desc" },
     take: 50,
   });

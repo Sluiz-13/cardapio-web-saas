@@ -4,7 +4,9 @@ import { db } from "@/lib/db";
 import { getAdminSession } from "@/lib/session";
 
 const createSchema = z.object({
-  tableId: z.string().min(1),
+  tableId: z.string().min(1).optional(),
+  paymentMethod: z.enum(["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"]).optional(),
+  changeForCents: z.number().int().positive().optional(),
   customerName: z.string().min(2),
   customerPhone: z.string().min(8).optional().or(z.literal("")),
   items: z
@@ -29,9 +31,15 @@ export async function POST(req: NextRequest) {
   const { tableId, customerName, items } = parsed.data;
   const customerPhone = parsed.data.customerPhone?.trim() || null;
   const restaurantId = session.user.restaurantId;
+  const isBalcao = !tableId;
 
-  const table = await db.table.findFirst({ where: { id: tableId, restaurantId } });
-  if (!table) return NextResponse.json({ error: "Mesa inválida." }, { status: 400 });
+  if (!isBalcao) {
+    const table = await db.table.findFirst({ where: { id: tableId, restaurantId } });
+    if (!table) return NextResponse.json({ error: "Mesa inválida." }, { status: 400 });
+  }
+  if (isBalcao && !parsed.data.paymentMethod) {
+    return NextResponse.json({ error: "Informe a forma de pagamento." }, { status: 400 });
+  }
 
   const productIds = items.map((i) => i.productId);
   const products = await db.product.findMany({
@@ -64,23 +72,29 @@ export async function POST(req: NextRequest) {
   });
 
   const order = await db.$transaction(async (tx) => {
-    const openComanda = await tx.comanda.findFirst({ where: { tableId, status: "OPEN" } });
-    const comandaId = openComanda
-      ? openComanda.id
-      : (await tx.comanda.create({ data: { restaurantId, tableId } })).id;
+    let comandaId: string | undefined;
+    if (!isBalcao) {
+      const openComanda = await tx.comanda.findFirst({ where: { tableId, status: "OPEN" } });
+      comandaId = openComanda
+        ? openComanda.id
+        : (await tx.comanda.create({ data: { restaurantId, tableId } })).id;
+    }
 
     return tx.order.create({
       data: {
         restaurantId,
         customerName,
         customerPhone,
-        deliveryType: "DINE_IN",
-        paymentMethod: "CASH", // idêntico ao QR de mesa: pagamento real só no fechamento da comanda
+        deliveryType: isBalcao ? "PICKUP" : "DINE_IN",
+        // Balcão: cliente escolhe a forma de pagamento na hora, igual ao cardápio do cliente.
+        // Mesa: pagamento real só acontece no fechamento da comanda.
+        paymentMethod: isBalcao ? parsed.data.paymentMethod! : "CASH",
+        changeForCents: isBalcao && parsed.data.paymentMethod === "CASH" ? parsed.data.changeForCents : undefined,
         tableId,
         comandaId,
         totalCents,
         status: "NEW",
-        paymentConfirmed: true,
+        paymentConfirmed: isBalcao ? parsed.data.paymentMethod !== "PIX" : true,
         items: { create: orderItemsData },
         statusHistory: { create: { status: "NEW" } },
       },

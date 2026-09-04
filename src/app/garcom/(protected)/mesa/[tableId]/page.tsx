@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { ArrowLeft, Plus, Minus, X, ShoppingCart, Check } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
@@ -29,10 +29,21 @@ type CartLine = {
 
 const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 
+const PAYMENT_OPTIONS: { value: "PIX" | "CREDIT_CARD" | "DEBIT_CARD" | "CASH"; label: string }[] = [
+  { value: "PIX", label: "Pix" },
+  { value: "CREDIT_CARD", label: "Cartão de Crédito" },
+  { value: "DEBIT_CARD", label: "Cartão de Débito" },
+  { value: "CASH", label: "Dinheiro" },
+];
+
 export default function GarcomMesaPage() {
   const router = useRouter();
   const params = useParams<{ tableId: string }>();
+  const searchParams = useSearchParams();
   const { show } = useToast();
+  const isBalcao = params.tableId === "balcao";
+  const cameFromAdmin = searchParams.get("from") === "admin";
+  const backHref = cameFromAdmin ? "/admin" : "/garcom";
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -43,20 +54,24 @@ export default function GarcomMesaPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"PIX" | "CREDIT_CARD" | "DEBIT_CARD" | "CASH">("CASH");
+  const [changeFor, setChangeFor] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
+    const calls = [
       fetch("/api/garcom/categories").then((r) => r.json()),
       fetch("/api/garcom/products").then((r) => r.json()),
-      fetch(`/api/garcom/tables/${params.tableId}`).then((r) => r.json()),
-    ])
+    ];
+    if (!isBalcao) calls.push(fetch(`/api/garcom/tables/${params.tableId}`).then((r) => r.json()));
+
+    Promise.all(calls)
       .then(([cats, prods, tableInfo]) => {
         setCategories(cats);
         setProducts(prods);
         setActiveCat(cats[0]?.id ?? "");
-        if (tableInfo.existingCustomer) {
+        if (tableInfo?.existingCustomer) {
           setExistingCustomer(tableInfo.existingCustomer);
           setCustomerName(tableInfo.existingCustomer.name);
           setCustomerPhone(tableInfo.existingCustomer.phone ?? "");
@@ -68,7 +83,7 @@ export default function GarcomMesaPage() {
         setLoading(false);
         show("Não foi possível carregar o cardápio.", "error");
       });
-  }, [params.tableId]);
+  }, [params.tableId, isBalcao]);
 
   const filtered = products.filter((p) => p.categoryId === activeCat);
   const total = cart.reduce((s, l) => s + l.unitPriceCents * l.qty, 0);
@@ -100,12 +115,18 @@ export default function GarcomMesaPage() {
       show("Preencha o nome do cliente.", "error");
       return;
     }
+    if (isBalcao && paymentMethod === "CASH" && changeFor && Math.round(Number(changeFor) * 100) < total) {
+      show("O valor para troco não pode ser menor que o total do pedido.", "error");
+      return;
+    }
     setSubmitting(true);
     const res = await fetch("/api/garcom/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        tableId: params.tableId,
+        tableId: isBalcao ? undefined : params.tableId,
+        paymentMethod: isBalcao ? paymentMethod : undefined,
+        changeForCents: isBalcao && paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor) * 100) : undefined,
         customerName,
         customerPhone,
         items: cart.map((l) => ({
@@ -123,7 +144,7 @@ export default function GarcomMesaPage() {
       return;
     }
     show("Pedido enviado pra cozinha!", "success");
-    router.push("/garcom");
+    router.push(backHref);
   }
 
   if (loading) return <div className="p-6 text-center text-sm text-gray-400">Carregando cardápio…</div>;
@@ -131,10 +152,12 @@ export default function GarcomMesaPage() {
   return (
     <div className="pb-24">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-border bg-white sticky top-[57px] z-10">
-        <button onClick={() => router.push("/garcom")} className="text-gray-500">
+        <button onClick={() => router.push(backHref)} className="text-gray-500">
           <ArrowLeft size={18} />
         </button>
-        <span className="text-sm font-semibold text-gray-700">Voltar pra mesas</span>
+        <span className="text-sm font-semibold text-gray-700">
+          {isBalcao ? (cameFromAdmin ? "Voltar pro admin" : "Pedido no balcão") : "Voltar pra mesas"}
+        </span>
       </div>
 
       <div className="flex gap-2 px-4 py-3 overflow-x-auto border-b border-surface-border bg-white sticky top-[105px] z-10">
@@ -251,6 +274,43 @@ export default function GarcomMesaPage() {
             </div>
 
             <div className="p-5 pt-3 border-t border-gray-100">
+              {isBalcao && (
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-2 text-gray-400">Forma de pagamento</p>
+                  <div className="flex flex-wrap gap-2">
+                    {PAYMENT_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setPaymentMethod(opt.value)}
+                        className="text-sm font-medium px-3.5 py-1.5 rounded-full border"
+                        style={{
+                          borderColor: paymentMethod === opt.value ? "#C1440E" : "#E5E7EB",
+                          background: paymentMethod === opt.value ? "#C1440E" : "#FFFFFF",
+                          color: paymentMethod === opt.value ? "#FFFFFF" : "#374151",
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {isBalcao && paymentMethod === "CASH" && (
+                <div className="mb-4">
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">
+                    Precisa de troco para quanto? (opcional)
+                  </label>
+                  <input
+                    value={changeFor}
+                    onChange={(e) => setChangeFor(e.target.value)}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="ex: 50"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm"
+                  />
+                </div>
+              )}
               <div className="flex items-center justify-between font-bold text-base mb-4">
                 <span>Total</span>
                 <span className="text-emerald-600">{currency(total)}</span>

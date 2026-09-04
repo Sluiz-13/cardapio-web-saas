@@ -56,7 +56,11 @@ type Order = {
   paymentConfirmed: boolean;
   printedAt: string | Date | null;
   table: { label: string } | null;
+  driverId: string | null;
+  driver: { id: string; name: string } | null;
 };
+
+type Driver = { id: string; name: string; active: boolean };
 
 const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 const POLL_INTERVAL_MS = 2000;
@@ -113,6 +117,15 @@ export default function OrdersBoard({
   const [orders, setOrders] = useState(initialOrders);
   const [historyOrderId, setHistoryOrderId] = useState<string | null>(null);
   const [flashingIds, setFlashingIds] = useState<Set<string>>(new Set());
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [openDriverMenuId, setOpenDriverMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/drivers")
+      .then((r) => r.json())
+      .then((data) => setDrivers(data.filter((d: Driver) => d.active)))
+      .catch(() => {});
+  }, []);
 
   const knownIds = useRef<Set<string>>(new Set(initialOrders.map((o) => o.id)));
   const isFirstPoll = useRef(true);
@@ -215,6 +228,21 @@ export default function OrdersBoard({
     if (!res.ok) {
       setOrders((os) => os.map((o) => (o.id === order.id ? { ...o, status: order.status } : o)));
     }
+  }
+
+  async function assignDriver(orderId: string, driverId: string) {
+    setOrders((os) =>
+      os.map((o) =>
+        o.id === orderId
+          ? { ...o, driverId: driverId || null, driver: drivers.find((d) => d.id === driverId) ?? null }
+          : o
+      )
+    );
+    await fetch(`/api/admin/orders/${orderId}/driver`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ driverId: driverId || null }),
+    });
   }
 
   async function confirmPayment(orderId: string) {
@@ -331,6 +359,69 @@ export default function OrdersBoard({
                       )}
 
                       
+                      {o.deliveryType === "DELIVERY" && (
+                        <div className="relative shrink-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDriverMenuId((id) => (id === o.id ? null : o.id));
+                            }}
+                            className={clsx(
+                              "flex items-center justify-center w-9 h-9 rounded-full border transition-colors duration-[180ms]",
+                              o.driver
+                                ? "border-brand bg-brand/10 text-brand"
+                                : "border-surface-border text-gray-400 hover:bg-gray-50"
+                            )}
+                            title={o.driver ? `Entregador: ${o.driver.name}` : "Atribuir entregador"}
+                          >
+                            <Bike size={14} />
+                          </button>
+                          {openDriverMenuId === o.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenDriverMenuId(null);
+                                }}
+                              />
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="absolute bottom-full right-0 mb-1.5 w-44 rounded-xl border border-surface-border bg-white shadow-lg py-1 z-20"
+                              >
+                                <button
+                                  onClick={() => {
+                                    assignDriver(o.id, "");
+                                    setOpenDriverMenuId(null);
+                                  }}
+                                  className="w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50"
+                                >
+                                  Sem entregador
+                                </button>
+                                {drivers.map((d) => (
+                                  <button
+                                    key={d.id}
+                                    onClick={() => {
+                                      assignDriver(o.id, d.id);
+                                      setOpenDriverMenuId(null);
+                                    }}
+                                    className={clsx(
+                                      "w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50",
+                                      o.driverId === d.id ? "text-brand font-semibold" : "text-gray-700"
+                                    )}
+                                  >
+                                    {d.name}
+                                  </button>
+                                ))}
+                                {drivers.length === 0 && (
+                                  <p className="px-3 py-1.5 text-xs text-gray-400 italic">Nenhum entregador ativo</p>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+
                       <a href={buildWhatsAppLink(o.customerPhone, buildOrderStatusMessage(o.status, o.customerName, o.id.slice(-5)))}
                         target="_blank"
                         rel="noopener noreferrer"

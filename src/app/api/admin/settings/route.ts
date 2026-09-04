@@ -8,6 +8,7 @@ const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 const updateSchema = z.object({
   isOpen: z.boolean().optional(),
   defaultDeliveryFeeCents: z.number().int().nonnegative().optional(),
+  serviceFeePercent: z.number().int().min(0).max(100).optional(),
   pixKey: z.string().optional(),
   pixKeyType: z.enum(["CPF", "CNPJ", "EMAIL", "PHONE", "RANDOM"]).optional(),
   pixMerchantName: z.string().max(25).optional(),
@@ -44,6 +45,7 @@ export async function GET() {
     name: true, 
     isOpen: true, 
     defaultDeliveryFeeCents: true,
+    serviceFeePercent: true,
     pixKey: true, 
     pixKeyType: true, 
     pixMerchantName: true, 
@@ -77,6 +79,7 @@ export async function PATCH(req: NextRequest) {
   const {
     isOpen,
     defaultDeliveryFeeCents,
+    serviceFeePercent,
     pixKey,
     pixKeyType,
     pixMerchantName,
@@ -96,6 +99,7 @@ export async function PATCH(req: NextRequest) {
   const restaurantData: Record<string, unknown> = {};
   if (isOpen !== undefined) restaurantData.isOpen = isOpen;
   if (defaultDeliveryFeeCents !== undefined) restaurantData.defaultDeliveryFeeCents = defaultDeliveryFeeCents;
+  if (serviceFeePercent !== undefined) restaurantData.serviceFeePercent = serviceFeePercent;
   if (pixKey !== undefined) restaurantData.pixKey = pixKey;
   if (pixKeyType !== undefined) restaurantData.pixKeyType = pixKeyType;
   if (pixMerchantName !== undefined) restaurantData.pixMerchantName = pixMerchantName;

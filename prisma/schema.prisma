@@ -40,7 +40,10 @@ model Restaurant {
   tables     Table[]
   comandas   Comanda[]
   defaultDeliveryFeeCents Int             @default(0)
+  serviceFeePercent       Int      @default(0) // taxa de serviço do garçom, só cobrada no fechamento de comanda (mesa)
   deliveryFees            DeliveryFee[]
+  drivers                 Driver[]
+  cashSessions            CashSession[]
 
   pixKey           String?
   pixKeyType       String?
@@ -102,6 +105,9 @@ model AdminUser {
   passwordHash String
   role         AdminRole @default(STAFF)
   createdAt    DateTime  @default(now())
+
+  openedCashSessions CashSession[] @relation("CashSessionOpenedBy")
+  closedCashSessions CashSession[] @relation("CashSessionClosedBy")
 
   @@index([restaurantId])
   @@map("admin_users")
@@ -260,6 +266,9 @@ model Order {
   comandaId String?
   comanda   Comanda? @relation(fields: [comandaId], references: [id], onDelete: SetNull)
 
+  driverId String?
+  driver   Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+
   // Preenchido só quando deliveryType = DELIVERY (validado na API, não no banco)
   street        String?
   number        String?
@@ -281,6 +290,69 @@ model Order {
   @@index([restaurantId, status])
   @@index([restaurantId, printedAt])
   @@map("orders")
+}
+
+model Driver {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  phone        String
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+
+  orders Order[]
+
+  @@index([restaurantId])
+  @@map("drivers")
+}
+
+enum CashSessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum CashMovementType {
+  SANGRIA
+  SUPRIMENTO
+}
+
+model CashSession {
+  id            String            @id @default(cuid())
+  restaurantId  String
+  restaurant    Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  openedById    String
+  openedBy      AdminUser         @relation("CashSessionOpenedBy", fields: [openedById], references: [id])
+  openingAmountCents Int
+
+  closedById    String?
+  closedBy      AdminUser?        @relation("CashSessionClosedBy", fields: [closedById], references: [id])
+  closingAmountCents  Int?
+  expectedAmountCents Int?
+
+  status        CashSessionStatus @default(OPEN)
+  openedAt      DateTime          @default(now())
+  closedAt      DateTime?
+  notes         String?
+
+  movements     CashMovement[]
+
+  @@index([restaurantId])
+  @@map("cash_sessions")
+}
+
+model CashMovement {
+  id            String           @id @default(cuid())
+  cashSessionId String
+  cashSession   CashSession      @relation(fields: [cashSessionId], references: [id], onDelete: Cascade)
+  type          CashMovementType
+  amountCents   Int
+  note          String?
+  createdAt     DateTime         @default(now())
+
+  @@index([cashSessionId])
+  @@map("cash_movements")
 }
 
 model OrderItem {
