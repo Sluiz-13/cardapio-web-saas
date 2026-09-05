@@ -21,6 +21,7 @@ type OrderForReceipt = Pick<
   | "totalCents"
   | "paymentMethod"
   | "changeForCents"
+  | "deliveryFeeCents"
 > & {
   items: OrderItemForReceipt[];
   restaurant: Pick<Restaurant, "name">;
@@ -138,6 +139,10 @@ export function buildReceiptEscPos(order: OrderForReceipt): Buffer {
   }
 
   lines.push("-".repeat(CHARS_PER_LINE));
+  if (order.deliveryType === "DELIVERY" && order.deliveryFeeCents) {
+    lines.push(padLine("Subtotal", currency(order.totalCents - order.deliveryFeeCents)));
+    lines.push(padLine("Taxa de entrega", currency(order.deliveryFeeCents)));
+  }
   lines.push(padLine("TOTAL", currency(order.totalCents)));
   lines.push(`Pagamento: ${PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}`);
 
@@ -206,4 +211,41 @@ export function buildComandaReceiptEscPos(comanda: ComandaForReceipt): Buffer {
     CMD.FEED(3),
     CMD.CUT,
   ]);
+}
+
+type KitchenOrderForReceipt = Pick<Order, "id" | "createdAt" | "customerName" | "customerPhone" | "deliveryType"> & {
+  items: Pick<OrderItem, "productName" | "categoryName" | "qty" | "removedItems" | "extras">[];
+  table?: { label: string } | null;
+};
+
+// Via da cozinha: só o essencial pra preparar — sem preço, sem forma de
+// pagamento, sem troco. Reduz erro de quem prepara ficar lendo valor em vez
+// de item, e evita expor preço pro cliente que às vezes acompanha de perto.
+export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt): Buffer {
+  const lines: string[] = [];
+
+  lines.push(centerText("VIA DA COZINHA"));
+  lines.push(centerText(`Pedido #${order.id.slice(-5)}`));
+  lines.push(centerText(new Date(order.createdAt).toLocaleString("pt-BR")));
+  lines.push("-".repeat(CHARS_PER_LINE));
+
+  lines.push(...wrapText(`Cliente: ${order.customerName}`));
+  if (order.customerPhone) lines.push(...wrapText(`Telefone: ${order.customerPhone}`));
+  if (order.deliveryType === "DINE_IN" && order.table) lines.push(`Mesa: ${order.table.label}`);
+
+  lines.push("-".repeat(CHARS_PER_LINE));
+
+  for (const item of order.items) {
+    const removed = Array.isArray(item.removedItems) ? (item.removedItems as string[]) : [];
+    const extras = Array.isArray(item.extras) ? (item.extras as { name: string }[]) : [];
+
+    lines.push(`${item.qty}x ${item.productName}`);
+    if (item.categoryName) lines.push(...wrapText(item.categoryName, "  "));
+    if (removed.length > 0) lines.push(...wrapText(`Sem: ${removed.join(", ")}`, "  "));
+    if (extras.length > 0) lines.push(...wrapText(`+ ${extras.map((e) => e.name).join(", ")}`, "  "));
+  }
+
+  const body = lines.join("\n") + "\n";
+
+  return Buffer.concat([CMD.INIT, Buffer.from(body, "ascii"), CMD.FEED(3), CMD.CUT]);
 }

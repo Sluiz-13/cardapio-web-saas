@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminSession } from "@/lib/session";
-import { buildReceiptEscPos } from "@/lib/receipt-builder";
+import { buildReceiptEscPos, buildKitchenReceiptEscPos } from "@/lib/receipt-builder";
 
 // Endpoint genérico de impressão: qualquer método (RawBT, Agent via TCP, ou
 // um botão manual de "reimprimir") passa por aqui. Ele é a única porta de
@@ -14,18 +14,20 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const order = await db.order.findFirst({
     where: { id: params.id, restaurantId: session.user.restaurantId },
-    include: { items: true, restaurant: { select: { name: true } } },
+    include: { items: true, restaurant: { select: { name: true } }, table: { select: { label: true } } },
   });
   if (!order) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
 
-  const bytes = buildReceiptEscPos(order);
-  const rawbtUrl = `rawbt:base64,${bytes.toString("base64")}`;
-  const hex = bytes.toString("hex");
+  const fullBytes = buildReceiptEscPos(order);
+  const kitchenBytes = buildKitchenReceiptEscPos(order);
 
   await db.order.update({
     where: { id: order.id },
     data: { printedAt: new Date() },
   });
 
-  return NextResponse.json({ rawbtUrl, hex });
+  return NextResponse.json({
+    full: { rawbtUrl: `rawbt:base64,${fullBytes.toString("base64")}`, hex: fullBytes.toString("hex") },
+    kitchen: { rawbtUrl: `rawbt:base64,${kitchenBytes.toString("base64")}`, hex: kitchenBytes.toString("hex") },
+  });
 }

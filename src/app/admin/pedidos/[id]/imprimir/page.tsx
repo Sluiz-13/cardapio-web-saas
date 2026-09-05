@@ -26,6 +26,7 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
   if (!order) notFound();
 
   return (
+    <>
     <div className="max-w-[300px] mx-auto p-4 font-mono text-[12px] leading-snug text-black bg-white">
       <PrintTrigger />
 
@@ -75,6 +76,18 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
 
       <hr className="border-dashed border-black my-2" />
 
+      {order.deliveryType === "DELIVERY" && order.deliveryFeeCents ? (
+        <>
+          <div className="flex justify-between">
+            <span>Subtotal</span>
+            <span>{currency(order.totalCents - order.deliveryFeeCents)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Taxa de entrega</span>
+            <span>{currency(order.deliveryFeeCents)}</span>
+          </div>
+        </>
+      ) : null}
       <div className="flex justify-between font-bold">
         <span>TOTAL</span>
         <span>{currency(order.totalCents)}</span>
@@ -86,6 +99,35 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
         </p>
       )}
     </div>
-    
+
+    <div className="max-w-[300px] mx-auto p-4 font-mono text-[12px] leading-snug text-black bg-white" style={{ pageBreakBefore: "always" }}>
+      <div className="text-center mb-3">
+        <p className="font-bold uppercase text-sm">VIA DA COZINHA</p>
+        <p>Pedido #{order.id.slice(-5)}</p>
+        <p>{new Date(order.createdAt).toLocaleString("pt-BR")}</p>
+      </div>
+
+      <hr className="border-dashed border-black my-2" />
+
+      <p><strong>Cliente:</strong> {order.customerName}</p>
+      {order.customerPhone && <p><strong>Telefone:</strong> {order.customerPhone}</p>}
+      {order.deliveryType === "DINE_IN" && order.table && <p><strong>Mesa:</strong> {order.table.label}</p>}
+
+      <hr className="border-dashed border-black my-2" />
+
+      {order.items.map((item) => {
+        const removed = Array.isArray(item.removedItems) ? (item.removedItems as string[]) : [];
+        const extras = Array.isArray(item.extras) ? (item.extras as { name: string }[]) : [];
+        return (
+          <div key={item.id} className="mb-1.5">
+            <p>{item.qty}x {item.productName}</p>
+            {item.categoryName && <p className="pl-3">({item.categoryName})</p>}
+            {removed.length > 0 && <p className="pl-3">Sem: {removed.join(", ")}</p>}
+            {extras.length > 0 && <p className="pl-3">+ {extras.map((e) => e.name).join(", ")}</p>}
+          </div>
+        );
+      })}
+    </div>
+    </>
   );
 }

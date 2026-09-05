@@ -117,7 +117,6 @@ export default function ContaPage() {
           <Mail size={15} className="text-gray-400" />
           <div>
             <CardTitle>E-mail de login</CardTitle>
-            <CardDescription className="mt-0.5">Pede sua senha atual, por segurança.</CardDescription>
           </div>
         </CardHeader>
         <CardBody>

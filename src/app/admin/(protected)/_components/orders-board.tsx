@@ -179,34 +179,42 @@ export default function OrdersBoard({
     try {
       const res = await fetch(`/api/admin/orders/${orderId}/print`, { method: "POST" });
       if (!res.ok) return; // falha silenciosa — impressão manual continua disponível
-      const { rawbtUrl, hex } = await res.json();
+      const { full, kitchen } = await res.json();
 
       if (printMethod === "AGENT" && printerIp && (await isMenuairApp())) {
-        const success = await printViaAgent(hex, printerIp, printerPort ?? 9100);
-        if (!success) {
+        const okFull = await printViaAgent(full.hex, printerIp, printerPort ?? 9100);
+        const okKitchen = await printViaAgent(kitchen.hex, printerIp, printerPort ?? 9100);
+        if (!okFull || !okKitchen) {
           console.warn(`Impressão automática falhou pro pedido ${orderId} — usa o botão manual.`);
         }
         return;
       }
 
       if (printMethod === "AGENT_BLUETOOTH" && printerBluetoothAddress && (await isMenuairApp())) {
-        const success = await printViaBluetoothAgent(hex, printerBluetoothAddress);
-        if (!success) {
+        const okFull = await printViaBluetoothAgent(full.hex, printerBluetoothAddress);
+        const okKitchen = await printViaBluetoothAgent(kitchen.hex, printerBluetoothAddress);
+        if (!okFull || !okKitchen) {
           console.warn(`Impressão automática (Bluetooth) falhou pro pedido ${orderId} — usa o botão manual.`);
         }
         return;
       }
 
       if (printMethod === "QZ_TRAY" && printerQzName) {
-        const success = await printViaQzTray(hex, printerQzName);
-        if (!success) {
+        const okFull = await printViaQzTray(full.hex, printerQzName);
+        const okKitchen = await printViaQzTray(kitchen.hex, printerQzName);
+        if (!okFull || !okKitchen) {
           console.warn(`Impressão automática (QZ Tray) falhou pro pedido ${orderId} — usa o botão manual.`);
         }
         return;
       }
 
       if (printMethod === "RAWBT") {
-        window.location.href = rawbtUrl;
+        // RawBT só processa uma intent por vez — dispara a via completa,
+        // espera um instante, e manda a da cozinha em seguida.
+        window.location.href = full.rawbtUrl;
+        setTimeout(() => {
+          window.location.href = kitchen.rawbtUrl;
+        }, 1500);
       }
     } catch {
     }
@@ -437,9 +445,10 @@ export default function OrdersBoard({
                           if (printMethod === "QZ_TRAY" && printerQzName) {
                             const res = await fetch(`/api/admin/orders/${o.id}/print`, { method: "POST" });
                             if (res.ok) {
-                              const { hex } = await res.json();
-                              const success = await printViaQzTray(hex, printerQzName);
-                              if (success) return;
+                              const { full, kitchen } = await res.json();
+                              const okFull = await printViaQzTray(full.hex, printerQzName);
+                              const okKitchen = await printViaQzTray(kitchen.hex, printerQzName);
+                              if (okFull && okKitchen) return;
                             }
                           }
                           openPrintPageExternally(`/admin/pedidos/${o.id}/imprimir`);
