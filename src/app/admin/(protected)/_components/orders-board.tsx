@@ -140,7 +140,9 @@ export default function OrdersBoard({
         const newOnes = fetched.filter((o) => !knownIds.current.has(o.id));
 
         if (newOnes.length > 0 && !isFirstPoll.current) {
-          playNotificationSound();
+          // Som e impressão automática agora vivem no AutoPrintWatcher (montado
+          // no layout, roda em qualquer tela) — aqui só cuida do destaque visual
+          // na lista, que só faz sentido enquanto essa tela está aberta mesmo.
           setFlashingIds((prev) => {
             const next = new Set(prev);
             newOnes.forEach((o) => next.add(o.id));
@@ -155,12 +157,6 @@ export default function OrdersBoard({
               });
             }, FLASH_DURATION_MS);
           });
-
-          if (printMethod === "RAWBT" || printMethod === "AGENT" || printMethod === "AGENT_BLUETOOTH" || printMethod === "QZ_TRAY") {
-            newOnes.forEach((o, i) => {
-              setTimeout(() => triggerAutoPrint(o.id), i * 1200);
-            });
-          }
         }
 
         knownIds.current = new Set(fetched.map((o) => o.id));

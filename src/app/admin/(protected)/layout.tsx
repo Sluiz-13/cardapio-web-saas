@@ -6,6 +6,7 @@ import { getNextDueDate, getDaysUntilDue } from "@/lib/billing";
 import AdminNav from "./_components/admin-nav";
 import { PlanDueBanner } from "./_components/plan-due-banner";
 import { WhatsAppFab } from "@/components/ui/WhatsAppFab";
+import AutoPrintWatcher from "./_components/auto-print-watcher";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -24,6 +25,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen flex flex-col sm:flex-row bg-surface-bg">
       <AdminNav restaurantName={restaurant?.name ?? ""} userName={session.user.name} logoUrl={restaurant?.logoUrl} />
+      <AutoPrintWatcher
+        printMethod={restaurant?.printMethod ?? "MANUAL"}
+        printerIp={restaurant?.printerIp}
+        printerPort={restaurant?.printerPort}
+        printerBluetoothAddress={restaurant?.printerBluetoothAddress}
+        printerQzName={restaurant?.printerQzName}
+      />
       <div className="flex-1 min-w-0 flex flex-col">
         <PlanDueBanner daysUntilDue={daysUntilDue} />
         <main className="flex-1 min-w-0">{children}</main>

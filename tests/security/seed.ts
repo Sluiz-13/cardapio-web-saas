@@ -8,11 +8,18 @@ export type TenantFixture = {
   slug: string;
   adminEmail: string;
   adminPassword: string;
+  adminUserId: string;
   categoryId: string;
   productId: string;
   couponId: string;
   deliveryFeeId: string;
   orderId: string;
+  driverId: string;
+  cashSessionId: string;
+  closedCashSessionId: string;
+  comandaId: string;
+  comandaOrderId: string;
+  comandaItemId: string;
 };
 
 async function createTenant(label: "A" | "B"): Promise<TenantFixture> {
@@ -26,10 +33,9 @@ async function createTenant(label: "A" | "B"): Promise<TenantFixture> {
     data: { name: `Auditoria ${label}`, slug, plan: "START", isOpen: true, active: true },
   });
 
-  await db.adminUser.create({
+  const adminUser = await db.adminUser.create({
     data: { restaurantId: restaurant.id, name: `Admin ${label}`, email: adminEmail, passwordHash, role: "OWNER" },
   });
-
   const category = await db.category.create({
     data: { restaurantId: restaurant.id, name: `Categoria ${label}`, order: 0 },
   });
@@ -63,16 +69,75 @@ async function createTenant(label: "A" | "B"): Promise<TenantFixture> {
     },
   });
 
+  const driver = await db.driver.create({
+    data: { restaurantId: restaurant.id, name: `Entregador ${label}`, phone: "11988887777" },
+  });
+
+  const cashSession = await db.cashSession.create({
+    data: { restaurantId: restaurant.id, openedById: adminUser.id, openingAmountCents: 10000 },
+  });
+
+  const closedCashSession = await db.cashSession.create({
+    data: {
+      restaurantId: restaurant.id,
+      openedById: adminUser.id,
+      openingAmountCents: 10000,
+      status: "CLOSED",
+      closedById: adminUser.id,
+      closedAt: new Date(),
+      closingAmountCents: 10000,
+      expectedAmountCents: 10000,
+    },
+  });
+
+  const table = await db.table.create({
+    data: { restaurantId: restaurant.id, label: `Mesa Auditoria ${label}` },
+  });
+
+  const comanda = await db.comanda.create({
+    data: { restaurantId: restaurant.id, tableId: table.id },
+  });
+
+  const comandaOrder = await db.order.create({
+    data: {
+      restaurantId: restaurant.id,
+      customerName: `ClienteComanda${label}`,
+      status: "NEW",
+      totalCents: 2000,
+      paymentMethod: "CASH",
+      deliveryType: "DINE_IN",
+      tableId: table.id,
+      comandaId: comanda.id,
+    },
+  });
+
+  const comandaItem = await db.orderItem.create({
+    data: {
+      orderId: comandaOrder.id,
+      productId: product.id,
+      productName: `Produto ${label}`,
+      unitPriceCents: 2000,
+      qty: 1,
+    },
+  });
+
   return {
     restaurantId: restaurant.id,
     slug,
     adminEmail,
     adminPassword,
+    adminUserId: adminUser.id,
     categoryId: category.id,
     productId: product.id,
     couponId: coupon.id,
     deliveryFeeId: deliveryFee.id,
     orderId: order.id,
+    driverId: driver.id,
+    cashSessionId: cashSession.id,
+    closedCashSessionId: closedCashSession.id,
+    comandaId: comanda.id,
+    comandaOrderId: comandaOrder.id,
+    comandaItemId: comandaItem.id,
   };
 }
 

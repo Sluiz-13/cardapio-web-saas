@@ -66,12 +66,12 @@ export default function GarcomMesasPage() {
           description="Peça pro dono cadastrar as mesas em Configurações → Mesas."
         />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {tables.map((t) => (
             <button key={t.id} onClick={() => router.push(`/garcom/mesa/${t.id}`)}>
               <Card>
-                <CardBody className="flex flex-col items-center justify-center py-6 gap-1.5">
-                  <span className="font-bold text-sm text-gray-900">{t.label}</span>
+                <CardBody className="flex flex-col items-center justify-center py-10 gap-2">
+                  <span className="font-bold text-xl text-gray-900">{t.label}</span>
                   {t.hasOpenComanda && (
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                       Comanda aberta

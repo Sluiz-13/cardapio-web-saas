@@ -150,7 +150,7 @@ export default function GarcomMesaPage() {
   if (loading) return <div className="p-6 text-center text-sm text-gray-400">Carregando cardápio…</div>;
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 max-w-xl mx-auto">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-border bg-white sticky top-[57px] z-10">
         <button onClick={() => router.push(backHref)} className="text-gray-500">
           <ArrowLeft size={18} />
@@ -191,15 +191,17 @@ export default function GarcomMesaPage() {
       </div>
 
       {cartCount > 0 && !checkoutOpen && (
-        <button
-          onClick={() => setCheckoutOpen(true)}
-          className="fixed bottom-4 left-4 right-4 flex items-center justify-between px-5 py-3.5 rounded-full shadow-xl bg-chili text-white z-20"
-        >
-          <span className="flex items-center gap-2 font-semibold text-sm">
-            <ShoppingCart size={16} /> Ver pedido ({cartCount})
-          </span>
-          <span className="font-bold text-sm">{currency(total)}</span>
-        </button>
+        <div className="fixed bottom-4 inset-x-0 px-4 flex justify-center z-20">
+          <button
+            onClick={() => setCheckoutOpen(true)}
+            className="w-full max-w-xl flex items-center justify-between px-5 py-3.5 rounded-full shadow-xl bg-chili text-white"
+          >
+            <span className="flex items-center gap-2 font-semibold text-sm">
+              <ShoppingCart size={16} /> Ver pedido ({cartCount})
+            </span>
+            <span className="font-bold text-sm">{currency(total)}</span>
+          </button>
+        </div>
       )}
 
       {modalProduct && (
