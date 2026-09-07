@@ -11,6 +11,7 @@ const createCouponSchema = z.object({
   maxUsage: z.number().int().positive().optional(),
   expiresAt: z.string().datetime().optional(),
   productId: z.string().optional(),
+  oncePerCustomer: z.boolean().optional(),
 });
 
 export async function GET() {

@@ -61,6 +61,9 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
       {order.items.map((item) => {
         const removed = Array.isArray(item.removedItems) ? (item.removedItems as string[]) : [];
         const extras = Array.isArray(item.extras) ? (item.extras as { name: string; priceCents: number }[]) : [];
+        const selectedOptions = Array.isArray(item.selectedOptions)
+          ? (item.selectedOptions as { groupName: string; items: { name: string }[] }[])
+          : [];
         return (
           <div key={item.id} className="mb-1.5">
             <div className="flex justify-between">
@@ -68,6 +71,9 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
               <span>{currency(item.unitPriceCents * item.qty)}</span>
             </div>
             {item.categoryName && <p className="pl-3">({item.categoryName})</p>}
+            {selectedOptions.map((group, gi) => (
+              <p key={gi} className="pl-3">{group.groupName}: {group.items.map((i) => i.name).join(", ")}</p>
+            ))}
             {removed.length > 0 && <p className="pl-3">Sem: {removed.join(", ")}</p>}
             {extras.length > 0 && <p className="pl-3">+ {extras.map((e) => e.name).join(", ")}</p>}
           </div>
@@ -100,6 +106,7 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
       )}
     </div>
 
+    {order.restaurant.printKitchenCopy && (
     <div className="max-w-[300px] mx-auto p-4 font-mono text-[12px] leading-snug text-black bg-white" style={{ pageBreakBefore: "always" }}>
       <div className="text-center mb-3">
         <p className="font-bold uppercase text-sm">VIA DA COZINHA</p>
@@ -118,16 +125,23 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
       {order.items.map((item) => {
         const removed = Array.isArray(item.removedItems) ? (item.removedItems as string[]) : [];
         const extras = Array.isArray(item.extras) ? (item.extras as { name: string }[]) : [];
+        const selectedOptions = Array.isArray(item.selectedOptions)
+          ? (item.selectedOptions as { groupName: string; items: { name: string }[] }[])
+          : [];
         return (
           <div key={item.id} className="mb-1.5">
             <p>{item.qty}x {item.productName}</p>
             {item.categoryName && <p className="pl-3">({item.categoryName})</p>}
+            {selectedOptions.map((group, gi) => (
+              <p key={gi} className="pl-3">{group.groupName}: {group.items.map((i) => i.name).join(", ")}</p>
+            ))}
             {removed.length > 0 && <p className="pl-3">Sem: {removed.join(", ")}</p>}
             {extras.length > 0 && <p className="pl-3">+ {extras.map((e) => e.name).join(", ")}</p>}
           </div>
         );
       })}
     </div>
+    )}
     </>
   );
 }

@@ -1,8 +1,8 @@
 import type { Order, OrderItem, Restaurant } from "@prisma/client";
 
-type OrderItemForReceipt = Pick<
+type OrderItemForReceipt = Pick <
   OrderItem,
-  "productName" | "categoryName" | "unitPriceCents" | "qty" | "removedItems" | "extras"
+  "productName" | "categoryName" | "unitPriceCents" | "qty" | "removedItems" | "extras" | "selectedOptions"
 >;
 
 type OrderForReceipt = Pick<
@@ -130,10 +130,16 @@ export function buildReceiptEscPos(order: OrderForReceipt): Buffer {
     const extras = Array.isArray(item.extras)
       ? (item.extras as { name: string; priceCents: number }[])
       : [];
+    const selectedOptions = Array.isArray(item.selectedOptions)
+      ? (item.selectedOptions as { groupName: string; items: { name: string }[] }[])
+      : [];
 
     lines.push(padLine(`${item.qty}x ${item.productName}`, currency(item.unitPriceCents * item.qty)));
     if (item.categoryName) lines.push(...wrapText(item.categoryName, "  "));
-    
+
+    for (const group of selectedOptions) {
+      lines.push(...wrapText(`${group.groupName}: ${group.items.map((i) => i.name).join(", ")}`, "  "));
+    }
     if (removed.length > 0) lines.push(...wrapText(`Sem: ${removed.join(", ")}`, "  "));
     if (extras.length > 0) lines.push(...wrapText(`+ ${extras.map((e) => e.name).join(", ")}`, "  "));
   }
@@ -214,7 +220,7 @@ export function buildComandaReceiptEscPos(comanda: ComandaForReceipt): Buffer {
 }
 
 type KitchenOrderForReceipt = Pick<Order, "id" | "createdAt" | "customerName" | "customerPhone" | "deliveryType"> & {
-  items: Pick<OrderItem, "productName" | "categoryName" | "qty" | "removedItems" | "extras">[];
+  items: Pick<OrderItem, "productName" | "categoryName" | "qty" | "removedItems" | "extras" | "selectedOptions">[];
   table?: { label: string } | null;
 };
 
@@ -238,9 +244,15 @@ export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt): Buffer
   for (const item of order.items) {
     const removed = Array.isArray(item.removedItems) ? (item.removedItems as string[]) : [];
     const extras = Array.isArray(item.extras) ? (item.extras as { name: string }[]) : [];
+    const selectedOptions = Array.isArray(item.selectedOptions)
+      ? (item.selectedOptions as { groupName: string; items: { name: string }[] }[])
+      : [];
 
     lines.push(`${item.qty}x ${item.productName}`);
     if (item.categoryName) lines.push(...wrapText(item.categoryName, "  "));
+    for (const group of selectedOptions) {
+      lines.push(...wrapText(`${group.groupName}: ${group.items.map((i) => i.name).join(", ")}`, "  "));
+    }
     if (removed.length > 0) lines.push(...wrapText(`Sem: ${removed.join(", ")}`, "  "));
     if (extras.length > 0) lines.push(...wrapText(`+ ${extras.map((e) => e.name).join(", ")}`, "  "));
   }

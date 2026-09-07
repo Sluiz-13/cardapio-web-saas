@@ -35,24 +35,26 @@ export default function AutoPrintWatcher({
 
         if (printMethod === "AGENT" && printerIp && (await isMenuairApp())) {
           await printViaAgent(full.hex, printerIp, printerPort ?? 9100);
-          await printViaAgent(kitchen.hex, printerIp, printerPort ?? 9100);
+          if (kitchen) await printViaAgent(kitchen.hex, printerIp, printerPort ?? 9100);
           return;
         }
         if (printMethod === "AGENT_BLUETOOTH" && printerBluetoothAddress && (await isMenuairApp())) {
           await printViaBluetoothAgent(full.hex, printerBluetoothAddress);
-          await printViaBluetoothAgent(kitchen.hex, printerBluetoothAddress);
+          if (kitchen) await printViaBluetoothAgent(kitchen.hex, printerBluetoothAddress);
           return;
         }
         if (printMethod === "QZ_TRAY" && printerQzName) {
           await printViaQzTray(full.hex, printerQzName);
-          await printViaQzTray(kitchen.hex, printerQzName);
+          if (kitchen) await printViaQzTray(kitchen.hex, printerQzName);
           return;
         }
         if (printMethod === "RAWBT") {
           window.location.href = full.rawbtUrl;
-          setTimeout(() => {
-            window.location.href = kitchen.rawbtUrl;
-          }, 1500);
+          if (kitchen) {
+            setTimeout(() => {
+              window.location.href = kitchen.rawbtUrl;
+            }, 1500);
+          }
         }
       } catch {
         // Falha silenciosa — impressão manual continua disponível na tela de Pedidos.

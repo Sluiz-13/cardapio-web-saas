@@ -9,8 +9,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
+import { Toggle } from "@/components/ui/Toggle";
 
-type Fee = { id: string; neighborhood: string; feeCents: number };
+type Fee = { id: string; neighborhood: string; feeCents: number; active: boolean };
 
 const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 
@@ -80,6 +81,16 @@ export default function EntregasPage() {
     if (!confirm("Remover essa taxa de bairro?")) return;
     await fetch(`/api/admin/delivery-fees/${id}`, { method: "DELETE" });
     show("Bairro removido.", "info");
+    load();
+  }
+
+  async function toggleActive(fee: Fee) {
+    await fetch(`/api/admin/delivery-fees/${fee.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: !fee.active }),
+    });
+    show(fee.active ? "Entrega pausada pra esse bairro." : "Entrega reativada.", fee.active ? "info" : "success");
     load();
   }
 
@@ -162,9 +173,17 @@ export default function EntregasPage() {
           {fees.map((f) => (
             <Card key={f.id}>
               <CardBody className="flex items-center gap-3 !py-3.5">
-                <Truck size={15} className="text-brand shrink-0" />
-                <span className="flex-1 font-semibold text-sm text-gray-800">{f.neighborhood}</span>
-                <span className="text-emerald-600 font-bold text-sm">{currency(f.feeCents)}</span>
+                <Truck size={15} className={f.active ? "text-brand shrink-0" : "text-gray-300 shrink-0"} />
+                <div className="flex-1 min-w-0">
+                  <span className={`font-semibold text-sm truncate ${f.active ? "text-gray-800" : "text-gray-400"}`}>
+                    {f.neighborhood}
+                  </span>
+                  {!f.active && <p className="text-xs text-red-500">Entrega pausada</p>}
+                </div>
+                <span className={`font-bold text-sm ${f.active ? "text-emerald-600" : "text-gray-400"}`}>
+                  {currency(f.feeCents)}
+                </span>
+                <Toggle checked={f.active} onChange={() => toggleActive(f)} size="sm" />
                 <button
                   onClick={() => handleDelete(f.id)}
                   className="text-gray-300 hover:text-red-500 transition-colors duration-[180ms]"

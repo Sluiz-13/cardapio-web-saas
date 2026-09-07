@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Toggle } from "@/components/ui/Toggle";
 import { Plus, Trash2, Tag } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -141,6 +142,7 @@ function CouponForm({ products, onSaved }: { products: ProductOption[]; onSaved:
   const [maxUsage, setMaxUsage] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [productId, setProductId] = useState("");
+  const [oncePerCustomer, setOncePerCustomer] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -166,6 +168,7 @@ function CouponForm({ products, onSaved }: { products: ProductOption[]; onSaved:
         maxUsage: maxUsage ? Number(maxUsage) : undefined,
         expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
         productId: productId || undefined,
+        oncePerCustomer,
       }),
     });
     setSaving(false);
@@ -217,6 +220,14 @@ function CouponForm({ products, onSaved }: { products: ProductOption[]; onSaved:
           <Label>Limite de usos (opcional)</Label>
           <Input value={maxUsage} onChange={(e) => setMaxUsage(e.target.value)} type="number" min="1" placeholder="ilimitado" />
         </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 mb-4 mt-1">
+        <div>
+          <p className="text-sm font-medium text-gray-800">1 uso por cliente</p>
+          <p className="text-xs text-gray-400">Bloqueia pelo telefone — o mesmo cliente não usa esse cupom 2 vezes.</p>
+        </div>
+        <Toggle checked={oncePerCustomer} onChange={() => setOncePerCustomer((v) => !v)} size="sm" />
       </div>
 
       <Label>Expira em (opcional)</Label>

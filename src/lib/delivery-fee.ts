@@ -8,10 +8,11 @@ export function normalizeNeighborhood(value: string): string {
 
 export function matchDeliveryFee(
   neighborhoodInput: string,
-  fees: { neighborhood: string; feeCents: number }[],
+  fees: { neighborhood: string; feeCents: number; active?: boolean }[],
   defaultFeeCents: number
-): number {
+): { feeCents: number; disabled: boolean } {
   const normalizedInput = normalizeNeighborhood(neighborhoodInput);
   const match = fees.find((f) => normalizeNeighborhood(f.neighborhood) === normalizedInput);
-  return match ? match.feeCents : defaultFeeCents;
+  if (!match) return { feeCents: defaultFeeCents, disabled: false };
+  return { feeCents: match.feeCents, disabled: match.active === false };
 }

@@ -40,7 +40,8 @@ model Restaurant {
   tables     Table[]
   comandas   Comanda[]
   defaultDeliveryFeeCents Int             @default(0)
-  serviceFeePercent       Int      @default(0) // taxa de serviço do garçom, só cobrada no fechamento de comanda (mesa)
+    serviceFeePercent       Int      @default(0) // taxa de serviço do garçom, só cobrada no fechamento de comanda (mesa)
+  printKitchenCopy        Boolean  @default(true) // imprime uma 2ª via só pra cozinha (sem preço) além da via completa
   deliveryFees            DeliveryFee[]
   drivers                 Driver[]
   cashSessions            CashSession[]
@@ -146,6 +147,8 @@ model Product {
 
   removableOptions ProductRemovable[]
   extraOptions     ProductExtra[]
+  maxAccompaniments Int? // se preenchido, vira "Monte seu prato": limita quantos extraOptions o cliente pode escolher
+  optionGroups     ProductOptionGroup[] // sistema avançado (assistente em etapas) — convive com extraOptions, não substitui
   orderItems       OrderItem[]
   availableDays Int[] @default([])
   coupons Coupon[]
@@ -173,6 +176,42 @@ model ProductExtra {
   priceCents Int
 
   @@map("product_extras")
+}
+
+
+enum OptionGroupPricingStyle {
+  SUM     // soma o preço de cada item selecionado
+  FIXED   // preço fixo pro grupo, não importa quantos itens escolher
+  HIGHEST // cobra só o item mais caro entre os selecionados
+}
+
+model ProductOptionGroup {
+  id           String                  @id @default(cuid())
+  productId    String
+  product      Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name         String                  // ex: "Opção de Salmão", "Acompanhamentos"
+  minSelect    Int                     @default(0)
+  maxSelect    Int?                    // null = sem limite
+  pricingStyle OptionGroupPricingStyle @default(SUM)
+  fixedPriceCents Int?                 // só usado quando pricingStyle = FIXED — ignora preço dos itens, cobra esse valor
+  order        Int                     @default(0) // ordem das etapas do assistente
+
+  items ProductOptionItem[]
+
+  @@index([productId])
+  @@map("product_option_groups")
+}
+
+model ProductOptionItem {
+  id         String             @id @default(cuid())
+  groupId    String
+  group      ProductOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name       String
+  priceCents Int
+  order      Int                @default(0)
+
+  @@index([groupId])
+  @@map("product_option_items")
 }
 
 // -----------------------------
@@ -367,6 +406,7 @@ model OrderItem {
   qty           Int
   removedItems  Json    @default("[]") // string[]
   extras        Json    @default("[]") // { name, priceCents }[]
+  selectedOptions Json  @default("[]") // { groupName, pricingStyle, chargedCents, items: { name, priceCents }[] }[] — snapshot dos grupos de opção
 
   @@map("order_items")
 }
@@ -388,6 +428,7 @@ model DeliveryFee {
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   neighborhood String     // como o admin digitou, exibido na tela
   feeCents     Int
+  active       Boolean    @default(true) // false = entrega pausada pra esse bairro (cliente é orientado a chamar no WhatsApp)
   createdAt    DateTime   @default(now())
 
   @@unique([restaurantId, neighborhood])
@@ -440,6 +481,7 @@ model Coupon {
   minOrderCents Int?         // pedido mínimo pra cupom valer (opcional)
   maxUsage      Int?         // null = sem limite de usos
   usageCount    Int          @default(0)
+  oncePerCustomer Boolean    @default(false) // limita a 1 uso por telefone de cliente, além do limite geral
   expiresAt     DateTime?
   createdAt     DateTime     @default(now())
   productId String?

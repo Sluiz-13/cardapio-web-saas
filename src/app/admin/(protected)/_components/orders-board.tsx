@@ -443,7 +443,7 @@ export default function OrdersBoard({
                             if (res.ok) {
                               const { full, kitchen } = await res.json();
                               const okFull = await printViaQzTray(full.hex, printerQzName);
-                              const okKitchen = await printViaQzTray(kitchen.hex, printerQzName);
+                              const okKitchen = kitchen ? await printViaQzTray(kitchen.hex, printerQzName) : true;
                               if (okFull && okKitchen) return;
                             }
                           }

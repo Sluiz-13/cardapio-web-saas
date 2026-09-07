@@ -46,7 +46,11 @@ export default async function RestaurantMenuPage({
     db.category.findMany({ where: { restaurantId: restaurant.id }, orderBy: { order: "asc" } }),
     db.product.findMany({
         where: { restaurantId: restaurant.id, active: true, visibleToCustomer: true },
-        include: { removableOptions: true, extraOptions: true },
+        include: {
+          removableOptions: true,
+          extraOptions: true,
+          optionGroups: { include: { items: { orderBy: { order: "asc" } } }, orderBy: { order: "asc" } },
+        },
         orderBy: { order: "asc" },
     }).then((products) => {
         const { dayOfWeek: today } = getBrazilTimeParts();

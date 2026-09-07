@@ -35,6 +35,9 @@ const createOrderSchema = z
           qty: z.number().int().positive(),
           removedItems: z.array(z.string()).default([]),
           extraNames: z.array(z.string()).default([]),
+          selectedGroupOptions: z
+            .array(z.object({ groupId: z.string().min(1), itemIds: z.array(z.string().min(1)) }))
+            .default([]),
         })
       )
       .min(1),
@@ -78,7 +81,11 @@ export async function POST(req: NextRequest) {
   const productIds = items.map((i) => i.productId);
   const products = await db.product.findMany({
     where: { id: { in: productIds }, restaurantId, active: true },
-    include: { extraOptions: true, category: { select: { name: true } } },
+    include: {
+      extraOptions: true,
+      category: { select: { name: true } },
+      optionGroups: { include: { items: true } },
+    },
   });
 
   if (products.length !== new Set(productIds).size) {
@@ -100,11 +107,53 @@ export async function POST(req: NextRequest) {
   type ExtraOption = ProductWithExtras["extraOptions"][number];
 
   let subtotalCents = 0;
+  let groupValidationError: string | null = null;
+
   const orderItemsData = items.map((item) => {
     const product = products.find((p: ProductWithExtras) => p.id === item.productId)!;
     const extras = product.extraOptions.filter((e: ExtraOption) => item.extraNames.includes(e.name));
     const extrasTotal = extras.reduce((sum: number, e: ExtraOption) => sum + e.priceCents, 0);
-    const unitPriceCents = product.priceCents + extrasTotal;
+
+    // Grupos de opção ("Monte seu prato"): nunca confia no preço que vem do
+    // navegador — recalcula tudo aqui a partir do que está cadastrado.
+    let groupsTotal = 0;
+    const selectedOptions = product.optionGroups
+      .map((group) => {
+        const selected = item.selectedGroupOptions.find((s) => s.groupId === group.id);
+        const itemIds = selected?.itemIds ?? [];
+        const chosenItems = group.items.filter((gi) => itemIds.includes(gi.id));
+
+        if (chosenItems.length < group.minSelect) {
+          groupValidationError = `Escolha pelo menos ${group.minSelect} em "${group.name}".`;
+        }
+        if (group.maxSelect !== null && chosenItems.length > group.maxSelect) {
+          groupValidationError = `Máximo de ${group.maxSelect} em "${group.name}".`;
+        }
+        if (chosenItems.length !== itemIds.length) {
+          groupValidationError = `Opção inválida em "${group.name}".`;
+        }
+
+        if (chosenItems.length === 0) return null;
+
+        const chargedCents =
+          group.pricingStyle === "FIXED"
+            ? group.fixedPriceCents ?? 0
+            : group.pricingStyle === "HIGHEST"
+            ? Math.max(...chosenItems.map((i) => i.priceCents))
+            : chosenItems.reduce((s, i) => s + i.priceCents, 0);
+
+        groupsTotal += chargedCents;
+
+        return {
+          groupName: group.name,
+          pricingStyle: group.pricingStyle,
+          chargedCents,
+          items: chosenItems.map((i) => ({ name: i.name, priceCents: i.priceCents })),
+        };
+      })
+      .filter((g): g is NonNullable<typeof g> => g !== null);
+
+    const unitPriceCents = product.priceCents + extrasTotal + groupsTotal;
     subtotalCents += unitPriceCents * item.qty;
 
     return {
@@ -115,8 +164,13 @@ export async function POST(req: NextRequest) {
       qty: item.qty,
       removedItems: item.removedItems,
       extras: extras.map((e: ExtraOption) => ({ name: e.name, priceCents: e.priceCents })),
+      selectedOptions,
     };
   });
+
+  if (groupValidationError) {
+    return NextResponse.json({ error: groupValidationError }, { status: 400 });
+  }
 
   // Busca dados do restaurante uma única vez — serve pra taxa de entrega
   // padrão e pra gerar o QR Code Pix (se configurado).
@@ -145,9 +199,16 @@ if (!restaurant.isOpen) {
   if (deliveryType === "DELIVERY" && address) {
     const fees = await db.deliveryFee.findMany({
       where: { restaurantId },
-      select: { neighborhood: true, feeCents: true },
+      select: { neighborhood: true, feeCents: true, active: true },
     });
-    deliveryFeeCents = matchDeliveryFee(address.neighborhood, fees, restaurant?.defaultDeliveryFeeCents ?? 0);
+    const match = matchDeliveryFee(address.neighborhood, fees, restaurant?.defaultDeliveryFeeCents ?? 0);
+    if (match.disabled) {
+      return NextResponse.json(
+        { error: "Entregas pausadas pra esse bairro no momento — fale com a gente pelo WhatsApp." },
+        { status: 400 }
+      );
+    }
+    deliveryFeeCents = match.feeCents;
   }
 
   // Validação de cupom — sempre no servidor, nunca confia em desconto vindo do client.
@@ -167,6 +228,15 @@ if (!restaurant.isOpen) {
     }
     if (coupon.maxUsage !== null && coupon.usageCount >= coupon.maxUsage) {
       return NextResponse.json({ error: "Cupom esgotado." }, { status: 400 });
+    }
+    if (coupon.oncePerCustomer) {
+      const alreadyUsed = await db.order.findFirst({
+        where: { restaurantId, couponCode: coupon.code, customerPhone, status: { not: "CANCELED" } },
+        select: { id: true },
+      });
+      if (alreadyUsed) {
+        return NextResponse.json({ error: "Você já usou esse cupom antes." }, { status: 400 });
+      }
     }
     if (coupon.minOrderCents && subtotalCents < coupon.minOrderCents) {
       return NextResponse.json(

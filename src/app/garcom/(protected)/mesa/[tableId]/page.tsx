@@ -7,6 +7,16 @@ import { useToast } from "@/components/ui/Toast";
 
 type Extra = { id: string; name: string; priceCents: number };
 type Removable = { id: string; name: string };
+type OptionItem = { id: string; name: string; priceCents: number };
+type OptionGroup = {
+  id: string;
+  name: string;
+  minSelect: number;
+  maxSelect: number | null;
+  pricingStyle: "SUM" | "FIXED" | "HIGHEST";
+  fixedPriceCents: number | null;
+  items: OptionItem[];
+};
 type Product = {
   id: string;
   name: string;
@@ -15,8 +25,10 @@ type Product = {
   categoryId: string;
   removableOptions: Removable[];
   extraOptions: Extra[];
+  optionGroups: OptionGroup[];
 };
 type Category = { id: string; name: string };
+type SelectedOption = { groupId: string; groupName: string; itemIds: string[]; itemNames: string[]; chargedCents: number };
 type CartLine = {
   key: string;
   productId: string;
@@ -25,7 +37,15 @@ type CartLine = {
   qty: number;
   removedItems: string[];
   extraNames: string[];
+  selectedOptions: SelectedOption[];
 };
+
+function computeGroupChargeCents(group: OptionGroup, chosenItems: OptionItem[]): number {
+  if (chosenItems.length === 0) return 0;
+  if (group.pricingStyle === "FIXED") return group.fixedPriceCents ?? 0;
+  if (group.pricingStyle === "HIGHEST") return Math.max(...chosenItems.map((i) => i.priceCents));
+  return chosenItems.reduce((s, i) => s + i.priceCents, 0);
+}
 
 const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 
@@ -89,23 +109,46 @@ export default function GarcomMesaPage() {
   const total = cart.reduce((s, l) => s + l.unitPriceCents * l.qty, 0);
   const cartCount = cart.reduce((s, l) => s + l.qty, 0);
 
-  function addToCart(product: Product, removed: string[], extras: Extra[]) {
+  function addToCart(
+    product: Product,
+    removed: string[],
+    extras: Extra[],
+    groupSelections: Record<string, string[]>
+  ) {
     const extrasTotal = extras.reduce((s, e) => s + e.priceCents, 0);
+
+    const selectedOptions: SelectedOption[] = product.optionGroups
+      .map((group) => {
+        const ids = groupSelections[group.id] ?? [];
+        const chosen = group.items.filter((i) => ids.includes(i.id));
+        if (chosen.length === 0) return null;
+        return {
+          groupId: group.id,
+          groupName: group.name,
+          itemIds: chosen.map((i) => i.id),
+          itemNames: chosen.map((i) => i.name),
+          chargedCents: computeGroupChargeCents(group, chosen),
+        };
+      })
+      .filter((o): o is SelectedOption => o !== null);
+
+    const groupsTotal = selectedOptions.reduce((s, o) => s + o.chargedCents, 0);
+
     setCart((c) => [
       ...c,
       {
         key: `${product.id}-${Date.now()}`,
         productId: product.id,
         name: product.name,
-        unitPriceCents: product.priceCents + extrasTotal,
+        unitPriceCents: product.priceCents + extrasTotal + groupsTotal,
         qty: 1,
         removedItems: removed,
         extraNames: extras.map((e) => e.name),
+        selectedOptions,
       },
     ]);
     setModalProduct(null);
   }
-
   function changeQty(key: string, delta: number) {
     setCart((c) => c.map((l) => (l.key === key ? { ...l, qty: Math.max(0, l.qty + delta) } : l)).filter((l) => l.qty > 0));
   }
@@ -134,6 +177,7 @@ export default function GarcomMesaPage() {
           qty: l.qty,
           removedItems: l.removedItems,
           extraNames: l.extraNames,
+          selectedGroupOptions: l.selectedOptions.map((o) => ({ groupId: o.groupId, itemIds: o.itemIds })),
         })),
       }),
     });
@@ -226,8 +270,10 @@ export default function GarcomMesaPage() {
                 <div key={l.key} className="flex items-center justify-between border-b border-gray-100 py-2.5">
                   <div className="flex-1 pr-2">
                     <p className="font-semibold text-sm text-gray-900">{l.name}</p>
-                    {(l.removedItems.length > 0 || l.extraNames.length > 0) && (
+                    {(l.removedItems.length > 0 || l.extraNames.length > 0 || l.selectedOptions.length > 0) && (
                       <p className="text-xs text-gray-400 mt-0.5">
+                        {l.selectedOptions.map((o) => o.itemNames.join(", ")).join(" · ")}
+                        {l.selectedOptions.length > 0 && (l.removedItems.length > 0 || l.extraNames.length > 0) ? " · " : ""}
                         {l.removedItems.map((r) => `Sem ${r}`).join(", ")}
                         {l.removedItems.length > 0 && l.extraNames.length > 0 ? " · " : ""}
                         {l.extraNames.map((e) => `+ ${e}`).join(", ")}
@@ -339,10 +385,32 @@ function ProductPickerModal({
 }: {
   product: Product;
   onClose: () => void;
-  onConfirm: (product: Product, removed: string[], extras: Extra[]) => void;
+  onConfirm: (product: Product, removed: string[], extras: Extra[], groupSelections: Record<string, string[]>) => void;
 }) {
   const [removed, setRemoved] = useState<string[]>([]);
   const [extras, setExtras] = useState<Extra[]>([]);
+  const [groupSelections, setGroupSelections] = useState<Record<string, string[]>>({});
+
+  function toggleGroupItem(group: OptionGroup, itemId: string) {
+    setGroupSelections((cur) => {
+      const current = cur[group.id] ?? [];
+      if (current.includes(itemId)) {
+        return { ...cur, [group.id]: current.filter((id) => id !== itemId) };
+      }
+      if (group.maxSelect === 1) {
+        return { ...cur, [group.id]: [itemId] };
+      }
+      if (group.maxSelect !== null && current.length >= group.maxSelect) {
+        return cur;
+      }
+      return { ...cur, [group.id]: [...current, itemId] };
+    });
+  }
+
+  const groupsValid = product.optionGroups.every((group) => {
+    const count = groupSelections[group.id]?.length ?? 0;
+    return count >= group.minSelect && (group.maxSelect === null || count <= group.maxSelect);
+  });
 
   return (
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/40" onClick={onClose}>
@@ -353,6 +421,47 @@ function ProductPickerModal({
             <X size={20} />
           </button>
         </div>
+
+        {product.optionGroups.map((group) => {
+          const selectedIds = groupSelections[group.id] ?? [];
+          const atLimit = group.maxSelect !== null && selectedIds.length >= group.maxSelect;
+          return (
+            <div key={group.id} className="mb-4">
+              <p className="text-xs uppercase tracking-wide font-semibold mb-1 text-gray-400">
+                {group.name} {group.minSelect > 0 && <span className="text-chili">· obrigatório</span>}
+              </p>
+              <p className="text-[11px] text-gray-400 mb-2">
+                {group.maxSelect
+                  ? `Escolha ${group.minSelect > 0 ? `${group.minSelect} a ` : "até "}${group.maxSelect}`
+                  : group.minSelect > 0
+                  ? `Escolha pelo menos ${group.minSelect}`
+                  : "Escolha quantos quiser"}{" "}
+                ({selectedIds.length}
+                {group.maxSelect ? `/${group.maxSelect}` : ""})
+              </p>
+              <div className="space-y-2">
+                {group.items.map((item) => {
+                  const active = selectedIds.includes(item.id);
+                  const disabled = !active && atLimit && group.maxSelect !== 1;
+                  return (
+                    <button
+                      key={item.id}
+                      disabled={disabled}
+                      onClick={() => toggleGroupItem(group, item.id)}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm disabled:opacity-40"
+                      style={{ borderColor: active ? "#059669" : "#E5E7EB", background: active ? "rgba(5,150,105,0.06)" : "#FFFFFF" }}
+                    >
+                      <span>{item.name}</span>
+                      {item.priceCents > 0 && group.pricingStyle !== "FIXED" && (
+                        <span className="text-emerald-600 font-semibold">+ {currency(item.priceCents)}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
 
         {product.removableOptions.length > 0 && (
           <div className="mb-4">
@@ -402,8 +511,9 @@ function ProductPickerModal({
         )}
 
         <button
-          onClick={() => onConfirm(product, removed, extras)}
-          className="w-full py-3 rounded-full font-semibold text-sm bg-chili text-white"
+          onClick={() => onConfirm(product, removed, extras, groupSelections)}
+          disabled={!groupsValid}
+          className="w-full py-3 rounded-full font-semibold text-sm bg-chili text-white disabled:opacity-40"
         >
           Adicionar
         </button>

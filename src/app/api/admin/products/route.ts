@@ -17,6 +17,20 @@ const createProductSchema = z.object({
     .optional(),
   removableOptions: z.array(z.string()).default([]),
   extraOptions: z.array(z.object({ name: z.string(), priceCents: z.number().int().nonnegative() })).default([]),
+  maxAccompaniments: z.number().int().positive().optional(),
+  optionGroups: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        minSelect: z.number().int().min(0).default(0),
+        maxSelect: z.number().int().positive().nullable().optional(),
+        pricingStyle: z.enum(["SUM", "FIXED", "HIGHEST"]).default("SUM"),
+        fixedPriceCents: z.number().int().nonnegative().nullable().optional(),
+        order: z.number().int().default(0),
+        items: z.array(z.object({ name: z.string().min(1), priceCents: z.number().int().nonnegative(), order: z.number().int().default(0) })),
+      })
+    )
+    .default([]),
   availableDays: z.array(z.number().int().min(0).max(6)).default([]),
   visibleToCustomer: z.boolean().default(true),
   visibleToStaff: z.boolean().default(true),
@@ -28,7 +42,12 @@ export async function GET() {
 
   const products = await db.product.findMany({
     where: { restaurantId: session.user.restaurantId },
-    include: { category: true, removableOptions: true, extraOptions: true },
+    include: {
+      category: true,
+      removableOptions: true,
+      extraOptions: true,
+      optionGroups: { include: { items: { orderBy: { order: "asc" } } }, orderBy: { order: "asc" } },
+    },
     orderBy: [{ category: { order: "asc" } }, { order: "asc" }],
   });
   return NextResponse.json(products);
@@ -40,7 +59,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = createProductSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const { removableOptions, extraOptions, ...data } = parsed.data;
+  const { removableOptions, extraOptions, optionGroups, ...data } = parsed.data;
 
   const limitCheck = await assertUnderPlanLimit(session.user.restaurantId, "maxProducts");
   if (!limitCheck.ok) return NextResponse.json({ error: limitCheck.message }, { status: 403 });
@@ -65,5 +84,12 @@ export async function POST(req: NextRequest) {
     },
     include: { removableOptions: true, extraOptions: true },
   });
+
+  for (const group of optionGroups) {
+    await db.productOptionGroup.create({
+      data: { ...group, productId: product.id, items: { create: group.items } },
+    });
+  }
+
   return NextResponse.json(product, { status: 201 });
 }

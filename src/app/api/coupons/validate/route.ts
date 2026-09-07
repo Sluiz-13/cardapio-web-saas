@@ -11,6 +11,7 @@ const schema = z.object({
   // Necessário para cupons restritos a um produto específico: sem isso não
   // dá pra calcular o desconto só na linha certa do carrinho.
   items: z.array(z.object({ productId: z.string(), lineTotalCents: z.number().int().nonnegative() })).default([]),
+  customerPhone: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ valid: false, error: "Requisição inválida." }, { status: 400 });
 
-  const { restaurantId, code, subtotalCents, items } = parsed.data;
+  const { restaurantId, code, subtotalCents, items, customerPhone } = parsed.data;
 
   const coupon = await db.coupon.findUnique({
     where: { restaurantId_code: { restaurantId, code: code.trim().toUpperCase() } },
@@ -38,6 +39,15 @@ export async function POST(req: NextRequest) {
   }
   if (coupon.maxUsage !== null && coupon.usageCount >= coupon.maxUsage) {
     return NextResponse.json({ valid: false, error: "Cupom esgotado." });
+  }
+  if (coupon.oncePerCustomer && customerPhone) {
+    const alreadyUsed = await db.order.findFirst({
+      where: { restaurantId, couponCode: coupon.code, customerPhone, status: { not: "CANCELED" } },
+      select: { id: true },
+    });
+    if (alreadyUsed) {
+      return NextResponse.json({ valid: false, error: "Você já usou esse cupom antes." });
+    }
   }
   if (coupon.minOrderCents && subtotalCents < coupon.minOrderCents) {
     return NextResponse.json({

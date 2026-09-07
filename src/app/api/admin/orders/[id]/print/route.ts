@@ -14,20 +14,29 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const order = await db.order.findFirst({
     where: { id: params.id, restaurantId: session.user.restaurantId },
-    include: { items: true, restaurant: { select: { name: true } }, table: { select: { label: true } } },
+    include: {
+      items: true,
+      restaurant: { select: { name: true, printKitchenCopy: true } },
+      table: { select: { label: true } },
+    },
   });
   if (!order) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
 
   const fullBytes = buildReceiptEscPos(order);
-  const kitchenBytes = buildKitchenReceiptEscPos(order);
 
   await db.order.update({
     where: { id: order.id },
     data: { printedAt: new Date() },
   });
 
-  return NextResponse.json({
-    full: { rawbtUrl: `rawbt:base64,${fullBytes.toString("base64")}`, hex: fullBytes.toString("hex") },
-    kitchen: { rawbtUrl: `rawbt:base64,${kitchenBytes.toString("base64")}`, hex: kitchenBytes.toString("hex") },
-  });
+  const full = { rawbtUrl: `rawbt:base64,${fullBytes.toString("base64")}`, hex: fullBytes.toString("hex") };
+
+  if (!order.restaurant.printKitchenCopy) {
+    return NextResponse.json({ full, kitchen: null });
+  }
+
+  const kitchenBytes = buildKitchenReceiptEscPos(order);
+  const kitchen = { rawbtUrl: `rawbt:base64,${kitchenBytes.toString("base64")}`, hex: kitchenBytes.toString("hex") };
+
+  return NextResponse.json({ full, kitchen });
 }

@@ -26,9 +26,15 @@ export async function POST(req: NextRequest) {
 
   const fees = await db.deliveryFee.findMany({
     where: { restaurantId: parsed.data.restaurantId },
-    select: { neighborhood: true, feeCents: true },
+    select: { neighborhood: true, feeCents: true, active: true },
   });
 
-  const feeCents = matchDeliveryFee(parsed.data.neighborhood, fees, restaurant.defaultDeliveryFeeCents);
+  const { feeCents, disabled } = matchDeliveryFee(parsed.data.neighborhood, fees, restaurant.defaultDeliveryFeeCents);
+  if (disabled) {
+    return NextResponse.json({
+      disabled: true,
+      error: "Entregas pausadas pra esse bairro no momento — fale com a gente pelo WhatsApp.",
+    });
+  }
   return NextResponse.json({ feeCents });
 }

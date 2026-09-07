@@ -24,6 +24,17 @@ type Product = {
   order: number;
   removableOptions: { id: string; name: string }[];
   extraOptions: { id: string; name: string; priceCents: number }[];
+  maxAccompaniments: number | null;
+  optionGroups: {
+    id: string;
+    name: string;
+    minSelect: number;
+    maxSelect: number | null;
+    pricingStyle: "SUM" | "FIXED" | "HIGHEST";
+    fixedPriceCents: number | null;
+    order: number;
+    items: { id: string; name: string; priceCents: number; order: number }[];
+  }[];
   availableDays: number[];
   visibleToCustomer: boolean;
   visibleToStaff: boolean;
@@ -246,6 +257,66 @@ function ProductFormModal({
   );
   const [extraName, setExtraName] = useState("");
   const [extraPrice, setExtraPrice] = useState("");
+  const [maxAccompaniments, setMaxAccompaniments] = useState(
+    initialProduct?.maxAccompaniments != null ? String(initialProduct.maxAccompaniments) : ""
+  );
+const [optionGroups, setOptionGroups] = useState <
+  {
+    name: string;
+    minSelect: number;
+    maxSelect: number | null;
+    pricingStyle: "SUM" | "FIXED" | "HIGHEST";
+    fixedPriceCents: number | null;
+    order: number;
+    items: { name: string; priceCents: number; order: number }[];
+  }[]
+>(
+  initialProduct?.optionGroups.map((g) => ({
+    name: g.name,
+    minSelect: g.minSelect,
+    maxSelect: g.maxSelect,
+    pricingStyle: g.pricingStyle,
+    fixedPriceCents: g.fixedPriceCents,
+    order: g.order,
+    items: g.items.map((i) => ({ name: i.name, priceCents: i.priceCents, order: i.order })),
+  })) ?? []
+);
+  const [groupItemDrafts, setGroupItemDrafts] = useState<{ name: string; price: string }[]>([]);
+
+  function addGroup() {
+    setOptionGroups((gs) => [
+      ...gs,
+      { name: "", minSelect: 0, maxSelect: null, pricingStyle: "SUM", fixedPriceCents: null, order: gs.length, items: [] },
+    ]);
+    setGroupItemDrafts((d) => [...d, { name: "", price: "" }]);
+  }
+
+  function removeGroup(index: number) {
+    setOptionGroups((gs) => gs.filter((_, i) => i !== index));
+    setGroupItemDrafts((d) => d.filter((_, i) => i !== index));
+  }
+
+  function updateGroup(index: number, patch: Partial<(typeof optionGroups)[number]>) {
+    setOptionGroups((gs) => gs.map((g, i) => (i === index ? { ...g, ...patch } : g)));
+  }
+
+  function addItemToGroup(groupIndex: number) {
+    const draft = groupItemDrafts[groupIndex];
+    if (!draft?.name.trim()) return;
+    const priceCents = Math.round(Number(draft.price || "0") * 100);
+    setOptionGroups((gs) =>
+      gs.map((g, i) =>
+        i === groupIndex ? { ...g, items: [...g.items, { name: draft.name.trim(), priceCents, order: g.items.length }] } : g
+      )
+    );
+    setGroupItemDrafts((d) => d.map((x, i) => (i === groupIndex ? { name: "", price: "" } : x)));
+  }
+
+  function removeItemFromGroup(groupIndex: number, itemIndex: number) {
+    setOptionGroups((gs) =>
+      gs.map((g, i) => (i === groupIndex ? { ...g, items: g.items.filter((_, ii) => ii !== itemIndex) } : g))
+    );
+  }
   const [availableDays, setAvailableDays] = useState<number[]>(initialProduct?.availableDays ?? []);
   const [visibleToCustomer, setVisibleToCustomer] = useState(initialProduct?.visibleToCustomer ?? true);
   const [visibleToStaff, setVisibleToStaff] = useState(initialProduct?.visibleToStaff ?? true);
@@ -313,6 +384,8 @@ function ProductFormModal({
       categoryId,
       removableOptions: removables,
       extraOptions: extras,
+      maxAccompaniments: maxAccompaniments ? Number(maxAccompaniments) : undefined,
+      optionGroups,
       availableDays,
       visibleToCustomer,
       visibleToStaff,
@@ -506,6 +579,156 @@ function ProductFormModal({
                 </span>
               ))}
               {extras.length === 0 && <span className="text-xs text-gray-300">Nenhum</span>}
+            </div>
+
+            <div className="mt-3">
+              <Label>Monte seu prato — limite de acompanhamentos (opcional)</Label>
+              <p className="text-xs text-gray-400 mb-1.5">
+                Preenchido, o cliente só consegue escolher até esse número de itens da lista acima. Vazio = sem limite (como hoje).
+              </p>
+              <input
+                value={maxAccompaniments}
+                onChange={(e) => setMaxAccompaniments(e.target.value)}
+                type="number"
+                min="1"
+                placeholder="ex: 3"
+                className={`w-24 ${inputBaseClass}`}
+              />
+            </div>
+          </div>
+
+          <hr className="border-surface-border" />
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label>Grupos de opção (avançado)</Label>
+              <button
+                type="button"
+                onClick={addGroup}
+                className="text-xs font-semibold text-brand hover:underline shrink-0"
+              >
+                + Adicionar grupo
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              Pra produtos tipo &quot;Monte seu Pedido&quot;: várias etapas, cada uma com seu próprio mínimo/máximo e forma de cobrar. Não mexe em nada se você não usar isso.
+            </p>
+
+            {optionGroups.length === 0 && <span className="text-xs text-gray-300">Nenhum grupo</span>}
+
+            <div className="space-y-3">
+              {optionGroups.map((group, gi) => (
+                <div key={gi} className="rounded-xl border border-surface-border p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      value={group.name}
+                      onChange={(e) => updateGroup(gi, { name: e.target.value })}
+                      placeholder="Nome do grupo (ex: Acompanhamentos)"
+                      className={`flex-1 ${inputBaseClass}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeGroup(gi)}
+                      className="text-gray-300 hover:text-red-500 shrink-0"
+                      aria-label="Remover grupo"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div>
+                      <Label>Mínimo</Label>
+                      <input
+                        value={group.minSelect}
+                        onChange={(e) => updateGroup(gi, { minSelect: Number(e.target.value) || 0 })}
+                        type="number"
+                        min="0"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <Label>Máximo</Label>
+                      <input
+                        value={group.maxSelect ?? ""}
+                        onChange={(e) => updateGroup(gi, { maxSelect: e.target.value ? Number(e.target.value) : null })}
+                        type="number"
+                        min="1"
+                        placeholder="Sem limite"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <Label>Estilo de preço</Label>
+                      <select
+                        value={group.pricingStyle}
+                        onChange={(e) => updateGroup(gi, { pricingStyle: e.target.value as typeof group.pricingStyle })}
+                        className={inputClass}
+                      >
+                        <option value="SUM">Somatório</option>
+                        <option value="FIXED">Preço fixo</option>
+                        <option value="HIGHEST">Maior valor</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {group.pricingStyle === "FIXED" && (
+                    <div className="mb-2">
+                      <Label>Valor fixo do grupo (R$)</Label>
+                      <input
+                        value={group.fixedPriceCents != null ? group.fixedPriceCents / 100 : ""}
+                        onChange={(e) => updateGroup(gi, { fixedPriceCents: e.target.value ? Math.round(Number(e.target.value) * 100) : null })}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="ex: 5.00"
+                        className={`w-32 ${inputBaseClass}`}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      value={groupItemDrafts[gi]?.name ?? ""}
+                      onChange={(e) =>
+                        setGroupItemDrafts((d) => d.map((x, i) => (i === gi ? { ...x, name: e.target.value } : x)))
+                      }
+                      placeholder="Nome da opção (ex: Manga)"
+                      className={`flex-1 min-w-0 ${inputBaseClass}`}
+                    />
+                    <input
+                      value={groupItemDrafts[gi]?.price ?? ""}
+                      onChange={(e) =>
+                        setGroupItemDrafts((d) => d.map((x, i) => (i === gi ? { ...x, price: e.target.value } : x)))
+                      }
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="R$"
+                      className={`w-20 shrink-0 ${inputBaseClass}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addItemToGroup(gi)}
+                      className="px-3.5 py-2 rounded-full border border-surface-border text-xs font-semibold text-gray-600 shrink-0 hover:bg-gray-50 transition-colors duration-[180ms]"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {group.items.map((item, ii) => (
+                      <span key={ii} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
+                        {item.name} · {currency(item.priceCents)}
+                        <button type="button" onClick={() => removeItemFromGroup(gi, ii)} className="text-gray-400 hover:text-red-500">
+                          <X size={11} />
+                        </button>
+                      </span>
+                    ))}
+                    {group.items.length === 0 && <span className="text-xs text-gray-300">Nenhuma opção ainda</span>}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

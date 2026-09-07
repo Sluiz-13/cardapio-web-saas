@@ -8,7 +8,12 @@ export async function GET() {
 
   const products = await db.product.findMany({
     where: { restaurantId: session.user.restaurantId, active: true, visibleToStaff: true },
-    include: { category: true, removableOptions: true, extraOptions: true },
+    include: {
+      category: true,
+      removableOptions: true,
+      extraOptions: true,
+      optionGroups: { include: { items: { orderBy: { order: "asc" } } }, orderBy: { order: "asc" } },
+    },
     orderBy: [{ category: { order: "asc" } }, { order: "asc" }],
   });
 

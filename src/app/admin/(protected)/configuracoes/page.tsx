@@ -8,28 +8,13 @@ import { Label } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
+import { Toggle } from "@/components/ui/Toggle";
 import { listPairedBluetoothPrinters } from "@/lib/print-agent";
 import { listQzPrinters } from "@/lib/qz-print";
 
 const DAY_LABELS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
 type BusinessHour = { dayOfWeek: number; isOpen: boolean; openTime: string; closeTime: string };
-
-function Toggle({ checked, onChange, size = "md" }: { checked: boolean; onChange: () => void; size?: "sm" | "md" }) {
-  const dims = size === "md" ? { w: "w-12", h: "h-7", dot: "w-5 h-5", on: "26px", off: "4px" } : { w: "w-10", h: "h-6", dot: "w-4 h-4", on: "20px", off: "4px" };
-  return (
-    <button
-      onClick={onChange}
-      className={`relative ${dims.w} ${dims.h} rounded-full transition-colors duration-[180ms] shrink-0`}
-      style={{ background: checked ? "#059669" : "#D1D5DB" }}
-    >
-      <span
-        className={`absolute top-1 ${dims.dot} rounded-full bg-white shadow-sm transition-all duration-[180ms]`}
-        style={{ left: checked ? dims.on : dims.off }}
-      />
-    </button>
-  );
-}
 
 export default function ConfiguracoesPage() {
   const { show } = useToast();
@@ -45,6 +30,7 @@ export default function ConfiguracoesPage() {
   const [address, setAddress] = useState("");
   const [avgDeliveryTime, setAvgDeliveryTime] = useState("");
   const [serviceFeePercent, setServiceFeePercent] = useState("0");
+  const [printKitchenCopy, setPrintKitchenCopy] = useState(true);
   const [printMethod, setPrintMethod] = useState("MANUAL");
   const [printerIp, setPrinterIp] = useState("");
   const [printerPort, setPrinterPort] = useState("9100");
@@ -90,6 +76,7 @@ export default function ConfiguracoesPage() {
         setAddress(data.restaurant.address ?? "");
         setAvgDeliveryTime(data.restaurant.avgDeliveryTime ?? "");
         setServiceFeePercent(String(data.restaurant.serviceFeePercent ?? 0));
+        setPrintKitchenCopy(data.restaurant.printKitchenCopy ?? true);
         setPrintMethod(data.restaurant.printMethod ?? "MANUAL");
         setPrinterIp(data.restaurant.printerIp ?? "");
         setPrinterPort(String(data.restaurant.printerPort ?? 9100));
@@ -161,6 +148,7 @@ export default function ConfiguracoesPage() {
         address: address || undefined,
         avgDeliveryTime: avgDeliveryTime || undefined,
         serviceFeePercent: Number(serviceFeePercent) || 0,
+        printKitchenCopy,
         printMethod,
         printerIp: printMethod === "AGENT" ? printerIp : undefined,
         printerPort: printMethod === "AGENT" ? Number(printerPort) || 9100 : undefined,
@@ -417,6 +405,14 @@ export default function ConfiguracoesPage() {
               )}
             </div>
           )}
+
+          <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-surface-border">
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Imprimir via separada pra cozinha</p>
+              <p className="text-xs text-gray-400">Sem preços — só nome, telefone e itens. Se desligado, sai só 1 via completa.</p>
+            </div>
+            <Toggle checked={printKitchenCopy} onChange={() => setPrintKitchenCopy((v) => !v)} />
+          </div>
 
           {printMethod === "QZ_TRAY" && (
             <div className="mt-3 space-y-3">

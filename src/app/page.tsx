@@ -16,6 +16,8 @@ import {
   SlidersHorizontal,
   Printer,
   LayoutGrid,
+  UtensilsCrossed,
+  Bike,
 } from "lucide-react";
 import { PLAN_PRICE_CENTS } from "@/lib/plan-pricing";
 import { PLAN_LIMITS } from "@/lib/plan-features";
@@ -44,15 +46,47 @@ const OWNER_BENEFITS = [
   { icon: Smartphone, title: "Acesso pelo celular", text: "Gerencie de onde estiver." },
 ];
 
+const OPERATION_COLUMNS = [
+  {
+    icon: UtensilsCrossed,
+    title: "Garçom",
+    items: [
+      "App próprio pra lançar pedido direto na mesa",
+      "Comanda acumula os pedidos até fechar a conta",
+      "Pedido manual no balcão pra quem chega sem app",
+    ],
+  },
+  {
+    icon: Wallet,
+    title: "Caixa",
+    items: [
+      "Abertura e fechamento com conferência de valores",
+      "Sangria e suprimento registrados na hora",
+      "Taxa de serviço configurável, cobrada só na mesa",
+    ],
+  },
+  {
+    icon: Bike,
+    title: "Entrega",
+    items: [
+      "Cadastro de entregadores e atribuição por pedido",
+      "Taxa por bairro — dá pra pausar um bairro na hora",
+      "2ª via de impressão só com o pedido, pra cozinha",
+    ],
+  },
+];
+
 const CASE_FACTS = [
   { k: "Pagamento", v: "Pix próprio, sem comissão" },
-  { k: "Cozinha", v: "Impressão térmica automática (Wi-Fi e Bluetooth)" },
+  { k: "Cozinha", v: "Impressão térmica automática (Wi-Fi e Bluetooth), com 2ª via" },
   { k: "Mesas", v: "Comanda por mesa + app do garçom" },
-  { k: "Financeiro", v: "Painel com histórico de pedidos" },
+  { k: "Caixa", v: "Abertura, sangria, suprimento e fechamento com conferência" },
+  { k: "Entrega", v: "Entregadores cadastrados e taxa configurável por bairro" },
+  { k: "Financeiro", v: "Histórico, relatórios e fechamento diário" },
 ];
 
 const STATS = [
-  { value: "1200+", label: "Pedidos processados" },
+  { value: "12.000+", label: "Pedidos processados" },
   { value: "100%", label: "Online e sem travamentos" },
   { value: "Direto", label: "Pedido direto via Painel" },
 ];
@@ -81,7 +115,8 @@ const FAQ = [
   { q: "Como meu cliente acessa o cardápio?", a: "Por um link do seu restaurante ou por QR Code, direto do celular." },
   { q: "O Menuair cobra comissão por pedido?", a: "Não. Você paga só a mensalidade do plano escolhido." },
   { q: "Posso receber pagamento por Pix?", a: "Sim, o Pix é gerado na hora, direto na sua chave — sem intermediário." },
-  { q: "Tenho que ter mesa/QR Code pra usar?", a: "Não. Delivery e retirada funcionam nos dois planos. Comanda por mesa e app do garçom também já vêm no Start — só o QR Code de autoatendimento na mesa é exclusivo do Pro." },
+  { q: "Como funciona o caixa?", a: "Abre com um valor inicial, registra sangria e suprimento durante o dia, e fecha conferindo o valor contado contra o esperado pelo sistema." },
+  { q: "Consigo pausar entrega pra um bairro específico?", a: "Sim. Se por qualquer motivo não der pra entregar num bairro (chuva, trânsito, etc.), você pausa na hora e o cliente já é orientado a chamar no WhatsApp." },
   { q: "Preciso ter conhecimento técnico?", a: "Não. A gente ajuda a configurar tudo, e o dia a dia é feito em telas simples." },
 ];
 
@@ -167,12 +202,12 @@ export default function LandingPage() {
             Seu próprio canal de pedidos — sem pagar comissão por venda
           </span>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] mb-6 tracking-tight">
-            Seu restaurante <br /> online. <br />
-            <span className="text-[#D35400]">Seus pedidos</span> em <br />
-            um só lugar.
+            O sistema completo <br />
+            <span className="text-[#D35400]">pro seu restaurante</span> <br />
+            operar todo dia.
           </h1>
           <p className="text-slate-600 text-lg mb-8 max-w-md">
-            Cardápio digital próprio, pedidos organizados e pagamento por Pix. Simples para você e fácil para o seu cliente.
+            Cardápio, mesas, balcão, caixa e entrega — tudo num painel só. Simples para você e fácil para o seu cliente.
           </p>
           <div className="space-y-3 mb-10">
             <div className="flex items-center gap-2 text-sm text-slate-500">
@@ -185,7 +220,11 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <Check size={16} className="text-[#D35400] shrink-0" />
-              <span>Impressão automática na cozinha (Wi-Fi ou Bluetooth).</span>
+              <span>Mesa, balcão e entrega com caixa e entregador organizados.</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <Check size={16} className="text-[#D35400] shrink-0" />
+              <span>Impressão automática na cozinha, com 2ª via se precisar.</span>
             </div>
           </div>
 
@@ -311,6 +350,33 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* OPERAÇÃO INTERNA */}
+      <section className="bg-white border-t border-slate-200 py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="mb-16 max-w-2xl">
+            <h2 className="text-4xl font-extrabold mb-4 tracking-tight">Por dentro do restaurante,<br />todo mundo no mesmo painel</h2>
+            <p className="text-slate-600">Garçom, caixa e entrega — cada um com a tela certa pra sua função, sem planilha paralela.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {OPERATION_COLUMNS.map((col) => (
+              <div key={col.title} className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
+                <col.icon className="text-[#D35400] mb-4" size={28} />
+                <h3 className="font-bold text-xl mb-4 text-slate-900">{col.title}</h3>
+                <ul className="space-y-3">
+                  {col.items.map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
+                      <Check size={15} className="text-[#D35400] shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* RESTAURANT DASHBOARD */}
       <section className="border-t border-slate-200 py-24">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
@@ -368,7 +434,7 @@ export default function LandingPage() {
             Primeiro restaurante rodando o sistema completo: cardápio, pedido, Pix e impressão na cozinha, sem depender de planilha paralela nem de app de terceiro.
           </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {CASE_FACTS.map((f) => (
               <div key={f.k} className="bg-white/5 border border-white/10 rounded-2xl p-4">
                 <p className="text-xs text-slate-400 mb-1">{f.k}</p>

@@ -19,6 +19,16 @@ import PixQrCode from "@/components/ui/PixQrCode";
 
 type Extra = { id: string; name: string; priceCents: number };
 type Removable = { id: string; name: string };
+type OptionItem = { id: string; name: string; priceCents: number };
+type OptionGroup = {
+  id: string;
+  name: string;
+  minSelect: number;
+  maxSelect: number | null;
+  pricingStyle: "SUM" | "FIXED" | "HIGHEST";
+  fixedPriceCents: number | null;
+  items: OptionItem[];
+};
 type Product = {
   id: string;
   name: string;
@@ -28,6 +38,8 @@ type Product = {
   categoryId: string;
   removableOptions: Removable[];
   extraOptions: Extra[];
+  maxAccompaniments: number | null;
+  optionGroups: OptionGroup[];
 };
 type Category = { id: string; name: string };
 type Restaurant = {
@@ -42,6 +54,7 @@ type Restaurant = {
 
 type Table = { id: string; label: string };
 
+type SelectedOption = { groupId: string; groupName: string; itemIds: string[]; itemNames: string[]; chargedCents: number };
 type CartLine = {
   key: string;
   productId: string;
@@ -50,7 +63,15 @@ type CartLine = {
   qty: number;
   removedItems: string[];
   extraNames: string[];
+  selectedOptions: SelectedOption[];
 };
+
+function computeGroupChargeCents(group: OptionGroup, chosenItems: OptionItem[]): number {
+  if (chosenItems.length === 0) return 0;
+  if (group.pricingStyle === "FIXED") return group.fixedPriceCents ?? 0;
+  if (group.pricingStyle === "HIGHEST") return Math.max(...chosenItems.map((i) => i.priceCents));
+  return chosenItems.reduce((s, i) => s + i.priceCents, 0);
+}
 
 const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 
@@ -98,18 +119,42 @@ export default function MenuClient({
     catRefs.current[id]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }
 
-  function addToCart(product: Product, removed: string[], extras: Extra[]) {
+  function addToCart(
+    product: Product,
+    removed: string[],
+    extras: Extra[],
+    groupSelections: Record<string, string[]>
+  ) {
     const extrasTotal = extras.reduce((s, e) => s + e.priceCents, 0);
+
+    const selectedOptions: SelectedOption[] = product.optionGroups
+      .map((group) => {
+        const ids = groupSelections[group.id] ?? [];
+        const chosen = group.items.filter((i) => ids.includes(i.id));
+        if (chosen.length === 0) return null;
+        return {
+          groupId: group.id,
+          groupName: group.name,
+          itemIds: chosen.map((i) => i.id),
+          itemNames: chosen.map((i) => i.name),
+          chargedCents: computeGroupChargeCents(group, chosen),
+        };
+      })
+      .filter((o): o is SelectedOption => o !== null);
+
+    const groupsTotal = selectedOptions.reduce((s, o) => s + o.chargedCents, 0);
+
     setCart((c) => [
       ...c,
       {
         key: `${product.id}-${Date.now()}`,
         productId: product.id,
         name: product.name,
-        unitPriceCents: product.priceCents + extrasTotal,
+        unitPriceCents: product.priceCents + extrasTotal + groupsTotal,
         qty: 1,
         removedItems: removed,
         extraNames: extras.map((e) => e.name),
+        selectedOptions,
       },
     ]);
     setModalProduct(null);
@@ -271,6 +316,7 @@ export default function MenuClient({
           <CheckoutDrawer
             restaurantId={restaurant.id}
             restaurantIsOpen={restaurant.isOpen}
+            restaurantPhone={restaurant.phone}
             cart={cart}
             total={total}
             table={table}
@@ -384,11 +430,34 @@ function ProductModal({
 }: {
   product: Product;
   onClose: () => void;
-  onConfirm: (product: Product, removed: string[], extras: Extra[]) => void;
+  onConfirm: (product: Product, removed: string[], extras: Extra[], groupSelections: Record<string, string[]>) => void;
 }) {
   const [removed, setRemoved] = useState<string[]>([]);
   const [extras, setExtras] = useState<Extra[]>([]);
+  const [groupSelections, setGroupSelections] = useState<Record<string, string[]>>({});
   const [imgError, setImgError] = useState(false);
+
+  function toggleGroupItem(group: OptionGroup, itemId: string) {
+    setGroupSelections((cur) => {
+      const current = cur[group.id] ?? [];
+      if (current.includes(itemId)) {
+        return { ...cur, [group.id]: current.filter((id) => id !== itemId) };
+      }
+      // Máximo 1 = comportamento de escolha única (troca em vez de acumular).
+      if (group.maxSelect === 1) {
+        return { ...cur, [group.id]: [itemId] };
+      }
+      if (group.maxSelect !== null && current.length >= group.maxSelect) {
+        return cur; // já no limite, ignora o clique
+      }
+      return { ...cur, [group.id]: [...current, itemId] };
+    });
+  }
+
+  const groupsValid = product.optionGroups.every((group) => {
+    const count = groupSelections[group.id]?.length ?? 0;
+    return count >= group.minSelect && (group.maxSelect === null || count <= group.maxSelect);
+  });
 
   return (
     <Overlay onClose={onClose}>
@@ -443,19 +512,77 @@ function ProductModal({
             </div>
           )}
 
+          {product.optionGroups.map((group) => {
+            const selectedIds = groupSelections[group.id] ?? [];
+            const atLimit = group.maxSelect !== null && selectedIds.length >= group.maxSelect;
+            return (
+              <div key={group.id} className="mb-4">
+                <p className="text-xs uppercase tracking-wide font-semibold mb-1 text-gray-400">
+                  {group.name} {group.minSelect > 0 && <span className="text-chili">· obrigatório</span>}
+                </p>
+                <p className="text-[11px] text-gray-400 mb-2">
+                  {group.maxSelect
+                    ? `Escolha ${group.minSelect > 0 ? `${group.minSelect} a ` : "até "}${group.maxSelect}`
+                    : group.minSelect > 0
+                    ? `Escolha pelo menos ${group.minSelect}`
+                    : "Escolha quantos quiser"}{" "}
+                  ({selectedIds.length}
+                  {group.maxSelect ? `/${group.maxSelect}` : ""})
+                </p>
+                <div className="space-y-2">
+                  {group.items.map((item) => {
+                    const active = selectedIds.includes(item.id);
+                    const disabled = !active && atLimit && group.maxSelect !== 1;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => toggleGroupItem(group, item.id)}
+                        className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm transition-colors active:scale-[0.98] disabled:opacity-40"
+                        style={{
+                          borderColor: active ? "#059669" : "#E5E7EB",
+                          background: active ? "rgba(5,150,105,0.06)" : "#FFFFFF",
+                        }}
+                      >
+                        <span className="flex items-center gap-2 text-gray-800 font-medium">
+                          <span
+                            className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0"
+                            style={{ borderColor: "#059669", background: active ? "#059669" : "transparent" }}
+                          >
+                            {active && <Check size={11} color="#FFFFFF" />}
+                          </span>
+                          {item.name}
+                        </span>
+                        {item.priceCents > 0 && group.pricingStyle !== "FIXED" && (
+                          <span className="text-emerald-600 font-semibold">+ {currency(item.priceCents)}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
           {product.extraOptions.length > 0 && (
             <div className="mb-4">
               <p className="text-xs uppercase tracking-wide font-semibold mb-2 text-gray-400">
-                Turbine sua refeição
+                {product.maxAccompaniments
+                  ? `Monte seu prato — escolha até ${product.maxAccompaniments} (${extras.length}/${product.maxAccompaniments})`
+                  : "Turbine sua refeição"}
               </p>
               <div className="space-y-2">
                 {product.extraOptions.map((ex) => {
                   const active = extras.some((e) => e.id === ex.id);
+                  const atLimit = !!product.maxAccompaniments && extras.length >= product.maxAccompaniments;
+                  const disabled = !active && atLimit;
                   return (
                     <button
                       key={ex.id}
+                      disabled={disabled}
                       onClick={() => setExtras((cur) => (active ? cur.filter((e) => e.id !== ex.id) : [...cur, ex]))}
-                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm transition-colors active:scale-[0.98]"
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm transition-colors active:scale-[0.98] disabled:opacity-40"
                       style={{
                         borderColor: active ? "#059669" : "#E5E7EB",
                         background: active ? "rgba(5,150,105,0.06)" : "#FFFFFF",
@@ -484,8 +611,9 @@ function ProductModal({
             Cancelar
           </button>
           <button
-            onClick={() => onConfirm(product, removed, extras)}
-            className="flex-1 py-3 rounded-full font-semibold text-sm bg-chili text-white shadow-sm active:scale-[0.98] transition-transform"
+            onClick={() => onConfirm(product, removed, extras, groupSelections)}
+            disabled={!groupsValid}
+            className="flex-1 py-3 rounded-full font-semibold text-sm bg-chili text-white shadow-sm active:scale-[0.98] transition-transform disabled:opacity-40"
           >
             Confirmar
           </button>
@@ -527,8 +655,10 @@ function CartDrawer({
                 <div key={l.key} className="flex items-start justify-between border-b pb-3 border-gray-100">
                   <div className="flex-1 pr-2">
                     <p className="font-semibold text-sm text-gray-900">{l.name}</p>
-                    {(l.removedItems.length > 0 || l.extraNames.length > 0) && (
+                    {(l.removedItems.length > 0 || l.extraNames.length > 0 || l.selectedOptions.length > 0) && (
                       <p className="text-xs mt-0.5 text-gray-400">
+                        {l.selectedOptions.map((o) => o.itemNames.join(", ")).join(" · ")}
+                        {l.selectedOptions.length > 0 && (l.removedItems.length > 0 || l.extraNames.length > 0) ? " · " : ""}
                         {l.removedItems.map((r) => `Sem ${r}`).join(", ")}
                         {l.removedItems.length > 0 && l.extraNames.length > 0 ? " · " : ""}
                         {l.extraNames.map((e) => `+ ${e}`).join(", ")}
@@ -580,6 +710,7 @@ function CartDrawer({
 function CheckoutDrawer({
   restaurantId,
   restaurantIsOpen,
+  restaurantPhone,
   cart,
   total,
   table,
@@ -588,6 +719,7 @@ function CheckoutDrawer({
 }: {
   restaurantId: string;
   restaurantIsOpen: boolean;
+  restaurantPhone?: string | null;
   cart: CartLine[];
   total: number;
   table: Table | null;
@@ -618,6 +750,7 @@ function CheckoutDrawer({
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [deliveryFeeCents, setDeliveryFeeCents] = useState(0);
   const [changeFor, setChangeFor] = useState("");
+  const [neighborhoodDisabled, setNeighborhoodDisabled] = useState(false);
 
   async function applyCoupon() {
     if (!couponCode.trim()) return;
@@ -631,6 +764,7 @@ function CheckoutDrawer({
         code: couponCode,
         subtotalCents: total,
         items: cart.map((l) => ({ productId: l.productId, lineTotalCents: l.unitPriceCents * l.qty })),
+        customerPhone: customerPhone.trim() || undefined,
       }),
     });
     const data = await res.json();
@@ -671,7 +805,14 @@ function CheckoutDrawer({
       body: JSON.stringify({ restaurantId, neighborhood }),
     });
     const data = await res.json();
-    if (res.ok) setDeliveryFeeCents(data.feeCents);
+    if (!res.ok) return;
+    if (data.disabled) {
+      setNeighborhoodDisabled(true);
+      setDeliveryFeeCents(0);
+      return;
+    }
+    setNeighborhoodDisabled(false);
+    setDeliveryFeeCents(data.feeCents);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -680,6 +821,10 @@ function CheckoutDrawer({
 
    if (!customerName.trim() || !customerPhone.trim()) {
       setError("Preencha seu nome e telefone.");
+      return;
+    }
+    if (deliveryType === "DELIVERY" && neighborhoodDisabled) {
+      setError("Não estamos entregando nesse bairro no momento.");
       return;
     }
     if (deliveryType === "DELIVERY" && (!street.trim() || !number.trim() || !neighborhood.trim() || !city.trim())) {
@@ -720,6 +865,7 @@ function CheckoutDrawer({
           qty: l.qty,
           removedItems: l.removedItems,
           extraNames: l.extraNames,
+          selectedGroupOptions: l.selectedOptions.map((o) => ({ groupId: o.groupId, itemIds: o.itemIds })),
         })),
       }),
     });
@@ -829,9 +975,31 @@ const inputClass =
                 <input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Rua" className={`col-span-2 ${inputClass}`} />
                 <input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Número" inputMode="numeric" className={inputClass} />
                 <input value={complement} onChange={(e) => setComplement(e.target.value)} placeholder="Complemento (opcional)" className={`col-span-3 ${inputClass}`} />
-                <input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} onBlur={checkDeliveryFee} placeholder="Bairro" className={`col-span-2 ${inputClass}`} />
+                <input
+                  value={neighborhood}
+                  onChange={(e) => { setNeighborhood(e.target.value); setNeighborhoodDisabled(false); }}
+                  onBlur={checkDeliveryFee}
+                  placeholder="Bairro"
+                  className={`col-span-2 ${inputClass}`}
+                />
                 <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Cidade" className={inputClass} />
                 <input value={referenceNote} onChange={(e) => setReferenceNote(e.target.value)} placeholder="Ponto de referência (opcional)" className={`col-span-3 ${inputClass}`} />
+                {neighborhoodDisabled && (
+                  <div className="col-span-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 leading-relaxed">
+                    Não estamos entregando nesse bairro no momento.{" "}
+                    {restaurantPhone && (
+                      
+                      <a href={`https://wa.me/55${restaurantPhone.replace(/\D/g, "")}?text=${encodeURIComponent("Oi! Vi que a entrega pro meu bairro tá pausada, queria fazer um pedido")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline font-semibold"
+                      >
+                        Fala com a gente pelo WhatsApp
+                      </a>
+                    )}
+                    .
+                  </div>
+                )}
               </div>
             )}
 
