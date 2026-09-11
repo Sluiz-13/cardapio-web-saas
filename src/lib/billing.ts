@@ -9,6 +9,14 @@ export function getNextDueDate(lastPaymentConfirmedAt: Date | null, createdAt: D
   return due;
 }
 
+export function resolveDueDate(restaurant: {
+  nextDueDate: Date | null;
+  lastPaymentConfirmedAt: Date | null;
+  createdAt: Date;
+}): Date {
+  return restaurant.nextDueDate ?? getNextDueDate(restaurant.lastPaymentConfirmedAt, restaurant.createdAt);
+}
+
 export function getDaysUntilDue(dueDate: Date): number {
   const diffMs = dueDate.getTime() - Date.now();
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24));

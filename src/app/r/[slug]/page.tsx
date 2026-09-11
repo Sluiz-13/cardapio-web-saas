@@ -81,6 +81,12 @@ export default async function RestaurantMenuPage({
       categories={categories}
       products={products}
       table={table}
+      businessHours={businessHours.map((h) => ({
+        dayOfWeek: h.dayOfWeek,
+        isOpen: h.isOpen,
+        openTime: h.openTime,
+        closeTime: h.closeTime,
+      }))}
     />
   );
 }

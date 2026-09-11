@@ -23,7 +23,8 @@ model Restaurant {
   timezone  String   @default("America/Sao_Paulo")
   plan      Plan     @default(START)
   active    Boolean  @default(true) // desativado pela plataforma = cardápio some do ar, admin bloqueado
-  lastPaymentConfirmedAt DateTime? // null = nunca pagou; usado só pra mostrar pendência no painel, não bloqueia nada sozinho
+  lastPaymentConfirmedAt DateTime?
+  nextDueDate            DateTime? // vencimento fixo, se preenchido some a ser a fonte da verdade em vez do cálculo automático
   welcomeCouponCode      String? // cupom de assinatura aplicado só na 1ª cobrança
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

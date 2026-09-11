@@ -53,6 +53,8 @@ type Restaurant = {
 };
 
 type Table = { id: string; label: string };
+type BusinessHour = { dayOfWeek: number; isOpen: boolean; openTime: string; closeTime: string };
+const DAY_LABELS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
 type SelectedOption = { groupId: string; groupName: string; itemIds: string[]; itemNames: string[]; chargedCents: number };
 type CartLine = {
@@ -87,12 +89,15 @@ export default function MenuClient({
   categories,
   products,
   table,
+  businessHours,
 }: {
   restaurant: Restaurant;
   categories: Category[];
   products: Product[];
   table: Table | null;
+  businessHours: BusinessHour[];
 }) {
+  const [hoursOpen, setHoursOpen] = useState(false);
   const [activeCat, setActiveCat] = useState(categories[0]?.id ?? "");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [modalProduct, setModalProduct] = useState<Product | null>(null);
@@ -214,7 +219,9 @@ export default function MenuClient({
               )}
               <div className="flex items-center gap-1.5 mt-1.5">
                 <CircleDot size={10} className={restaurant.isOpen ? "text-emerald-500" : "text-gray-400"} fill="currentColor" />
-                <span className="text-xs text-gray-500">{restaurant.isOpen ? "Aberto agora" : "Fechado agora"}</span>
+                <button onClick={() => setHoursOpen(true)} className="text-xs text-gray-500 underline decoration-dotted">
+                  {restaurant.isOpen ? "Aberto agora" : "Fechado agora"}
+                </button>
                 {restaurant.avgDeliveryTime && (
                   <>
                     <span className="text-gray-300">•</span>
@@ -296,6 +303,34 @@ export default function MenuClient({
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg animate-fade-in-up flex items-center gap-2">
             <Check size={14} className="text-emerald-400" /> {toast}
           </div>
+        )}
+
+        {hoursOpen && (
+          <Overlay onClose={() => setHoursOpen(false)}>
+            <div className="w-full max-w-sm rounded-t-2xl sm:rounded-2xl bg-white p-5 animate-fade-in-up">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-lg text-gray-900">Horário de funcionamento</h2>
+                <button onClick={() => setHoursOpen(false)} className="text-gray-400 hover:text-gray-700" aria-label="Fechar">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {DAY_LABELS.map((label, day) => {
+                  const today = new Date().getDay() === day;
+                  const hour = businessHours.find((h) => h.dayOfWeek === day);
+                  return (
+                    <div
+                      key={day}
+                      className={`flex items-center justify-between text-sm px-2.5 py-1.5 rounded-lg ${today ? "bg-gray-50 font-semibold text-gray-900" : "text-gray-600"}`}
+                    >
+                      <span>{label}</span>
+                      <span>{hour?.isOpen ? `${hour.openTime} – ${hour.closeTime}` : "Fechado"}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </Overlay>
         )}
 
         {modalProduct && (
@@ -790,6 +825,12 @@ function CheckoutDrawer({
     setCity(savedInfo.city);
     setReferenceNote(savedInfo.referenceNote);
     setConfirmingSaved(false);
+
+    // O input de bairro não dispara onBlur aqui (foi preenchido pelo
+    // código, não digitado) — então a taxa precisa ser buscada na mão.
+    if (savedInfo.deliveryType === "DELIVERY" && savedInfo.neighborhood.trim()) {
+      checkDeliveryFee(savedInfo.neighborhood);
+    }
   }
 
   function rejectSavedInfo() {
@@ -797,12 +838,12 @@ function CheckoutDrawer({
     setConfirmingSaved(false);
   }
 
-  async function checkDeliveryFee() {
-    if (!neighborhood.trim()) return;
+  async function checkDeliveryFee(neighborhoodValue: string = neighborhood) {
+    if (!neighborhoodValue.trim()) return;
     const res = await fetch("/api/delivery-fee", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ restaurantId, neighborhood }),
+      body: JSON.stringify({ restaurantId, neighborhood: neighborhoodValue }),
     });
     const data = await res.json();
     if (!res.ok) return;
@@ -978,7 +1019,7 @@ const inputClass =
                 <input
                   value={neighborhood}
                   onChange={(e) => { setNeighborhood(e.target.value); setNeighborhoodDisabled(false); }}
-                  onBlur={checkDeliveryFee}
+                  onBlur={() => checkDeliveryFee()}
                   placeholder="Bairro"
                   className={`col-span-2 ${inputClass}`}
                 />

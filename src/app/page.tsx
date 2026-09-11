@@ -18,6 +18,9 @@ import {
   LayoutGrid,
   UtensilsCrossed,
   Bike,
+  ChefHat,
+  Truck,
+  Landmark,
 } from "lucide-react";
 import { PLAN_PRICE_CENTS } from "@/lib/plan-pricing";
 import { PLAN_LIMITS } from "@/lib/plan-features";
@@ -37,6 +40,14 @@ const STEPS = [
   { n: "02", title: "Escolhe os produtos", text: "Personaliza removíveis e extras de cada item.", src: "/screenshots/product.jpeg" },
   { n: "03", title: "Envia o pedido", text: "Preenche os dados, escolhe a forma de pagamento e finaliza.", src: "/screenshots/checkout.jpeg" },
   { n: "04", title: "Pedido confirmado", text: "Recebe a confirmação e o pedido já vai pra cozinha.", src: "/screenshots/confirm.jpeg" },
+];
+
+const JOURNEY_STEPS = [
+  { icon: QrCode, title: "O cliente pede", text: "Pelo cardápio, QR Code ou no balcão." },
+  { icon: ClipboardList, title: "O pedido entra", text: "Organizado no painel, sem WhatsApp espalhado." },
+  { icon: ChefHat, title: "A cozinha produz", text: "Impressão automática assim que chega." },
+  { icon: Truck, title: "A entrega sai", text: "Entregador atribuído, acompanhando a rota." },
+  { icon: Landmark, title: "O caixa fecha", text: "Confere valores, sangria e suprimento no fim do dia." },
 ];
 
 const OWNER_BENEFITS = [
@@ -87,7 +98,7 @@ const CASE_FACTS = [
 
 const STATS = [
   { value: "12.000+", label: "Pedidos processados" },
-  { value: "100%", label: "Online e sem travamentos" },
+  { value: "0%", label: "De comissão sobre suas vendas" },
   { value: "Direto", label: "Pedido direto via Painel" },
 ];
 
@@ -199,15 +210,14 @@ export default function LandingPage() {
       <section id="contato" className="max-w-7xl mx-auto px-6 pt-16 pb-24 grid md:grid-cols-2 gap-12 items-start scroll-mt-16">
         <div>
           <span className="inline-block border border-slate-200 text-slate-500 text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-6 bg-white">
-            Seu próprio canal de pedidos — sem pagar comissão por venda
+            Do primeiro pedido ao fechamento do caixa
           </span>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] mb-6 tracking-tight">
-            O sistema completo <br />
-            <span className="text-[#D35400]">pro seu restaurante</span> <br />
-            operar todo dia.
+            Seu restaurante <br />
+            <span className="text-[#D35400]">sob controle.</span>
           </h1>
           <p className="text-slate-600 text-lg mb-8 max-w-md">
-            Cardápio, mesas, balcão, caixa e entrega — tudo num painel só. Simples para você e fácil para o seu cliente.
+            Pedidos, mesas, comandas, caixa, delivery e gestão — tudo em um só lugar. Seu próprio canal de vendas, sem pagar comissão por pedido.
           </p>
           <div className="space-y-3 mb-10">
             <div className="flex items-center gap-2 text-sm text-slate-500">
@@ -350,8 +360,34 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* OPERAÇÃO INTERNA */}
+      {/* JORNADA COMPLETA */}
       <section className="bg-white border-t border-slate-200 py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="mb-16 max-w-2xl">
+            <h2 className="text-4xl font-extrabold mb-4 tracking-tight">Do pedido ao fechamento do caixa</h2>
+            <p className="text-slate-600">Essa é a jornada completa que o Menuair organiza pra você, todo dia.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-8 sm:gap-4">
+            {JOURNEY_STEPS.map((step, i) => (
+              <div key={step.title} className="relative">
+                <step.icon className="text-[#D35400] mb-3" size={26} />
+                <h4 className="font-bold text-sm mb-1.5 text-slate-900">
+                  <span className="text-slate-300 mr-1.5">{String(i + 1).padStart(2, "0")}</span>
+                  {step.title}
+                </h4>
+                <p className="text-xs text-slate-500 leading-relaxed">{step.text}</p>
+                {i < JOURNEY_STEPS.length - 1 && (
+                  <ArrowRight size={16} className="hidden sm:block text-slate-200 absolute top-1.5 -right-6" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* OPERAÇÃO INTERNA */}
+      <section className="bg-slate-50 border-t border-slate-200 py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="mb-16 max-w-2xl">
             <h2 className="text-4xl font-extrabold mb-4 tracking-tight">Por dentro do restaurante,<br />todo mundo no mesmo painel</h2>
@@ -481,7 +517,8 @@ export default function LandingPage() {
                 <span className="text-4xl font-extrabold text-slate-900">{currency(PLAN_PRICE_CENTS.START)}</span>
                 <span className="text-slate-500">/mês</span>
               </div>
-              <p className="text-slate-500 text-sm mb-8 flex-grow">Cardápio no ar, pedidos, Pix e comanda por mesa com app do garçom.</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-[#D35400] mb-1">Comece a operar</p>
+              <p className="text-slate-500 text-sm mb-8 flex-grow">Cardápio, pedidos, Pix, mesas, comandas e caixa — tudo pra rodar o dia a dia.</p>
               <a
                 href="#contato"
                 onClick={() => setForm((f) => ({ ...f, plan: "START" }))}
@@ -500,7 +537,8 @@ export default function LandingPage() {
                 <span className="text-4xl font-extrabold text-white">{currency(PLAN_PRICE_CENTS.PRO)}</span>
                 <span className="text-slate-300">/mês</span>
               </div>
-              <p className="text-slate-300 text-sm mb-8 flex-grow">Tudo do Start, mais QR Code de autoatendimento, financeiro, dashboard, relatórios, cupons e exportação.</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-[#D35400] mb-1">Tenha controle do negócio</p>
+              <p className="text-slate-300 text-sm mb-8 flex-grow">Tudo do Start, mais dashboard, financeiro, relatórios, cupons, exportação e QR Code de autoatendimento.</p>
               <a
                 href="#contato"
                 onClick={() => setForm((f) => ({ ...f, plan: "PRO" }))}

@@ -97,6 +97,10 @@ const CMD = {
   INIT: Buffer.from([ESC, 0x40]), // reseta a impressora pro estado padrão
   BOLD_ON: Buffer.from([ESC, 0x45, 0x01]),
   BOLD_OFF: Buffer.from([ESC, 0x45, 0x00]),
+  // Só dobra a ALTURA, não a largura — assim o texto fica visivelmente
+  // maior sem bagunçar o alinhamento de 32 colunas que já está calibrado.
+  SIZE_TALL: Buffer.from([GS, 0x21, 0x01]),
+  SIZE_NORMAL: Buffer.from([GS, 0x21, 0x00]),
   CUT: Buffer.from([GS, 0x56, 0x42, 0x00]), // corte parcial com avanço de papel
   FEED: (lines: number) => Buffer.from([ESC, 0x64, lines]),
 };
@@ -161,7 +165,9 @@ export function buildReceiptEscPos(order: OrderForReceipt): Buffer {
 
   return Buffer.concat([
     CMD.INIT,
+    CMD.SIZE_TALL,
     Buffer.from(body, "ascii"),
+    CMD.SIZE_NORMAL,
     CMD.FEED(3),
     CMD.CUT,
   ]);

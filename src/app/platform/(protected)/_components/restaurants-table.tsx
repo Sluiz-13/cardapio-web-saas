@@ -27,6 +27,29 @@ function money(cents: number) {
 export default function RestaurantsTable({ initialRestaurants }: { initialRestaurants: Restaurant[] }) {
   const [restaurants, setRestaurants] = useState(initialRestaurants);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [editingDueDateId, setEditingDueDateId] = useState<string | null>(null);
+  const [dueDateDraft, setDueDateDraft] = useState("");
+
+  async function saveDueDate(id: string) {
+    if (!dueDateDraft) return;
+    setLoadingId(id);
+    const res = await fetch(`/api/platform/restaurants/${id}/due-date`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nextDueDate: dueDateDraft }),
+    });
+    setLoadingId(null);
+    if (res.ok) {
+      setRestaurants((rs) =>
+        rs.map((r) =>
+          r.id === id
+            ? { ...r, dueDate: new Date(`${dueDateDraft}T12:00:00`).toISOString(), daysUntilDue: Math.ceil((new Date(`${dueDateDraft}T12:00:00`).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) }
+            : r
+        )
+      );
+    }
+    setEditingDueDateId(null);
+  }
   const [charge, setCharge] = useState<{
     restaurantName: string;
     payload: string;
@@ -168,9 +191,33 @@ export default function RestaurantsTable({ initialRestaurants }: { initialRestau
                 </span>
               </td>
               <td className="px-4 py-3">
-                <span className={`text-xs ${r.daysUntilDue <= 3 ? "text-chili font-semibold" : "text-gray-500"}`}>
-                  {new Date(r.dueDate).toLocaleDateString("pt-BR")}
-                </span>
+                {editingDueDateId === r.id ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="date"
+                      value={dueDateDraft}
+                      onChange={(e) => setDueDateDraft(e.target.value)}
+                      className="text-xs border border-gray-200 rounded-lg px-1.5 py-1"
+                      autoFocus
+                    />
+                    <button onClick={() => saveDueDate(r.id)} className="text-xs text-green-600 font-semibold">
+                      OK
+                    </button>
+                    <button onClick={() => setEditingDueDateId(null)} className="text-xs text-gray-400">
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setEditingDueDateId(r.id);
+                      setDueDateDraft(new Date(r.dueDate).toISOString().slice(0, 10));
+                    }}
+                    className={`text-xs underline decoration-dotted ${r.daysUntilDue <= 3 ? "text-chili font-semibold" : "text-gray-500"}`}
+                  >
+                    {new Date(r.dueDate).toLocaleDateString("pt-BR")}
+                  </button>
+                )}
                 {r.pendingPlanRequest && (
                   <p className="text-[11px] text-blue-600 font-semibold mt-0.5">
                     Pediu {r.pendingPlanRequest}

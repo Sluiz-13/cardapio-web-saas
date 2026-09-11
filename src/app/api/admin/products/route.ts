@@ -11,7 +11,7 @@ const createProductSchema = z.object({
   priceCents: z.number().int().positive(),
   imageUrl: z
     .string()
-    .refine((val) => val.startsWith("/") || /^https?:\/\//.test(val), {
+    .refine((val) => val === "" || val.startsWith("/") || /^https?:\/\//.test(val), {
       message: "URL de imagem inválida",
     })
     .optional(),

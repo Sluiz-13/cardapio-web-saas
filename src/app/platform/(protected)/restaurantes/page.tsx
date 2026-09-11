@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { getNextDueDate, getDaysUntilDue, PAYMENT_GRACE_DAYS } from "@/lib/billing";
+import { resolveDueDate, getDaysUntilDue, PAYMENT_GRACE_DAYS } from "@/lib/billing";
 import RestaurantsTable from "../_components/restaurants-table";
 
 export default async function PlatformRestaurantesPage() {
@@ -23,7 +23,7 @@ export default async function PlatformRestaurantesPage() {
       ? (now - r.lastPaymentConfirmedAt.getTime()) / (1000 * 60 * 60 * 24)
       : null;
     const paymentPending = daysSincePayment === null || daysSincePayment > PAYMENT_GRACE_DAYS;
-    const dueDate = getNextDueDate(r.lastPaymentConfirmedAt, r.createdAt);
+    const dueDate = resolveDueDate(r);
 
     return {
       id: r.id,
