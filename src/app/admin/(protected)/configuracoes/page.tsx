@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Power, Settings, ImageIcon, Wallet, Phone as PhoneIcon, Clock, Printer, Percent, Palette, Lock } from "lucide-react";
+import { Power, Settings, ImageIcon, Wallet, Phone as PhoneIcon, Clock, Printer, Percent, Palette, Lock, Gift, Coins } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Input";
@@ -32,6 +32,12 @@ export default function ConfiguracoesPage() {
   const [serviceFeePercent, setServiceFeePercent] = useState("0");
   const [menuTheme, setMenuTheme] = useState<"CLASSIC" | "PREMIUM">("CLASSIC");
   const [plan, setPlan] = useState<"START" | "PRO">("START");
+  const [loyaltyPointsEnabled, setLoyaltyPointsEnabled] = useState(false);
+  const [loyaltyPointsPerReal, setLoyaltyPointsPerReal] = useState("1");
+  const [loyaltyPointsRedeemThreshold, setLoyaltyPointsRedeemThreshold] = useState("100");
+  const [loyaltyPointsRedeemValueCents, setLoyaltyPointsRedeemValueCents] = useState("10");
+  const [cashbackEnabled, setCashbackEnabled] = useState(false);
+  const [cashbackPercent, setCashbackPercent] = useState("5");
   const [printKitchenCopy, setPrintKitchenCopy] = useState(true);
   const [printMethod, setPrintMethod] = useState("MANUAL");
   const [printerIp, setPrinterIp] = useState("");
@@ -80,6 +86,12 @@ export default function ConfiguracoesPage() {
         setServiceFeePercent(String(data.restaurant.serviceFeePercent ?? 0));
         setMenuTheme(data.restaurant.menuTheme ?? "CLASSIC");
         setPlan(data.restaurant.plan ?? "START");
+        setLoyaltyPointsEnabled(data.restaurant.loyaltyPointsEnabled ?? false);
+        setLoyaltyPointsPerReal(String(data.restaurant.loyaltyPointsPerReal ?? 1));
+        setLoyaltyPointsRedeemThreshold(String(data.restaurant.loyaltyPointsRedeemThreshold ?? 100));
+        setLoyaltyPointsRedeemValueCents(String((data.restaurant.loyaltyPointsRedeemValueCents ?? 1000) / 100));
+        setCashbackEnabled(data.restaurant.cashbackEnabled ?? false);
+        setCashbackPercent(String(data.restaurant.cashbackPercent ?? 5));
         setPrintKitchenCopy(data.restaurant.printKitchenCopy ?? true);
         setPrintMethod(data.restaurant.printMethod ?? "MANUAL");
         setPrinterIp(data.restaurant.printerIp ?? "");
@@ -153,6 +165,12 @@ export default function ConfiguracoesPage() {
         avgDeliveryTime: avgDeliveryTime || undefined,
         serviceFeePercent: Number(serviceFeePercent) || 0,
         menuTheme,
+        loyaltyPointsEnabled,
+        loyaltyPointsPerReal: Number(loyaltyPointsPerReal) || 0,
+        loyaltyPointsRedeemThreshold: Number(loyaltyPointsRedeemThreshold) || 0,
+        loyaltyPointsRedeemValueCents: Math.round(Number(loyaltyPointsRedeemValueCents) * 100) || 0,
+        cashbackEnabled,
+        cashbackPercent: Number(cashbackPercent) || 0,
         printKitchenCopy,
         printMethod,
         printerIp: printMethod === "AGENT" ? printerIp : undefined,
@@ -380,6 +398,56 @@ export default function ConfiguracoesPage() {
             </p>
           )}
         </CardBody>
+      </Card>
+
+      <Card className="mb-5">
+        <CardHeader className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Gift size={15} className="text-gray-400" />
+            <div>
+              <CardTitle>Pontos de Fidelidade</CardTitle>
+              <CardDescription className="mt-0.5">Cliente acumula pontos gastando, e troca por desconto.</CardDescription>
+            </div>
+          </div>
+          <Toggle checked={loyaltyPointsEnabled} onChange={() => setLoyaltyPointsEnabled((v) => !v)} />
+        </CardHeader>
+        {loyaltyPointsEnabled && (
+          <CardBody className="grid grid-cols-3 gap-3">
+            <div>
+              <Label>Pontos por real gasto</Label>
+              <input value={loyaltyPointsPerReal} onChange={(e) => setLoyaltyPointsPerReal(e.target.value)} type="number" min="0" className={inputClass} />
+            </div>
+            <div>
+              <Label>Pontos p/ resgate</Label>
+              <input value={loyaltyPointsRedeemThreshold} onChange={(e) => setLoyaltyPointsRedeemThreshold(e.target.value)} type="number" min="0" className={inputClass} />
+            </div>
+            <div>
+              <Label>Valor do resgate (R$)</Label>
+              <input value={loyaltyPointsRedeemValueCents} onChange={(e) => setLoyaltyPointsRedeemValueCents(e.target.value)} type="number" step="0.01" min="0" className={inputClass} />
+            </div>
+          </CardBody>
+        )}
+      </Card>
+
+      <Card className="mb-5">
+        <CardHeader className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Coins size={15} className="text-gray-400" />
+            <div>
+              <CardTitle>Cashback</CardTitle>
+              <CardDescription className="mt-0.5">Uma % do pedido volta como crédito pro próximo pedido.</CardDescription>
+            </div>
+          </div>
+          <Toggle checked={cashbackEnabled} onChange={() => setCashbackEnabled((v) => !v)} />
+        </CardHeader>
+        {cashbackEnabled && (
+          <CardBody>
+            <div className="flex items-center gap-2">
+              <input value={cashbackPercent} onChange={(e) => setCashbackPercent(e.target.value)} type="number" min="0" max="100" className={`${inputClass} w-24`} />
+              <span className="text-sm text-gray-500">% do valor do pedido</span>
+            </div>
+          </CardBody>
+        )}
       </Card>
 
       <Card className="mb-5">

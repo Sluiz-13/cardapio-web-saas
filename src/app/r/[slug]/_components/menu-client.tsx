@@ -12,6 +12,8 @@ import {
   ImageOff,
   MapPin,
   Phone,
+  User,
+  LogOut,
 } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { getSavedCustomerInfo, saveCustomerInfo } from "@/lib/customer-storage";
@@ -54,6 +56,14 @@ type Restaurant = {
 };
 
 type Table = { id: string; label: string };
+type CustomerAccount = {
+  id: string;
+  name: string;
+  phone: string;
+  loyaltyPoints: number;
+  cashbackBalanceCents: number;
+  restaurantId?: string;
+};
 type BusinessHour = { dayOfWeek: number; isOpen: boolean; openTime: string; closeTime: string };
 const DAY_LABELS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
@@ -135,6 +145,19 @@ export default function MenuClient({
   const [orderResult, setOrderResult] = useState<{ status: string; pixPayload?: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const theme = THEMES[restaurant.menuTheme ?? "CLASSIC"];
+  const [customer, setCustomer] = useState<CustomerAccount | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [loadingCustomer, setLoadingCustomer] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/customer-auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        setCustomer(data.customer && data.customer.restaurantId === restaurant.id ? data.customer : null);
+        setLoadingCustomer(false);
+      })
+      .catch(() => setLoadingCustomer(false));
+  }, [restaurant.id]);
 
   const catRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -205,224 +228,374 @@ export default function MenuClient({
 
   return (
     <ThemeContext.Provider value={THEMES[restaurant.menuTheme ?? "CLASSIC"]}>
-    <div className="min-h-screen" style={{ background: theme.bg }}>
-      <div className="max-w-5xl mx-auto" style={{ background: theme.bg }}>
-        <div className="sticky top-0 z-20 px-5 pt-5 pb-4 border-b" style={{ background: theme.surface, borderColor: theme.border }}>
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <ChefHat size={16} style={{ color: theme.accent }} />
-                <span className="text-[11px] uppercase tracking-wide font-medium" style={{ color: theme.textSecondary }}>
-                  Cardápio Digital
-                </span>
-              </div>
+      <div className="min-h-screen" style={{ background: theme.bg }}>
+        <div className="max-w-5xl mx-auto" style={{ background: theme.bg }}>
+          <div className="sticky top-0 z-20 px-5 pt-5 pb-4 border-b" style={{ background: theme.surface, borderColor: theme.border }}>
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <ChefHat size={16} style={{ color: theme.accent }} />
+                  <span className="text-[11px] uppercase tracking-wide font-medium" style={{ color: theme.textSecondary }}>
+                    Cardápio Digital
+                  </span>
+                </div>
 
-              <div className="flex items-center gap-2.5">
-                {restaurant.logoUrl && (
-                  <img
-                    src={restaurant.logoUrl}
-                    alt={restaurant.name}
-                    className="w-11 h-11 rounded-xl object-cover border shrink-0"
-                    style={{ borderColor: theme.border }}
-                  />
+                <div className="flex items-center gap-2.5">
+                  {restaurant.logoUrl && (
+                    <img
+                      src={restaurant.logoUrl}
+                      alt={restaurant.name}
+                      className="w-11 h-11 rounded-xl object-cover border shrink-0"
+                      style={{ borderColor: theme.border }}
+                    />
+                  )}
+                  <h1
+                    className="font-bold text-2xl sm:text-3xl leading-tight"
+                    style={{ color: theme.accent, fontFamily: theme.fontDisplay }}
+                  >
+                    {restaurant.name}
+                  </h1>
+                </div>
+                {restaurant.address && (
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 mt-0.5 text-xs hover:underline w-fit"
+                    style={{ color: theme.textSecondary }}
+                  >
+                    <MapPin size={12} />
+                    {restaurant.address}
+                  </a>
                 )}
-                <h1
-                  className="font-bold text-2xl sm:text-3xl leading-tight"
-                  style={{ color: theme.accent, fontFamily: theme.fontDisplay }}
-                >
-                  {restaurant.name}
-                </h1>
-              </div>
-              {restaurant.address && (
-                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 mt-0.5 text-xs hover:underline w-fit"
-                  style={{ color: theme.textSecondary }}
-                >
-                  <MapPin size={12} />
-                  {restaurant.address}
-                </a>
-              )}
-              {restaurant.phone && (
-                <a href={`tel:${restaurant.phone.replace(/\D/g, "")}`}
-                  className="flex items-center gap-1 mt-0.5 text-xs hover:underline w-fit"
-                  style={{ color: theme.textSecondary }}
-                >
-                  <Phone size={12} />
-                  {restaurant.phone}
-                </a>
-              )}
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <CircleDot size={10} className={restaurant.isOpen ? "text-emerald-500" : ""} style={!restaurant.isOpen ? { color: theme.textSecondary } : undefined} fill="currentColor" />
-                <span className="text-xs" style={{ color: theme.textSecondary }}>{restaurant.isOpen ? "Aberto agora" : "Fechado agora"}</span>
-                {restaurant.avgDeliveryTime && (
-                  <>
-                    <span style={{ color: theme.textSecondary }}>•</span>
-                    <span className="text-xs" style={{ color: theme.textSecondary }}>{restaurant.avgDeliveryTime}</span>
-                  </>
+                {restaurant.phone && (
+                  <a href={`tel:${restaurant.phone.replace(/\D/g, "")}`}
+                    className="flex items-center gap-1 mt-0.5 text-xs hover:underline w-fit"
+                    style={{ color: theme.textSecondary }}
+                  >
+                    <Phone size={12} />
+                    {restaurant.phone}
+                  </a>
                 )}
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <CircleDot size={10} className={restaurant.isOpen ? "text-emerald-500" : ""} style={!restaurant.isOpen ? { color: theme.textSecondary } : undefined} fill="currentColor" />
+                  <span className="text-xs" style={{ color: theme.textSecondary }}>{restaurant.isOpen ? "Aberto agora" : "Fechado agora"}</span>
+                  {restaurant.avgDeliveryTime && (
+                    <>
+                      <span style={{ color: theme.textSecondary }}>•</span>
+                      <span className="text-xs" style={{ color: theme.textSecondary }}>{restaurant.avgDeliveryTime}</span>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <button
-              onClick={() => cartCount > 0 && setDrawer("cart")}
-              className="relative shrink-0 w-11 h-11 rounded-full flex items-center justify-center border shadow-sm active:scale-95 transition-transform"
-              style={{ borderColor: theme.border, background: theme.surface, color: theme.textPrimary }}
-              aria-label="Ver carrinho"
-            >
-              <ShoppingCart size={18} />
-              {cartCount > 0 && (
-                <span
-                  className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
-                  style={{ background: theme.accent }}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setAccountOpen(true)}
+                  className="w-11 h-11 rounded-full flex items-center justify-center border shadow-sm active:scale-95 transition-transform"
+                  style={{ borderColor: theme.border, background: theme.surface, color: theme.textPrimary }}
+                  aria-label={customer ? "Minha conta" : "Entrar"}
                 >
-                  {cartCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
+                  <User size={18} />
+                </button>
 
-        <div
-          className="sticky top-[84px] sm:top-[92px] z-10 flex gap-2 px-5 py-3 overflow-x-auto backdrop-blur-sm border-b scrollbar-none"
-          style={{ background: theme.bg, borderColor: theme.border }}
-        >
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              ref={(el) => {
-                catRefs.current[cat.id] = el;
-              }}
-              onClick={() => selectCategory(cat.id)}
-              className="text-sm font-medium whitespace-nowrap px-4 py-2 transition-colors active:scale-95"
-              style={{
-                borderRadius: theme.radius === "0.25rem" ? "0px" : "999px",
-                background: cat.id === activeCat ? theme.accent : "transparent",
-                color: cat.id === activeCat ? "#FFFFFF" : theme.textSecondary,
-                border: cat.id === activeCat ? `1px solid ${theme.accent}` : `1px solid ${theme.border}`,
-              }}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-
-        {!restaurant.isOpen && (
-          <div className="mx-5 mt-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm">
-            Estamos fechados no momento. 
-          </div>
-        )}
-
-        <div className="px-4 py-2 divide-y" style={{ borderColor: theme.divider }}>
-          {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} onOpen={() => setModalProduct(product)} />
-          ))}
-          {filtered.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
-              <ChefHat size={28} className="text-gray-300 mb-3" />
-              <p className="text-gray-400 text-sm">Nenhum item nessa categoria ainda.</p>
-            </div>
-          )}
-        </div>
-
-        <Footer restaurant={restaurant} />
-        <div className="pb-24" />
-
-        {cartCount > 0 && drawer === null && (
-          <button
-            onClick={() => setDrawer("cart")}
-            className="fixed bottom-4 left-4 right-4 max-w-md mx-auto flex items-center justify-between px-5 py-3.5 shadow-xl text-white animate-fade-in-up z-20"
-            style={{ background: theme.accent, borderRadius: theme.radius === "0.25rem" ? "2px" : "999px" }}
-          >
-            <span className="flex items-center gap-2 font-semibold text-sm">
-              <ShoppingCart size={16} /> Ver Carrinho ({cartCount})
-            </span>
-            <span className="font-bold text-sm">{currency(total)}</span>
-          </button>
-        )}
-
-        {toast && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg animate-fade-in-up flex items-center gap-2">
-            <Check size={14} className="text-emerald-400" /> {toast}
-          </div>
-        )}
-
-        {hoursOpen && (
-          <Overlay onClose={() => setHoursOpen(false)}>
-            <div className="w-full max-w-sm rounded-t-2xl sm:rounded-2xl bg-white p-5 animate-fade-in-up">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-lg text-gray-900">Horário de funcionamento</h2>
-                <button onClick={() => setHoursOpen(false)} className="text-gray-400 hover:text-gray-700" aria-label="Fechar">
-                  <X size={20} />
+                <button
+                  onClick={() => cartCount > 0 && setDrawer("cart")}
+                  className="relative w-11 h-11 rounded-full flex items-center justify-center border shadow-sm active:scale-95 transition-transform"
+                  style={{ borderColor: theme.border, background: theme.surface, color: theme.textPrimary }}
+                  aria-label="Ver carrinho"
+                >
+                  <ShoppingCart size={18} />
+                  {cartCount > 0 && (
+                    <span
+                      className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
+                      style={{ background: theme.accent }}
+                    >
+                      {cartCount}
+                    </span>
+                  )}
                 </button>
               </div>
-              <div className="space-y-1.5">
-                {DAY_LABELS.map((label, day) => {
-                  const today = new Date().getDay() === day;
-                  const hour = businessHours.find((h) => h.dayOfWeek === day);
-                  return (
-                    <div
-                      key={day}
-                      className={`flex items-center justify-between text-sm px-2.5 py-1.5 rounded-lg ${today ? "bg-gray-50 font-semibold text-gray-900" : "text-gray-600"}`}
-                    >
-                      <span>{label}</span>
-                      <span>{hour?.isOpen ? `${hour.openTime} – ${hour.closeTime}` : "Fechado"}</span>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
-          </Overlay>
-        )}
+          </div>
 
-        {modalProduct && (
-          <ProductModal product={modalProduct} onClose={() => setModalProduct(null)} onConfirm={addToCart} />
-        )}
+          <div
+            className="sticky top-[84px] sm:top-[92px] z-10 flex gap-2 px-5 py-3 overflow-x-auto backdrop-blur-sm border-b scrollbar-none"
+            style={{ background: theme.bg, borderColor: theme.border }}
+          >
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                ref={(el) => {
+                  catRefs.current[cat.id] = el;
+                }}
+                onClick={() => selectCategory(cat.id)}
+                className="text-sm font-medium whitespace-nowrap px-4 py-2 transition-colors active:scale-95"
+                style={{
+                  borderRadius: theme.radius === "0.25rem" ? "0px" : "999px",
+                  background: cat.id === activeCat ? theme.accent : "transparent",
+                  color: cat.id === activeCat ? "#FFFFFF" : theme.textSecondary,
+                  border: cat.id === activeCat ? `1px solid ${theme.accent}` : `1px solid ${theme.border}`,
+                }}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
 
-        {drawer === "cart" && (
-          <CartDrawer
-            cart={cart}
-            total={total}
-            onChangeQty={changeQty}
-            onClose={() => setDrawer(null)}
-            onCheckout={() => setDrawer("checkout")}
-          />
-        )}
+          {!restaurant.isOpen && (
+            <div className="mx-5 mt-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+              Estamos fechados no momento.
+            </div>
+          )}
 
-        {drawer === "checkout" && (
-          <CheckoutDrawer
-            restaurantId={restaurant.id}
-            restaurantIsOpen={restaurant.isOpen}
-            restaurantPhone={restaurant.phone}
-            cart={cart}
-            total={total}
-            table={table}
-            onClose={() => setDrawer("cart")}
-            onSuccess={(result) => {
-              setOrderResult(result);
-              setDrawer("confirmed");
-            }}
-          />
-        )}
+          <div className="px-4 py-2 divide-y" style={{ borderColor: theme.divider }}>
+            {filtered.map((product) => (
+              <ProductCard key={product.id} product={product} onOpen={() => setModalProduct(product)} />
+            ))}
+            {filtered.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
+                <ChefHat size={28} className="text-gray-300 mb-3" />
+                <p className="text-gray-400 text-sm">Nenhum item nessa categoria ainda.</p>
+              </div>
+            )}
+          </div>
 
-        {drawer === "confirmed" && orderResult && (
-          <ConfirmedDrawer
-            isCash={orderResult.status === "NEW"}
-            pixPayload={orderResult.pixPayload}
-            onNewOrder={() => {
-              setCart([]);
-              setOrderResult(null);
-              setDrawer(null);
-            }}
-          />
-        )}
+          <Footer restaurant={restaurant} />
+          <div className="pb-24" />
+
+          {cartCount > 0 && drawer === null && (
+            <button
+              onClick={() => setDrawer("cart")}
+              className="fixed bottom-4 left-4 right-4 max-w-md mx-auto flex items-center justify-between px-5 py-3.5 shadow-xl text-white animate-fade-in-up z-20"
+              style={{ background: theme.accent, borderRadius: theme.radius === "0.25rem" ? "2px" : "999px" }}
+            >
+              <span className="flex items-center gap-2 font-semibold text-sm">
+                <ShoppingCart size={16} /> Ver Carrinho ({cartCount})
+              </span>
+              <span className="font-bold text-sm">{currency(total)}</span>
+            </button>
+          )}
+
+          {toast && (
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg animate-fade-in-up flex items-center gap-2">
+              <Check size={14} className="text-emerald-400" /> {toast}
+            </div>
+          )}
+
+          {accountOpen && (
+            <AccountModal
+              restaurantId={restaurant.id}
+              customer={customer}
+              onClose={() => setAccountOpen(false)}
+              onAuthenticated={(c) => {
+                setCustomer(c);
+                setAccountOpen(false);
+              }}
+              onLoggedOut={() => {
+                setCustomer(null);
+                setAccountOpen(false);
+              }}
+            />
+          )}
+
+          {hoursOpen && (
+            <Overlay onClose={() => setHoursOpen(false)}>
+              <div className="w-full max-w-sm rounded-t-2xl sm:rounded-2xl bg-white p-5 animate-fade-in-up">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-bold text-lg text-gray-900">Horário de funcionamento</h2>
+                  <button onClick={() => setHoursOpen(false)} className="text-gray-400 hover:text-gray-700" aria-label="Fechar">
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {DAY_LABELS.map((label, day) => {
+                    const today = new Date().getDay() === day;
+                    const hour = businessHours.find((h) => h.dayOfWeek === day);
+                    return (
+                      <div
+                        key={day}
+                        className={`flex items-center justify-between text-sm px-2.5 py-1.5 rounded-lg ${today ? "bg-gray-50 font-semibold text-gray-900" : "text-gray-600"}`}
+                      >
+                        <span>{label}</span>
+                        <span>{hour?.isOpen ? `${hour.openTime} – ${hour.closeTime}` : "Fechado"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </Overlay>
+          )}
+
+          {modalProduct && (
+            <ProductModal product={modalProduct} onClose={() => setModalProduct(null)} onConfirm={addToCart} />
+          )}
+
+          {drawer === "cart" && (
+            <CartDrawer
+              cart={cart}
+              total={total}
+              onChangeQty={changeQty}
+              onClose={() => setDrawer(null)}
+              onCheckout={() => setDrawer("checkout")}
+            />
+          )}
+
+          {drawer === "checkout" && (
+            <CheckoutDrawer
+              restaurantId={restaurant.id}
+              restaurantIsOpen={restaurant.isOpen}
+              restaurantPhone={restaurant.phone}
+              cart={cart}
+              total={total}
+              table={table}
+              customer={customer}
+              onClose={() => setDrawer("cart")}
+              onSuccess={(result) => {
+                setOrderResult(result);
+                setDrawer("confirmed");
+              }}
+            />
+          )}
+
+          {drawer === "confirmed" && orderResult && (
+            <ConfirmedDrawer
+              isCash={orderResult.status === "NEW"}
+              pixPayload={orderResult.pixPayload}
+              onNewOrder={() => {
+                setCart([]);
+                setOrderResult(null);
+                setDrawer(null);
+              }}
+            />
+          )}
+        </div>
       </div>
-    </div>
     </ThemeContext.Provider>
   );
 }
 
+
+function AccountModal({
+  restaurantId,
+  customer,
+  onClose,
+  onAuthenticated,
+  onLoggedOut,
+}: {
+  restaurantId: string;
+  customer: CustomerAccount | null;
+  onClose: () => void;
+  onAuthenticated: (customer: CustomerAccount) => void;
+  onLoggedOut: () => void;
+}) {
+  const theme = useTheme();
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (!phone.trim() || !password.trim() || (mode === "signup" && !name.trim())) {
+      setError("Preencha todos os campos.");
+      return;
+    }
+    setSubmitting(true);
+    const res = await fetch(`/api/customer-auth/${mode === "login" ? "login" : "signup"}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantId, name, phone, password }),
+    });
+    setSubmitting(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? "Não foi possível continuar.");
+      return;
+    }
+    const data = await res.json();
+    onAuthenticated({ ...data, loyaltyPoints: 0, cashbackBalanceCents: 0 });
+  }
+
+  async function handleLogout() {
+    await fetch("/api/customer-auth/logout", { method: "POST" });
+    onLoggedOut();
+  }
+
+  const inputClass =
+    "w-full px-3.5 py-2.5 rounded-xl border bg-transparent text-base focus:outline-none focus:ring-2 transition-shadow";
+  const inputStyle = { borderColor: theme.border, color: theme.textPrimary };
+
+  return (
+    <Overlay onClose={onClose}>
+      <div className="w-full max-w-sm rounded-t-2xl sm:rounded-2xl p-5 animate-fade-in-up" style={{ background: theme.surface }}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-lg" style={{ color: theme.textPrimary, fontFamily: theme.fontDisplay }}>
+            {customer ? "Minha conta" : mode === "login" ? "Entrar" : "Criar conta"}
+          </h2>
+          <button onClick={onClose} style={{ color: theme.textSecondary }} aria-label="Fechar">
+            <X size={20} />
+          </button>
+        </div>
+
+        {customer ? (
+          <div>
+            <p className="text-sm mb-1" style={{ color: theme.textPrimary }}>
+              <strong>{customer.name}</strong>
+            </p>
+            <p className="text-xs mb-4" style={{ color: theme.textSecondary }}>{customer.phone}</p>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-semibold text-sm border"
+              style={{ borderColor: theme.border, color: theme.textSecondary }}
+            >
+              <LogOut size={15} /> Sair
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            {mode === "signup" && (
+              <div className="mb-3">
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Nome</label>
+                <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} style={inputStyle} />
+              </div>
+            )}
+            <div className="mb-3">
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Telefone</label>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(35) 99999-9999" inputMode="tel" className={inputClass} style={inputStyle} />
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Senha</label>
+              <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" className={inputClass} style={inputStyle} />
+            </div>
+
+            {error && <p className="text-xs mb-3" style={{ color: theme.accent }}>{error}</p>}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3 font-semibold text-sm text-white shadow-sm disabled:opacity-50"
+              style={{ background: theme.accent, borderRadius: theme.radius === "0.25rem" ? "2px" : "999px" }}
+            >
+              {submitting ? "..." : mode === "login" ? "Entrar" : "Criar conta"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMode(mode === "login" ? "signup" : "login")}
+              className="w-full text-center text-xs mt-3 underline"
+              style={{ color: theme.textSecondary }}
+            >
+              {mode === "login" ? "Não tem conta? Criar uma" : "Já tem conta? Entrar"}
+            </button>
+          </form>
+        )}
+      </div>
+    </Overlay>
+  );
+}
 
 function Footer({ restaurant }: { restaurant: Restaurant }) {
   const theme = useTheme();
@@ -619,8 +792,8 @@ function ProductModal({
                   {group.maxSelect
                     ? `Escolha ${group.minSelect > 0 ? `${group.minSelect} a ` : "até "}${group.maxSelect}`
                     : group.minSelect > 0
-                    ? `Escolha pelo menos ${group.minSelect}`
-                    : "Escolha quantos quiser"}{" "}
+                      ? `Escolha pelo menos ${group.minSelect}`
+                      : "Escolha quantos quiser"}{" "}
                   ({selectedIds.length}
                   {group.maxSelect ? `/${group.maxSelect}` : ""})
                 </p>
@@ -814,6 +987,7 @@ function CheckoutDrawer({
   cart,
   total,
   table,
+  customer,
   onClose,
   onSuccess,
 }: {
@@ -823,11 +997,12 @@ function CheckoutDrawer({
   cart: CartLine[];
   total: number;
   table: Table | null;
+  customer: CustomerAccount | null;
   onClose: () => void;
   onSuccess: (result: { status: string; pixPayload?: string }) => void;
 }) {
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerName, setCustomerName] = useState(customer?.name ?? "");
+  const [customerPhone, setCustomerPhone] = useState(customer?.phone ?? "");
   // Com mesa: já entra travado em DINE_IN, sem opção de trocar — não faz
   // sentido perguntar "entrega ou retirada" pra alguém sentado na mesa.
   const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP" | "DINE_IN">(
@@ -840,7 +1015,7 @@ function CheckoutDrawer({
   const [city, setCity] = useState("");
   const [referenceNote, setReferenceNote] = useState("");
   const [savedInfo, setSavedInfo] = useState(() => getSavedCustomerInfo(restaurantId));
-  const [confirmingSaved, setConfirmingSaved] = useState(() => getSavedCustomerInfo(restaurantId) !== null);
+  const [confirmingSaved, setConfirmingSaved] = useState(() => !customer && getSavedCustomerInfo(restaurantId) !== null);
   const [paymentMethod, setPaymentMethod] = useState<(typeof PAYMENT_OPTIONS)[number]["value"]>("PIX");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -925,7 +1100,7 @@ function CheckoutDrawer({
     e.preventDefault();
     setError("");
 
-   if (!customerName.trim() || !customerPhone.trim()) {
+    if (!customerName.trim() || !customerPhone.trim()) {
       setError("Preencha seu nome e telefone.");
       return;
     }
@@ -957,8 +1132,9 @@ function CheckoutDrawer({
         restaurantId,
         customerName,
         customerPhone,
+        customerId: customer?.id,
         deliveryType,
-        paymentMethod: table ? "CASH" : paymentMethod,      
+        paymentMethod: table ? "CASH" : paymentMethod,
         couponCode: couponStatus?.code,
         changeForCents: paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor) * 100) : undefined,
         tableId: table?.id,
@@ -995,7 +1171,7 @@ function CheckoutDrawer({
     });
     onSuccess({ status: data.status, pixPayload: data.pixPayload });
   }
-const theme = useTheme();
+  const theme = useTheme();
   const inputClass =
     "w-full px-3.5 py-2.5 rounded-xl border bg-transparent text-base focus:outline-none focus:ring-2 transition-shadow";
   const inputStyle = { borderColor: theme.border, color: theme.textPrimary };
@@ -1039,21 +1215,29 @@ const theme = useTheme();
           )}
 
           <div className="space-y-3 mb-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Nome</label>
-              <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} className={inputClass} style={inputStyle} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Telefone</label>
-              <input
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="(35) 99999-9999"
-                inputMode="tel"
-                className={inputClass}
-                style={inputStyle}
-              />
-            </div>
+            {customer ? (
+              <div className="p-3 rounded-xl text-sm" style={{ background: theme.divider, color: theme.textPrimary }}>
+                Pedindo como <strong>{customer.name}</strong> · {customer.phone}
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Nome</label>
+                  <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Telefone</label>
+                  <input
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="(35) 99999-9999"
+                    inputMode="tel"
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                </div>
+              </>
+            )}
 
             {table ? (
               <div className="py-2.5 px-3.5 rounded-xl text-sm font-semibold bg-gray-900 text-white flex items-center gap-2">
@@ -1098,7 +1282,7 @@ const theme = useTheme();
                   <div className="col-span-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 leading-relaxed">
                     Não estamos entregando nesse bairro no momento.{" "}
                     {restaurantPhone && (
-                      
+
                       <a href={`https://wa.me/55${restaurantPhone.replace(/\D/g, "")}?text=${encodeURIComponent("Oi! Vi que a entrega pro meu bairro tá pausada, queria fazer um pedido")}`}
                         target="_blank"
                         rel="noopener noreferrer"

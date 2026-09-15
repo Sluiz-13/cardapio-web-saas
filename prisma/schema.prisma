@@ -48,6 +48,13 @@ model Restaurant {
   drivers                 Driver[]
   cashSessions            CashSession[]
   insumos                 Insumo[]
+  customers                Customer[]
+  loyaltyPointsEnabled          Boolean @default(false)
+  loyaltyPointsPerReal          Int     @default(0) // pontos ganhos por real gasto
+  loyaltyPointsRedeemThreshold  Int     @default(0) // quantos pontos = 1 resgate
+  loyaltyPointsRedeemValueCents Int     @default(0) // valor do desconto ao resgatar
+  cashbackEnabled               Boolean @default(false)
+  cashbackPercent               Int     @default(0) // % do pedido que volta como cashback
 
   pixKey           String?
   pixKeyType       String?
@@ -241,6 +248,24 @@ model Insumo {
   @@map("insumos")
 }
 
+model Customer {
+  id                   String   @id @default(cuid())
+  restaurantId         String
+  restaurant           Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name                 String
+  phone                String   // login é telefone + senha — único por restaurante, não globalmente
+  passwordHash         String
+  loyaltyPoints        Int      @default(0)
+  cashbackBalanceCents Int      @default(0)
+  createdAt            DateTime @default(now())
+
+  orders               Order[]
+
+  @@unique([restaurantId, phone])
+  @@index([restaurantId])
+  @@map("customers")
+}
+
 model ProductRecipeItem {
   id        String  @id @default(cuid())
   productId String
@@ -347,6 +372,8 @@ model Order {
   restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   customerName  String
   customerPhone String?
+  customerId    String?
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
   status        OrderStatus   @default(PENDING_PAYMENT)
   totalCents    Int
   createdAt     DateTime      @default(now())

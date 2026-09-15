@@ -20,6 +20,7 @@ const addressSchema = z.object({
 const createOrderSchema = z
   .object({
     restaurantId: z.string().min(1),
+    customerId: z.string().optional(),
     customerName: z.string().min(2),
     customerPhone: z.string().min(8),
     deliveryType: z.enum(["DELIVERY", "PICKUP", "DINE_IN"]).default("DELIVERY"),
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
   }
   const {
     restaurantId,
+    customerId,
     customerName,
     customerPhone,
     deliveryType,
@@ -77,6 +79,14 @@ export async function POST(req: NextRequest) {
     changeForCents,
     items,
   } = parsed.data;
+
+  // Se veio customerId, confirma que a conta é de verdade e pertence a
+  // esse restaurante — nunca confia no id vindo do navegador sozinho.
+  let validCustomerId: string | undefined;
+  if (customerId) {
+    const account = await db.customer.findFirst({ where: { id: customerId, restaurantId } });
+    if (account) validCustomerId = account.id;
+  }
 
   const productIds = items.map((i) => i.productId);
   const products = await db.product.findMany({
@@ -301,6 +311,7 @@ if (!restaurant.isOpen) {
     const created = await tx.order.create({
       data: {
         restaurantId,
+        customerId: validCustomerId,
         customerName,
         customerPhone,
         deliveryType,

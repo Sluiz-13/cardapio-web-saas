@@ -12,6 +12,12 @@ const updateSchema = z.object({
   serviceFeePercent: z.number().int().min(0).max(100).optional(),
   printKitchenCopy: z.boolean().optional(),
   menuTheme: z.enum(["CLASSIC", "PREMIUM"]).optional(),
+  loyaltyPointsEnabled: z.boolean().optional(),
+  loyaltyPointsPerReal: z.number().int().nonnegative().optional(),
+  loyaltyPointsRedeemThreshold: z.number().int().nonnegative().optional(),
+  loyaltyPointsRedeemValueCents: z.number().int().nonnegative().optional(),
+  cashbackEnabled: z.boolean().optional(),
+  cashbackPercent: z.number().int().min(0).max(100).optional(),
   pixKey: z.string().optional(),
   pixKeyType: z.enum(["CPF", "CNPJ", "EMAIL", "PHONE", "RANDOM"]).optional(),
   pixMerchantName: z.string().max(25).optional(),
@@ -52,6 +58,12 @@ export async function GET() {
     printKitchenCopy: true,
     menuTheme: true,
     plan: true,
+    loyaltyPointsEnabled: true,
+    loyaltyPointsPerReal: true,
+    loyaltyPointsRedeemThreshold: true,
+    loyaltyPointsRedeemValueCents: true,
+    cashbackEnabled: true,
+    cashbackPercent: true,
     pixKey: true, 
     pixKeyType: true, 
     pixMerchantName: true, 
@@ -88,6 +100,12 @@ export async function PATCH(req: NextRequest) {
     serviceFeePercent,
     printKitchenCopy,
     menuTheme,
+    loyaltyPointsEnabled,
+    loyaltyPointsPerReal,
+    loyaltyPointsRedeemThreshold,
+    loyaltyPointsRedeemValueCents,
+    cashbackEnabled,
+    cashbackPercent,
     pixKey,
     pixKeyType,
     pixMerchantName,
@@ -116,6 +134,12 @@ export async function PATCH(req: NextRequest) {
 
   const restaurantData: Record<string, unknown> = {};
   if (menuTheme !== undefined) restaurantData.menuTheme = menuTheme;
+  if (loyaltyPointsEnabled !== undefined) restaurantData.loyaltyPointsEnabled = loyaltyPointsEnabled;
+  if (loyaltyPointsPerReal !== undefined) restaurantData.loyaltyPointsPerReal = loyaltyPointsPerReal;
+  if (loyaltyPointsRedeemThreshold !== undefined) restaurantData.loyaltyPointsRedeemThreshold = loyaltyPointsRedeemThreshold;
+  if (loyaltyPointsRedeemValueCents !== undefined) restaurantData.loyaltyPointsRedeemValueCents = loyaltyPointsRedeemValueCents;
+  if (cashbackEnabled !== undefined) restaurantData.cashbackEnabled = cashbackEnabled;
+  if (cashbackPercent !== undefined) restaurantData.cashbackPercent = cashbackPercent;
   if (isOpen !== undefined) restaurantData.isOpen = isOpen;
   if (defaultDeliveryFeeCents !== undefined) restaurantData.defaultDeliveryFeeCents = defaultDeliveryFeeCents;
   if (serviceFeePercent !== undefined) restaurantData.serviceFeePercent = serviceFeePercent;

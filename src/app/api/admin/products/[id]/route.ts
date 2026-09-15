@@ -46,6 +46,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   const { removableOptions, extraOptions, optionGroups, recipeItems, ...data } = parsed.data;
 
+  if (recipeItems && recipeItems.length > 0) {
+    const insumoIds = recipeItems.map((r) => r.insumoId);
+    const validInsumos = await db.insumo.count({
+      where: { id: { in: insumoIds }, restaurantId: session.user.restaurantId },
+    });
+    if (validInsumos !== new Set(insumoIds).size) {
+      return NextResponse.json({ error: "Um ou mais insumos são inválidos." }, { status: 400 });
+    }
+  }
+
   // Confirma que o produto é do restaurante logado ANTES de mexer em qualquer coisa.
   const existing = await db.product.findFirst({
     where: { id: params.id, restaurantId: session.user.restaurantId },

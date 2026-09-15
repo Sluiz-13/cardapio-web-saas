@@ -63,6 +63,16 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   const { removableOptions, extraOptions, optionGroups, recipeItems, ...data } = parsed.data;
 
+  if (recipeItems.length > 0) {
+    const insumoIds = recipeItems.map((r) => r.insumoId);
+    const validInsumos = await db.insumo.count({
+      where: { id: { in: insumoIds }, restaurantId: session.user.restaurantId },
+    });
+    if (validInsumos !== new Set(insumoIds).size) {
+      return NextResponse.json({ error: "Um ou mais insumos são inválidos." }, { status: 400 });
+    }
+  }
+
   const limitCheck = await assertUnderPlanLimit(session.user.restaurantId, "maxProducts");
   if (!limitCheck.ok) return NextResponse.json({ error: limitCheck.message }, { status: 403 });
 
