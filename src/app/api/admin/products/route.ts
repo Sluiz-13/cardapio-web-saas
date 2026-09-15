@@ -31,6 +31,7 @@ const createProductSchema = z.object({
       })
     )
     .default([]),
+  recipeItems: z.array(z.object({ insumoId: z.string().min(1), quantity: z.number().positive() })).default([]),
   availableDays: z.array(z.number().int().min(0).max(6)).default([]),
   visibleToCustomer: z.boolean().default(true),
   visibleToStaff: z.boolean().default(true),
@@ -47,6 +48,7 @@ export async function GET() {
       removableOptions: true,
       extraOptions: true,
       optionGroups: { include: { items: { orderBy: { order: "asc" } } }, orderBy: { order: "asc" } },
+      recipeItems: { include: { insumo: { select: { id: true, name: true, unit: true, costPerUnit: true } } } },
     },
     orderBy: [{ category: { order: "asc" } }, { order: "asc" }],
   });
@@ -59,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = createProductSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const { removableOptions, extraOptions, optionGroups, ...data } = parsed.data;
+  const { removableOptions, extraOptions, optionGroups, recipeItems, ...data } = parsed.data;
 
   const limitCheck = await assertUnderPlanLimit(session.user.restaurantId, "maxProducts");
   if (!limitCheck.ok) return NextResponse.json({ error: limitCheck.message }, { status: 403 });
@@ -88,6 +90,12 @@ export async function POST(req: NextRequest) {
   for (const group of optionGroups) {
     await db.productOptionGroup.create({
       data: { ...group, productId: product.id, items: { create: group.items } },
+    });
+  }
+
+  if (recipeItems.length > 0) {
+    await db.productRecipeItem.createMany({
+      data: recipeItems.map((r) => ({ productId: product.id, insumoId: r.insumoId, quantity: r.quantity })),
     });
   }
 

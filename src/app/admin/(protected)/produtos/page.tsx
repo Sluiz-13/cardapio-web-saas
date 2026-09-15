@@ -35,6 +35,7 @@ type Product = {
     order: number;
     items: { id: string; name: string; priceCents: number; order: number }[];
   }[];
+  recipeItems: { insumo: { id: string; name: string; unit: string; costPerUnit: number }; quantity: number }[];
   availableDays: number[];
   visibleToCustomer: boolean;
   visibleToStaff: boolean;
@@ -283,6 +284,37 @@ const [optionGroups, setOptionGroups] = useState <
 );
   const [groupItemDrafts, setGroupItemDrafts] = useState<{ name: string; price: string }[]>([]);
 
+  const [availableInsumos, setAvailableInsumos] = useState<{ id: string; name: string; unit: string; costPerUnit: number }[]>([]);
+  const [recipeItems, setRecipeItems] = useState<{ insumoId: string; quantity: number }[]>(
+    initialProduct?.recipeItems.map((r) => ({ insumoId: r.insumo.id, quantity: r.quantity })) ?? []
+  );
+  const [recipeDraft, setRecipeDraft] = useState({ insumoId: "", quantity: "" });
+
+  useEffect(() => {
+    fetch("/api/admin/insumos")
+      .then((r) => r.json())
+      .then(setAvailableInsumos)
+      .catch(() => {});
+  }, []);
+
+  function addRecipeItem() {
+    if (!recipeDraft.insumoId || !recipeDraft.quantity) return;
+    setRecipeItems((cur) => [
+      ...cur.filter((r) => r.insumoId !== recipeDraft.insumoId),
+      { insumoId: recipeDraft.insumoId, quantity: Number(recipeDraft.quantity) },
+    ]);
+    setRecipeDraft({ insumoId: "", quantity: "" });
+  }
+
+  function removeRecipeItem(insumoId: string) {
+    setRecipeItems((cur) => cur.filter((r) => r.insumoId !== insumoId));
+  }
+
+  const recipeCostCents = recipeItems.reduce((sum, r) => {
+    const insumo = availableInsumos.find((i) => i.id === r.insumoId);
+    return sum + (insumo ? insumo.costPerUnit * r.quantity : 0);
+  }, 0);
+
   function addGroup() {
     setOptionGroups((gs) => [
       ...gs,
@@ -386,6 +418,7 @@ const [optionGroups, setOptionGroups] = useState <
       extraOptions: extras,
       maxAccompaniments: maxAccompaniments ? Number(maxAccompaniments) : undefined,
       optionGroups,
+      recipeItems,
       availableDays,
       visibleToCustomer,
       visibleToStaff,
@@ -730,6 +763,83 @@ const [optionGroups, setOptionGroups] = useState <
                 </div>
               ))}
             </div>
+          </div>
+
+          <hr className="border-surface-border" />
+
+          <div>
+            <Label>Ficha técnica (opcional)</Label>
+            <p className="text-xs text-gray-400 mb-3">
+              Quais insumos esse prato consome, e quanto de cada um. Deixe vazio se não quiser controlar estoque pra esse produto.
+            </p>
+
+            {availableInsumos.length === 0 ? (
+              <p className="text-xs text-gray-400 italic">
+                Nenhum insumo cadastrado ainda —{" "}
+                <a href="/admin/insumos" target="_blank" className="text-brand underline">
+                  cadastre em Insumos
+                </a>{" "}
+                primeiro.
+              </p>
+            ) : (
+              <>
+                <div className="flex gap-2 mb-3">
+                  <select
+                    value={recipeDraft.insumoId}
+                    onChange={(e) => setRecipeDraft((d) => ({ ...d, insumoId: e.target.value }))}
+                    className={`flex-1 min-w-0 ${inputBaseClass}`}
+                  >
+                    <option value="">Selecione o insumo</option>
+                    {availableInsumos.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name} ({i.unit})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={recipeDraft.quantity}
+                    onChange={(e) => setRecipeDraft((d) => ({ ...d, quantity: e.target.value }))}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Qtd"
+                    className={`w-20 shrink-0 ${inputBaseClass}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={addRecipeItem}
+                    className="px-3.5 py-2 rounded-full border border-surface-border text-xs font-semibold text-gray-600 shrink-0 hover:bg-gray-50 transition-colors duration-[180ms]"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {recipeItems.map((r) => {
+                    const insumo = availableInsumos.find((i) => i.id === r.insumoId);
+                    if (!insumo) return null;
+                    return (
+                      <span key={r.insumoId} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
+                        {r.quantity} {insumo.unit} de {insumo.name}
+                        <button type="button" onClick={() => removeRecipeItem(r.insumoId)} className="text-gray-400 hover:text-red-500">
+                          <X size={11} />
+                        </button>
+                      </span>
+                    );
+                  })}
+                  {recipeItems.length === 0 && <span className="text-xs text-gray-300">Nenhum insumo vinculado</span>}
+                </div>
+
+                {recipeItems.length > 0 && (
+                  <p className="text-xs text-gray-500">
+                    Custo de produção estimado: <strong className="text-gray-700">{currency(recipeCostCents)}</strong>
+                    {price && Number(price) > 0 && (
+                      <> · Margem: <strong className="text-emerald-600">{currency(Math.round(Number(price) * 100) - recipeCostCents)}</strong></>
+                    )}
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           <hr className="border-surface-border" />

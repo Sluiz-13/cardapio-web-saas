@@ -31,6 +31,7 @@ const updateProductSchema = z.object({
       })
     )
     .optional(),
+  recipeItems: z.array(z.object({ insumoId: z.string().min(1), quantity: z.number().positive() })).optional(),
   availableDays: z.array(z.number().int().min(0).max(6)).optional(),
   visibleToCustomer: z.boolean().optional(),
   visibleToStaff: z.boolean().optional(),
@@ -43,7 +44,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const parsed = updateProductSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const { removableOptions, extraOptions, optionGroups, ...data } = parsed.data;
+  const { removableOptions, extraOptions, optionGroups, recipeItems, ...data } = parsed.data;
 
   // Confirma que o produto é do restaurante logado ANTES de mexer em qualquer coisa.
   const existing = await db.product.findFirst({
@@ -83,6 +84,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       for (const group of optionGroups) {
         await tx.productOptionGroup.create({
           data: { ...group, productId: params.id, items: { create: group.items } },
+        });
+      }
+    }
+
+    if (recipeItems) {
+      await tx.productRecipeItem.deleteMany({ where: { productId: params.id } });
+      if (recipeItems.length > 0) {
+        await tx.productRecipeItem.createMany({
+          data: recipeItems.map((r) => ({ productId: params.id, insumoId: r.insumoId, quantity: r.quantity })),
         });
       }
     }

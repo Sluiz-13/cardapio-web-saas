@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
       extraOptions: true,
       category: { select: { name: true } },
       optionGroups: { include: { items: true } },
+      recipeItems: true,
     },
   });
 
@@ -324,6 +325,27 @@ if (!restaurant.isOpen) {
         where: { restaurantId_code: { restaurantId, code: appliedCouponCode } },
         data: { usageCount: { increment: 1 } },
       });
+    }
+
+    // Baixa automática de estoque — só afeta produtos que têm ficha técnica
+    // cadastrada; produto sem insumo vinculado não gera nenhum movimento.
+    for (const item of items) {
+      const product = products.find((p) => p.id === item.productId)!;
+      for (const recipeItem of product.recipeItems) {
+        const deduct = recipeItem.quantity * item.qty;
+        await tx.insumo.update({
+          where: { id: recipeItem.insumoId },
+          data: { currentStock: { decrement: deduct } },
+        });
+        await tx.stockMovement.create({
+          data: {
+            insumoId: recipeItem.insumoId,
+            type: "SAIDA_VENDA",
+            quantity: deduct,
+            orderId: created.id,
+          },
+        });
+      }
     }
 
     return created;

@@ -20,6 +20,8 @@ type OptionGroup = {
 type Product = {
   id: string;
   name: string;
+  description: string | null;
+  imageUrl: string | null;
   priceCents: number;
   active: boolean;
   categoryId: string;
@@ -221,15 +223,28 @@ export default function GarcomMesaPage() {
         ))}
       </div>
 
-      <div className="px-4 py-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="px-4 py-2 divide-y divide-gray-100">
         {filtered.map((p) => (
           <button
             key={p.id}
             onClick={() => setModalProduct(p)}
-            className="text-left bg-white rounded-xl p-3 border border-surface-border active:scale-[0.98] transition-transform"
+            className="w-full flex items-center gap-3 py-3.5 text-left active:bg-gray-50 transition-colors duration-150"
           >
-            <p className="font-semibold text-sm text-gray-900">{p.name}</p>
-            <p className="text-emerald-600 font-bold text-sm mt-1">{currency(p.priceCents)}</p>
+            <div className="w-16 h-16 rounded-xl bg-gray-100 relative overflow-hidden shrink-0">
+              {p.imageUrl ? (
+                <img src={p.imageUrl} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">Sem foto</div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-sm text-gray-900 leading-tight">{p.name}</h3>
+              {p.description && <p className="text-xs mt-0.5 text-gray-500 line-clamp-2">{p.description}</p>}
+              <span className="text-emerald-600 font-bold text-sm mt-1 block">{currency(p.priceCents)}</span>
+            </div>
+            <span className="flex items-center justify-center w-7 h-7 rounded-full bg-chili text-white shadow-sm shrink-0">
+              <Plus size={14} />
+            </span>
           </button>
         ))}
       </div>

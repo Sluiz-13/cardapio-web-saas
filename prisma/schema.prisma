@@ -43,9 +43,11 @@ model Restaurant {
   defaultDeliveryFeeCents Int             @default(0)
     serviceFeePercent       Int      @default(0) // taxa de serviço do garçom, só cobrada no fechamento de comanda (mesa)
   printKitchenCopy        Boolean  @default(true) // imprime uma 2ª via só pra cozinha (sem preço) além da via completa
+  menuTheme               MenuTheme @default(CLASSIC) // visual do cardápio público — Premium é exclusivo do plano Pro
   deliveryFees            DeliveryFee[]
   drivers                 Driver[]
   cashSessions            CashSession[]
+  insumos                 Insumo[]
 
   pixKey           String?
   pixKeyType       String?
@@ -96,6 +98,11 @@ model BusinessHours {
 enum AdminRole {
   OWNER
   STAFF
+}
+
+enum MenuTheme {
+  CLASSIC
+  PREMIUM
 }
 
 model AdminUser {
@@ -150,6 +157,7 @@ model Product {
   extraOptions     ProductExtra[]
   maxAccompaniments Int? // se preenchido, vira "Monte seu prato": limita quantos extraOptions o cliente pode escolher
   optionGroups     ProductOptionGroup[] // sistema avançado (assistente em etapas) — convive com extraOptions, não substitui
+  recipeItems      ProductRecipeItem[]  // ficha técnica — quais insumos e quanto o prato consome
   orderItems       OrderItem[]
   availableDays Int[] @default([])
   coupons Coupon[]
@@ -213,6 +221,57 @@ model ProductOptionItem {
 
   @@index([groupId])
   @@map("product_option_items")
+}
+
+model Insumo {
+  id           String   @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  unit         String   // "kg", "g", "L", "ml", "un" — texto livre, mantém simples
+  currentStock Float    @default(0)
+  minStock     Float    @default(0) // abaixo disso, entra no alerta de estoque baixo
+  costPerUnit  Int      // em centavos, custo por unidade de medida
+  createdAt    DateTime @default(now())
+
+  recipeItems ProductRecipeItem[]
+  movements   StockMovement[]
+
+  @@index([restaurantId])
+  @@map("insumos")
+}
+
+model ProductRecipeItem {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  insumoId  String
+  insumo    Insumo  @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  quantity  Float   // quantidade do insumo usada por unidade do produto
+
+  @@index([productId])
+  @@index([insumoId])
+  @@map("product_recipe_items")
+}
+
+enum StockMovementType {
+  ENTRADA      // compra/reposição
+  SAIDA_VENDA  // baixa automática por venda
+  AJUSTE       // correção manual (perda, contagem, etc.)
+}
+
+model StockMovement {
+  id        String            @id @default(cuid())
+  insumoId  String
+  insumo    Insumo            @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  type      StockMovementType
+  quantity  Float             // sempre positivo — o "type" já diz se soma ou subtrai
+  note      String?
+  orderId   String?           // se for baixa por venda, referencia o pedido de origem
+  createdAt DateTime          @default(now())
+
+  @@index([insumoId])
+  @@map("stock_movements")
 }
 
 // -----------------------------

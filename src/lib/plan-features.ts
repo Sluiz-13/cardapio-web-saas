@@ -17,6 +17,7 @@ export const PLAN_LIMITS: Record<
     reports: boolean;
     tableOrdering: boolean;
     qrSelfOrder: boolean; // QR Code de mesa pro cliente pedir sozinho — exclusivo Pro
+    premiumMenuTheme: boolean; // tema "Premium" do cardápio público — exclusivo Pro
   }
 > = {
   START: {
@@ -34,6 +35,7 @@ export const PLAN_LIMITS: Record<
     reports: false,
     tableOrdering: true, // mesa/comanda/garçom — liberado pros dois planos
     qrSelfOrder: false,  // QR Code de autoatendimento — só Pro
+    premiumMenuTheme: false,
   },
   PRO: {
     maxProducts: null,
@@ -50,6 +52,7 @@ export const PLAN_LIMITS: Record<
     reports: true,
     tableOrdering: true,
     qrSelfOrder: true,
+    premiumMenuTheme: true,
   },
 };
 

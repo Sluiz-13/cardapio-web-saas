@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   ShoppingCart,
   Plus,
@@ -50,6 +50,7 @@ type Restaurant = {
   logoUrl?: string | null;
   address?: string | null;
   avgDeliveryTime?: string | null;
+  menuTheme?: "CLASSIC" | "PREMIUM";
 };
 
 type Table = { id: string; label: string };
@@ -76,6 +77,35 @@ function computeGroupChargeCents(group: OptionGroup, chosenItems: OptionItem[]):
 }
 
 const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
+
+const THEMES = {
+  CLASSIC: {
+    bg: "#F9FAFB",
+    surface: "#FFFFFF",
+    accent: "#C1440E",
+    textPrimary: "#111827",
+    textSecondary: "#6B7280",
+    divider: "#F3F4F6",
+    border: "#F3F4F6",
+    fontDisplay: "inherit",
+    radius: "1rem",
+  },
+  PREMIUM: {
+    bg: "#15130F",
+    surface: "#15130F",
+    accent: "#B08D57",
+    textPrimary: "#F3EEE4",
+    textSecondary: "#7D7768",
+    divider: "#221F19",
+    border: "#2A2620",
+    fontDisplay: "Georgia, serif",
+    radius: "0.25rem",
+  },
+} as const;
+
+type Theme = (typeof THEMES)[keyof typeof THEMES];
+const ThemeContext = createContext<Theme>(THEMES.CLASSIC);
+const useTheme = () => useContext(ThemeContext);
 
 const PAYMENT_OPTIONS = [
   { value: "PIX", label: "Pix" },
@@ -104,6 +134,7 @@ export default function MenuClient({
   const [drawer, setDrawer] = useState<null | "cart" | "checkout" | "confirmed">(null);
   const [orderResult, setOrderResult] = useState<{ status: string; pixPayload?: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const theme = THEMES[restaurant.menuTheme ?? "CLASSIC"];
 
   const catRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -173,14 +204,15 @@ export default function MenuClient({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto bg-gray-50">
-        <div className="sticky top-0 z-20 px-5 pt-5 pb-4 bg-white border-b border-gray-100">
+    <ThemeContext.Provider value={THEMES[restaurant.menuTheme ?? "CLASSIC"]}>
+    <div className="min-h-screen" style={{ background: theme.bg }}>
+      <div className="max-w-5xl mx-auto" style={{ background: theme.bg }}>
+        <div className="sticky top-0 z-20 px-5 pt-5 pb-4 border-b" style={{ background: theme.surface, borderColor: theme.border }}>
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-1.5 mb-0.5">
-                <ChefHat size={16} className="text-chili" />
-                <span className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">
+                <ChefHat size={16} style={{ color: theme.accent }} />
+                <span className="text-[11px] uppercase tracking-wide font-medium" style={{ color: theme.textSecondary }}>
                   Cardápio Digital
                 </span>
               </div>
@@ -190,42 +222,44 @@ export default function MenuClient({
                   <img
                     src={restaurant.logoUrl}
                     alt={restaurant.name}
-                    className="w-11 h-11 rounded-xl object-cover border border-gray-100 shrink-0"
+                    className="w-11 h-11 rounded-xl object-cover border shrink-0"
+                    style={{ borderColor: theme.border }}
                   />
                 )}
-                <h1 className="font-bold text-2xl sm:text-3xl text-chili leading-tight">
+                <h1
+                  className="font-bold text-2xl sm:text-3xl leading-tight"
+                  style={{ color: theme.accent, fontFamily: theme.fontDisplay }}
+                >
                   {restaurant.name}
                 </h1>
               </div>
               {restaurant.address && (
-                
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 mt-0.5 text-xs text-gray-500 hover:text-chili hover:underline w-fit"
+                  className="flex items-center gap-1 mt-0.5 text-xs hover:underline w-fit"
+                  style={{ color: theme.textSecondary }}
                 >
                   <MapPin size={12} />
                   {restaurant.address}
                 </a>
               )}
               {restaurant.phone && (
-                
                 <a href={`tel:${restaurant.phone.replace(/\D/g, "")}`}
-                  className="flex items-center gap-1 mt-0.5 text-xs text-gray-500 hover:text-chili hover:underline w-fit"
+                  className="flex items-center gap-1 mt-0.5 text-xs hover:underline w-fit"
+                  style={{ color: theme.textSecondary }}
                 >
                   <Phone size={12} />
                   {restaurant.phone}
                 </a>
               )}
               <div className="flex items-center gap-1.5 mt-1.5">
-                <CircleDot size={10} className={restaurant.isOpen ? "text-emerald-500" : "text-gray-400"} fill="currentColor" />
-                <button onClick={() => setHoursOpen(true)} className="text-xs text-gray-500 underline decoration-dotted">
-                  {restaurant.isOpen ? "Aberto agora" : "Fechado agora"}
-                </button>
+                <CircleDot size={10} className={restaurant.isOpen ? "text-emerald-500" : ""} style={!restaurant.isOpen ? { color: theme.textSecondary } : undefined} fill="currentColor" />
+                <span className="text-xs" style={{ color: theme.textSecondary }}>{restaurant.isOpen ? "Aberto agora" : "Fechado agora"}</span>
                 {restaurant.avgDeliveryTime && (
                   <>
-                    <span className="text-gray-300">•</span>
-                    <span className="text-xs text-gray-500">{restaurant.avgDeliveryTime}</span>
+                    <span style={{ color: theme.textSecondary }}>•</span>
+                    <span className="text-xs" style={{ color: theme.textSecondary }}>{restaurant.avgDeliveryTime}</span>
                   </>
                 )}
               </div>
@@ -233,12 +267,16 @@ export default function MenuClient({
 
             <button
               onClick={() => cartCount > 0 && setDrawer("cart")}
-              className="relative shrink-0 w-11 h-11 rounded-full flex items-center justify-center border border-gray-200 bg-white text-gray-700 shadow-sm active:scale-95 transition-transform"
+              className="relative shrink-0 w-11 h-11 rounded-full flex items-center justify-center border shadow-sm active:scale-95 transition-transform"
+              style={{ borderColor: theme.border, background: theme.surface, color: theme.textPrimary }}
               aria-label="Ver carrinho"
             >
               <ShoppingCart size={18} />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-chili text-white text-[10px] font-bold flex items-center justify-center">
+                <span
+                  className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
+                  style={{ background: theme.accent }}
+                >
                   {cartCount}
                 </span>
               )}
@@ -246,7 +284,10 @@ export default function MenuClient({
           </div>
         </div>
 
-        <div className="sticky top-[84px] sm:top-[92px] z-10 flex gap-2 px-5 py-3 overflow-x-auto bg-gray-50/95 backdrop-blur-sm border-b border-gray-100 scrollbar-none">
+        <div
+          className="sticky top-[84px] sm:top-[92px] z-10 flex gap-2 px-5 py-3 overflow-x-auto backdrop-blur-sm border-b scrollbar-none"
+          style={{ background: theme.bg, borderColor: theme.border }}
+        >
           {categories.map((cat) => (
             <button
               key={cat.id}
@@ -254,11 +295,12 @@ export default function MenuClient({
                 catRefs.current[cat.id] = el;
               }}
               onClick={() => selectCategory(cat.id)}
-              className="text-sm font-medium whitespace-nowrap px-4 py-2 rounded-full transition-colors active:scale-95"
+              className="text-sm font-medium whitespace-nowrap px-4 py-2 transition-colors active:scale-95"
               style={{
-                background: cat.id === activeCat ? "#C1440E" : "#FFFFFF",
-                color: cat.id === activeCat ? "#FFFFFF" : "#6B7280",
-                border: cat.id === activeCat ? "1px solid #C1440E" : "1px solid #E5E7EB",
+                borderRadius: theme.radius === "0.25rem" ? "0px" : "999px",
+                background: cat.id === activeCat ? theme.accent : "transparent",
+                color: cat.id === activeCat ? "#FFFFFF" : theme.textSecondary,
+                border: cat.id === activeCat ? `1px solid ${theme.accent}` : `1px solid ${theme.border}`,
               }}
             >
               {cat.name}
@@ -272,7 +314,7 @@ export default function MenuClient({
           </div>
         )}
 
-        <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="px-4 py-2 divide-y" style={{ borderColor: theme.divider }}>
           {filtered.map((product) => (
             <ProductCard key={product.id} product={product} onOpen={() => setModalProduct(product)} />
           ))}
@@ -290,7 +332,8 @@ export default function MenuClient({
         {cartCount > 0 && drawer === null && (
           <button
             onClick={() => setDrawer("cart")}
-            className="fixed bottom-4 left-4 right-4 max-w-md mx-auto flex items-center justify-between px-5 py-3.5 rounded-full shadow-xl bg-chili text-white animate-fade-in-up z-20"
+            className="fixed bottom-4 left-4 right-4 max-w-md mx-auto flex items-center justify-between px-5 py-3.5 shadow-xl text-white animate-fade-in-up z-20"
+            style={{ background: theme.accent, borderRadius: theme.radius === "0.25rem" ? "2px" : "999px" }}
           >
             <span className="flex items-center gap-2 font-semibold text-sm">
               <ShoppingCart size={16} /> Ver Carrinho ({cartCount})
@@ -376,29 +419,31 @@ export default function MenuClient({
         )}
       </div>
     </div>
+    </ThemeContext.Provider>
   );
 }
 
 
 function Footer({ restaurant }: { restaurant: Restaurant }) {
+  const theme = useTheme();
   const devWhatsApp =
     "https://wa.me/5535999603944?text=" +
     encodeURIComponent("Olá! Vi um cardápio digital feito por você e gostaria de saber mais.");
 
   return (
-    <footer className="px-5 py-6 border-t border-gray-100 mt-2">
-      <p className="text-center text-[11px] text-gray-400">
+    <footer className="px-5 py-6 border-t mt-2" style={{ borderColor: theme.border }}>
+      <p className="text-center text-[11px]" style={{ color: theme.textSecondary }}>
         © 2026 Desenvolvido por{" "}
-        
         <a href={devWhatsApp}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-semibold text-gray-500 hover:text-chili underline"
+          className="font-semibold underline"
+          style={{ color: theme.textSecondary }}
         >
           Luiz Felippe
         </a>
       </p>
-      <p className="text-center text-[11px] text-gray-400">
+      <p className="text-center text-[11px]" style={{ color: theme.textSecondary }}>
         Todos os direitos reservados
       </p>
     </footer>
@@ -408,13 +453,14 @@ function Footer({ restaurant }: { restaurant: Restaurant }) {
 
 function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void }) {
   const [imgError, setImgError] = useState(false);
+  const theme = useTheme();
 
   return (
     <button
       onClick={onOpen}
-      className="text-left bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg border border-gray-100 active:scale-[0.98] transition-all duration-150"
+      className="w-full flex items-center gap-3 py-3.5 text-left transition-colors duration-150"
     >
-      <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
+      <div className="w-20 h-20 relative overflow-hidden shrink-0" style={{ borderRadius: theme.radius === "0.25rem" ? "4px" : "0.75rem", background: theme.divider }}>
         {product.imageUrl && !imgError ? (
           <img
             src={product.imageUrl}
@@ -425,22 +471,34 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <ImageOff size={22} className="text-gray-300" />
+            <ImageOff size={18} style={{ color: theme.textSecondary }} />
           </div>
         )}
       </div>
-      <div className="p-4">
-        <h3 className="font-bold text-base text-gray-900 leading-tight">{product.name}</h3>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-bold text-sm leading-tight" style={{ color: theme.textPrimary, fontFamily: theme.fontDisplay }}>
+          {product.name}
+        </h3>
         {product.description && (
-          <p className="text-sm mt-1 text-gray-500 line-clamp-2">{product.description}</p>
+          <p className="text-xs mt-0.5 line-clamp-2" style={{ color: theme.textSecondary }}>
+            {product.description}
+          </p>
         )}
-        <div className="flex items-center justify-between mt-3">
-          <span className="text-emerald-600 font-bold text-lg">{currency(product.priceCents)}</span>
-          <span className="flex items-center gap-1 text-sm font-medium px-3.5 py-2 rounded-full bg-chili text-white shadow-sm">
-            <Plus size={14} /> Adicionar
-          </span>
-        </div>
+        <span className="font-bold text-sm mt-1 block" style={{ color: theme.accent }}>
+          {currency(product.priceCents)}
+        </span>
       </div>
+      <span
+        className="flex items-center justify-center w-7 h-7 shrink-0"
+        style={{
+          borderRadius: theme.radius === "0.25rem" ? "2px" : "999px",
+          background: theme.radius === "0.25rem" ? "transparent" : theme.accent,
+          border: theme.radius === "0.25rem" ? `1px solid ${theme.accent}` : "none",
+          color: theme.radius === "0.25rem" ? theme.accent : "#FFFFFF",
+        }}
+      >
+        <Plus size={14} />
+      </span>
     </button>
   );
 }
@@ -494,12 +552,14 @@ function ProductModal({
     return count >= group.minSelect && (group.maxSelect === null || count <= group.maxSelect);
   });
 
+  const theme = useTheme();
+
   return (
     <Overlay onClose={onClose}>
-      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col bg-white animate-fade-in-up">
+      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col animate-fade-in-up" style={{ background: theme.surface }}>
         <div className="flex items-start justify-between p-5 pb-3">
-          <h2 className="font-bold text-xl text-gray-900 pr-4">{product.name}</h2>
-          <button onClick={onClose} className="shrink-0 text-gray-400 hover:text-gray-700" aria-label="Fechar">
+          <h2 className="font-bold text-xl pr-4" style={{ color: theme.textPrimary, fontFamily: theme.fontDisplay }}>{product.name}</h2>
+          <button onClick={onClose} className="shrink-0" style={{ color: theme.textSecondary }} aria-label="Fechar">
             <X size={20} />
           </button>
         </div>
@@ -513,16 +573,16 @@ function ProductModal({
               alt=""
             />
           ) : (
-            <div className="w-full h-44 rounded-xl mb-4 bg-gray-100 flex items-center justify-center">
-              <ImageOff size={24} className="text-gray-300" />
+            <div className="w-full h-44 rounded-xl mb-4 flex items-center justify-center" style={{ background: theme.divider }}>
+              <ImageOff size={24} style={{ color: theme.textSecondary }} />
             </div>
           )}
 
-          {product.description && <p className="text-sm text-gray-600 mb-4">{product.description}</p>}
+          {product.description && <p className="text-sm mb-4" style={{ color: theme.textSecondary }}>{product.description}</p>}
 
           {product.removableOptions.length > 0 && (
             <div className="mb-4">
-              <p className="text-xs uppercase tracking-wide font-semibold mb-2 text-gray-400">
+              <p className="text-xs uppercase tracking-wide font-semibold mb-2" style={{ color: theme.textSecondary }}>
                 Deseja retirar algum item?
               </p>
               <div className="flex flex-wrap gap-2">
@@ -534,9 +594,9 @@ function ProductModal({
                       onClick={() => setRemoved((cur) => (active ? cur.filter((x) => x !== r.name) : [...cur, r.name]))}
                       className="text-sm font-medium px-3.5 py-1.5 rounded-full border transition-colors active:scale-95"
                       style={{
-                        borderColor: active ? "#C1440E" : "#E5E7EB",
-                        background: active ? "#C1440E" : "#FFFFFF",
-                        color: active ? "#FFFFFF" : "#374151",
+                        borderColor: active ? theme.accent : theme.border,
+                        background: active ? theme.accent : "transparent",
+                        color: active ? "#FFFFFF" : theme.textSecondary,
                       }}
                     >
                       Sem {r.name}
@@ -552,10 +612,10 @@ function ProductModal({
             const atLimit = group.maxSelect !== null && selectedIds.length >= group.maxSelect;
             return (
               <div key={group.id} className="mb-4">
-                <p className="text-xs uppercase tracking-wide font-semibold mb-1 text-gray-400">
-                  {group.name} {group.minSelect > 0 && <span className="text-chili">· obrigatório</span>}
+                <p className="text-xs uppercase tracking-wide font-semibold mb-1" style={{ color: theme.textSecondary }}>
+                  {group.name} {group.minSelect > 0 && <span style={{ color: theme.accent }}>· obrigatório</span>}
                 </p>
-                <p className="text-[11px] text-gray-400 mb-2">
+                <p className="text-[11px] mb-2" style={{ color: theme.textSecondary }}>
                   {group.maxSelect
                     ? `Escolha ${group.minSelect > 0 ? `${group.minSelect} a ` : "até "}${group.maxSelect}`
                     : group.minSelect > 0
@@ -576,21 +636,21 @@ function ProductModal({
                         onClick={() => toggleGroupItem(group, item.id)}
                         className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm transition-colors active:scale-[0.98] disabled:opacity-40"
                         style={{
-                          borderColor: active ? "#059669" : "#E5E7EB",
-                          background: active ? "rgba(5,150,105,0.06)" : "#FFFFFF",
+                          borderColor: active ? theme.accent : theme.border,
+                          background: active ? `${theme.accent}18` : "transparent",
                         }}
                       >
-                        <span className="flex items-center gap-2 text-gray-800 font-medium">
+                        <span className="flex items-center gap-2 font-medium" style={{ color: theme.textPrimary }}>
                           <span
                             className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0"
-                            style={{ borderColor: "#059669", background: active ? "#059669" : "transparent" }}
+                            style={{ borderColor: theme.accent, background: active ? theme.accent : "transparent" }}
                           >
                             {active && <Check size={11} color="#FFFFFF" />}
                           </span>
                           {item.name}
                         </span>
                         {item.priceCents > 0 && group.pricingStyle !== "FIXED" && (
-                          <span className="text-emerald-600 font-semibold">+ {currency(item.priceCents)}</span>
+                          <span className="font-semibold" style={{ color: theme.accent }}>+ {currency(item.priceCents)}</span>
                         )}
                       </button>
                     );
@@ -602,7 +662,7 @@ function ProductModal({
 
           {product.extraOptions.length > 0 && (
             <div className="mb-4">
-              <p className="text-xs uppercase tracking-wide font-semibold mb-2 text-gray-400">
+              <p className="text-xs uppercase tracking-wide font-semibold mb-2" style={{ color: theme.textSecondary }}>
                 {product.maxAccompaniments
                   ? `Monte seu prato — escolha até ${product.maxAccompaniments} (${extras.length}/${product.maxAccompaniments})`
                   : "Turbine sua refeição"}
@@ -619,20 +679,20 @@ function ProductModal({
                       onClick={() => setExtras((cur) => (active ? cur.filter((e) => e.id !== ex.id) : [...cur, ex]))}
                       className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm transition-colors active:scale-[0.98] disabled:opacity-40"
                       style={{
-                        borderColor: active ? "#059669" : "#E5E7EB",
-                        background: active ? "rgba(5,150,105,0.06)" : "#FFFFFF",
+                        borderColor: active ? theme.accent : theme.border,
+                        background: active ? `${theme.accent}18` : "transparent",
                       }}
                     >
-                      <span className="flex items-center gap-2 text-gray-800 font-medium">
+                      <span className="flex items-center gap-2 font-medium" style={{ color: theme.textPrimary }}>
                         <span
                           className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0"
-                          style={{ borderColor: "#059669", background: active ? "#059669" : "transparent" }}
+                          style={{ borderColor: theme.accent, background: active ? theme.accent : "transparent" }}
                         >
                           {active && <Check size={11} color="#FFFFFF" />}
                         </span>
                         + {ex.name}
                       </span>
-                      <span className="text-emerald-600 font-semibold">{currency(ex.priceCents)}</span>
+                      <span className="font-semibold" style={{ color: theme.accent }}>{currency(ex.priceCents)}</span>
                     </button>
                   );
                 })}
@@ -641,14 +701,15 @@ function ProductModal({
           )}
         </div>
 
-        <div className="flex gap-2 p-5 pt-3 border-t border-gray-100">
-          <button onClick={onClose} className="flex-1 py-3 rounded-full font-medium text-sm border border-gray-200 text-gray-600">
+        <div className="flex gap-2 p-5 pt-3 border-t" style={{ borderColor: theme.border }}>
+          <button onClick={onClose} className="flex-1 py-3 rounded-full font-medium text-sm border" style={{ borderColor: theme.border, color: theme.textSecondary }}>
             Cancelar
           </button>
           <button
             onClick={() => onConfirm(product, removed, extras, groupSelections)}
             disabled={!groupsValid}
-            className="flex-1 py-3 rounded-full font-semibold text-sm bg-chili text-white shadow-sm active:scale-[0.98] transition-transform disabled:opacity-40"
+            className="flex-1 py-3 font-semibold text-sm text-white shadow-sm active:scale-[0.98] transition-transform disabled:opacity-40"
+            style={{ background: theme.accent, borderRadius: theme.radius === "0.25rem" ? "2px" : "999px" }}
           >
             Confirmar
           </button>
@@ -671,27 +732,28 @@ function CartDrawer({
   onClose: () => void;
   onCheckout: () => void;
 }) {
+  const theme = useTheme();
   return (
     <Overlay onClose={onClose}>
-      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col bg-white animate-fade-in-up">
+      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col animate-fade-in-up" style={{ background: theme.surface }}>
         <div className="flex items-center justify-between p-5 pb-3">
-          <h2 className="font-bold text-xl text-gray-900 flex items-center gap-2">
+          <h2 className="font-bold text-xl flex items-center gap-2" style={{ color: theme.textPrimary, fontFamily: theme.fontDisplay }}>
             <ShoppingCart size={18} /> Seu Pedido
           </h2>
-          <button onClick={onClose} aria-label="Fechar" className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+          <button onClick={onClose} aria-label="Fechar" style={{ color: theme.textSecondary }}><X size={20} /></button>
         </div>
 
         <div className="overflow-y-auto px-5 flex-1">
           {cart.length === 0 ? (
-            <p className="text-sm text-gray-500 py-6 text-center">Seu carrinho está vazio.</p>
+            <p className="text-sm py-6 text-center" style={{ color: theme.textSecondary }}>Seu carrinho está vazio.</p>
           ) : (
             <div className="space-y-3 mb-2">
               {cart.map((l) => (
-                <div key={l.key} className="flex items-start justify-between border-b pb-3 border-gray-100">
+                <div key={l.key} className="flex items-start justify-between border-b pb-3" style={{ borderColor: theme.divider }}>
                   <div className="flex-1 pr-2">
-                    <p className="font-semibold text-sm text-gray-900">{l.name}</p>
+                    <p className="font-semibold text-sm" style={{ color: theme.textPrimary }}>{l.name}</p>
                     {(l.removedItems.length > 0 || l.extraNames.length > 0 || l.selectedOptions.length > 0) && (
-                      <p className="text-xs mt-0.5 text-gray-400">
+                      <p className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>
                         {l.selectedOptions.map((o) => o.itemNames.join(", ")).join(" · ")}
                         {l.selectedOptions.length > 0 && (l.removedItems.length > 0 || l.extraNames.length > 0) ? " · " : ""}
                         {l.removedItems.map((r) => `Sem ${r}`).join(", ")}
@@ -699,20 +761,22 @@ function CartDrawer({
                         {l.extraNames.map((e) => `+ ${e}`).join(", ")}
                       </p>
                     )}
-                    <p className="text-emerald-600 font-semibold text-sm mt-1">{currency(l.unitPriceCents)}</p>
+                    <p className="font-semibold text-sm mt-1" style={{ color: theme.accent }}>{currency(l.unitPriceCents)}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => onChangeQty(l.key, -1)}
-                      className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center active:scale-90 transition-transform text-gray-600"
+                      className="w-7 h-7 rounded-full border flex items-center justify-center active:scale-90 transition-transform"
+                      style={{ borderColor: theme.border, color: theme.textSecondary }}
                       aria-label="Diminuir quantidade"
                     >
                       <Minus size={12} />
                     </button>
-                    <span className="text-sm w-4 text-center font-medium">{l.qty}</span>
+                    <span className="text-sm w-4 text-center font-medium" style={{ color: theme.textPrimary }}>{l.qty}</span>
                     <button
                       onClick={() => onChangeQty(l.key, 1)}
-                      className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center active:scale-90 transition-transform text-gray-600"
+                      className="w-7 h-7 rounded-full border flex items-center justify-center active:scale-90 transition-transform"
+                      style={{ borderColor: theme.border, color: theme.textSecondary }}
                       aria-label="Aumentar quantidade"
                     >
                       <Plus size={12} />
@@ -724,15 +788,16 @@ function CartDrawer({
           )}
         </div>
 
-        <div className="p-5 pt-3 border-t border-gray-100 pb-safe">
-          <div className="flex items-center justify-between font-bold text-base mb-4 text-gray-900">
+        <div className="p-5 pt-3 border-t pb-safe" style={{ borderColor: theme.border }}>
+          <div className="flex items-center justify-between font-bold text-base mb-4" style={{ color: theme.textPrimary }}>
             <span>Total</span>
-            <span className="text-emerald-600">{currency(total)}</span>
+            <span style={{ color: theme.accent }}>{currency(total)}</span>
           </div>
           <button
             disabled={cart.length === 0}
             onClick={onCheckout}
-            className="w-full py-3.5 rounded-full font-semibold text-sm bg-chili text-white shadow-sm disabled:opacity-40 active:scale-[0.98] transition-transform"
+            className="w-full py-3.5 font-semibold text-sm text-white shadow-sm disabled:opacity-40 active:scale-[0.98] transition-transform"
+            style={{ background: theme.accent, borderRadius: theme.radius === "0.25rem" ? "2px" : "999px" }}
           >
             Continuar
           </button>
@@ -930,16 +995,17 @@ function CheckoutDrawer({
     });
     onSuccess({ status: data.status, pixPayload: data.pixPayload });
   }
-const inputClass =
-    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-chili/30 focus:border-chili transition-shadow placeholder:text-gray-400";
-  
+const theme = useTheme();
+  const inputClass =
+    "w-full px-3.5 py-2.5 rounded-xl border bg-transparent text-base focus:outline-none focus:ring-2 transition-shadow";
+  const inputStyle = { borderColor: theme.border, color: theme.textPrimary };
 
   return (
     <Overlay onClose={onClose}>
-      <form onSubmit={handleSubmit} className="w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col bg-white animate-fade-in-up">
+      <form onSubmit={handleSubmit} className="w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col animate-fade-in-up" style={{ background: theme.surface }}>
         <div className="flex items-center justify-between p-5 pb-3">
-          <h2 className="font-bold text-xl text-gray-900">Seus Dados</h2>
-          <button type="button" onClick={onClose} aria-label="Fechar" className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+          <h2 className="font-bold text-xl" style={{ color: theme.textPrimary, fontFamily: theme.fontDisplay }}>Seus Dados</h2>
+          <button type="button" onClick={onClose} aria-label="Fechar" style={{ color: theme.textSecondary }}><X size={20} /></button>
         </div>
 
         <div className="overflow-y-auto px-5 flex-1">
@@ -956,7 +1022,8 @@ const inputClass =
                 <button
                   type="button"
                   onClick={useSavedInfo}
-                  className="flex-1 py-2 rounded-full text-xs font-semibold bg-chili text-white"
+                  className="flex-1 py-2 rounded-full text-xs font-semibold text-white"
+                  style={{ background: theme.accent }}
                 >
                   Sim, é esse mesmo
                 </button>
@@ -973,17 +1040,18 @@ const inputClass =
 
           <div className="space-y-3 mb-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Nome</label>
-              <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} className={inputClass} />
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Nome</label>
+              <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} className={inputClass} style={inputStyle} />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Telefone</label>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Telefone</label>
               <input
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="(35) 99999-9999"
                 inputMode="tel"
                 className={inputClass}
+                style={inputStyle}
               />
             </div>
 
@@ -1000,9 +1068,9 @@ const inputClass =
                     onClick={() => setDeliveryType(opt)}
                     className="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors active:scale-95"
                     style={{
-                      background: deliveryType === opt ? "#111827" : "#FFFFFF",
-                      color: deliveryType === opt ? "#FFFFFF" : "#374151",
-                      borderColor: "#E5E7EB",
+                      background: deliveryType === opt ? theme.accent : "transparent",
+                      color: deliveryType === opt ? "#FFFFFF" : theme.textSecondary,
+                      borderColor: theme.border,
                     }}
                   >
                     {opt === "DELIVERY" ? "Entrega" : "Retirar no local"}
@@ -1013,18 +1081,19 @@ const inputClass =
 
             {deliveryType === "DELIVERY" && (
               <div className="grid grid-cols-3 gap-2">
-                <input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Rua" className={`col-span-2 ${inputClass}`} />
-                <input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Número" inputMode="numeric" className={inputClass} />
-                <input value={complement} onChange={(e) => setComplement(e.target.value)} placeholder="Complemento (opcional)" className={`col-span-3 ${inputClass}`} />
+                <input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Rua" className={`col-span-2 ${inputClass}`} style={inputStyle} />
+                <input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Número" inputMode="numeric" className={inputClass} style={inputStyle} />
+                <input value={complement} onChange={(e) => setComplement(e.target.value)} placeholder="Complemento (opcional)" className={`col-span-3 ${inputClass}`} style={inputStyle} />
                 <input
                   value={neighborhood}
                   onChange={(e) => { setNeighborhood(e.target.value); setNeighborhoodDisabled(false); }}
                   onBlur={() => checkDeliveryFee()}
                   placeholder="Bairro"
                   className={`col-span-2 ${inputClass}`}
+                  style={inputStyle}
                 />
-                <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Cidade" className={inputClass} />
-                <input value={referenceNote} onChange={(e) => setReferenceNote(e.target.value)} placeholder="Ponto de referência (opcional)" className={`col-span-3 ${inputClass}`} />
+                <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Cidade" className={inputClass} style={inputStyle} />
+                <input value={referenceNote} onChange={(e) => setReferenceNote(e.target.value)} placeholder="Ponto de referência (opcional)" className={`col-span-3 ${inputClass}`} style={inputStyle} />
                 {neighborhoodDisabled && (
                   <div className="col-span-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 leading-relaxed">
                     Não estamos entregando nesse bairro no momento.{" "}
@@ -1046,11 +1115,12 @@ const inputClass =
 
             {!table && (
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Forma de pagamento</label>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Forma de pagamento</label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value as typeof paymentMethod)}
                   className={inputClass}
+                  style={inputStyle}
                 >
                   {PAYMENT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1061,7 +1131,7 @@ const inputClass =
 
             {!table && paymentMethod === "CASH" && (
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>
                   Precisa de troco para quanto? (opcional)
                 </label>
                 <input
@@ -1072,12 +1142,13 @@ const inputClass =
                   min="0"
                   placeholder="ex: 100"
                   className={inputClass}
+                  style={inputStyle}
                 />
               </div>
             )}
           </div>
 
-          <p className="text-xs text-gray-400 mb-3">
+          <p className="text-xs mb-3" style={{ color: theme.textSecondary }}>
             Ao finalizar, você concorda com o uso do seu nome, telefone
             {deliveryType === "DELIVERY" ? " e endereço " : " "}
             apenas para processar este pedido.{" "}
@@ -1087,9 +1158,9 @@ const inputClass =
           {error && <p className="text-red-600 text-xs mb-3">{error}</p>}
         </div>
 
-        <div className="p-5 pt-3 border-t border-gray-100 pb-safe">
+        <div className="p-5 pt-3 border-t pb-safe" style={{ borderColor: theme.border }}>
           <div className="mb-4">
-            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>
               Cupom de desconto
             </label>
             <div className="flex gap-2">
@@ -1102,17 +1173,19 @@ const inputClass =
                 }}
                 placeholder="Digite o código"
                 className={inputClass}
+                style={inputStyle}
               />
               <button
                 type="button"
                 onClick={applyCoupon}
                 disabled={validatingCoupon || !couponCode.trim()}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 disabled:opacity-40 whitespace-nowrap"
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold border disabled:opacity-40 whitespace-nowrap"
+                style={{ borderColor: theme.border, color: theme.textSecondary }}
               >
                 {validatingCoupon ? "..." : "Aplicar"}
               </button>
             </div>
-            {couponError && <p className="text-chili text-xs mt-1.5">{couponError}</p>}
+            {couponError && <p className="text-xs mt-1.5" style={{ color: theme.accent }}>{couponError}</p>}
             {couponStatus && (
               <p className="text-emerald-600 text-xs mt-1.5 font-medium">
                 Cupom {couponStatus.code} aplicado: -{currency(couponStatus.discountCents)}
@@ -1123,7 +1196,7 @@ const inputClass =
           <div className="space-y-1 mb-4">
             {couponStatus && couponStatus.discountCents > 0 && (
               <>
-                <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center justify-between text-sm" style={{ color: theme.textSecondary }}>
                   <span>Subtotal</span>
                   <span>{currency(total)}</span>
                 </div>
@@ -1134,14 +1207,14 @@ const inputClass =
               </>
             )}
             {deliveryType === "DELIVERY" && deliveryFeeCents > 0 && (
-              <div className="flex items-center justify-between text-sm text-gray-500">
+              <div className="flex items-center justify-between text-sm" style={{ color: theme.textSecondary }}>
                 <span>Taxa de entrega</span>
                 <span>{currency(deliveryFeeCents)}</span>
               </div>
             )}
-            <div className="flex items-center justify-between font-bold text-base text-gray-900">
+            <div className="flex items-center justify-between font-bold text-base" style={{ color: theme.textPrimary }}>
               <span>Total</span>
-              <span className="text-emerald-600">
+              <span style={{ color: theme.accent }}>
                 {currency(total - (couponStatus?.discountCents ?? 0) + (deliveryType === "DELIVERY" ? deliveryFeeCents : 0))}
               </span>
             </div>
@@ -1149,7 +1222,8 @@ const inputClass =
 
           <button
             disabled={submitting || !restaurantIsOpen}
-            className="w-full py-3.5 rounded-full font-semibold text-sm bg-chili text-white shadow-sm disabled:opacity-50 active:scale-[0.98] transition-transform"
+            className="w-full py-3.5 font-semibold text-sm text-white shadow-sm disabled:opacity-50 active:scale-[0.98] transition-transform"
+            style={{ background: theme.accent, borderRadius: theme.radius === "0.25rem" ? "2px" : "999px" }}
           >
             {!restaurantIsOpen ? "Restaurante fechado no momento" : submitting ? "Enviando…" : "Finalizar Pedido"}
           </button>
@@ -1168,32 +1242,34 @@ function ConfirmedDrawer({
   pixPayload?: string;
   onNewOrder: () => void;
 }) {
+  const theme = useTheme();
   return (
     <Overlay onClose={onNewOrder}>
-      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl bg-white p-5 animate-fade-in-up max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 animate-fade-in-up max-h-[90vh] overflow-y-auto" style={{ background: theme.surface }}>
         <div className="text-center py-6">
           <div className="w-14 h-14 rounded-full mx-auto flex items-center justify-center mb-4 bg-emerald-500">
             <Check size={26} color="#FFFFFF" />
           </div>
-          <h2 className="font-bold text-xl text-gray-900 mb-1">
+          <h2 className="font-bold text-xl mb-1" style={{ color: theme.textPrimary, fontFamily: theme.fontDisplay }}>
             {isCash ? "Pedido Confirmado" : "Pedido Recebido"}
           </h2>
-          <p className="text-sm mb-1 text-gray-500">
+          <p className="text-sm mb-1" style={{ color: theme.textSecondary }}>
             {isCash
               ? "Seu pedido já está sendo preparado."
               : "Assim que confirmarmos o pagamento, seu pedido entra na cozinha."}
           </p>
 
           {pixPayload && (
-            <div className="mt-5 pt-5 border-t border-gray-100">
-              <p className="text-sm font-semibold text-gray-800 mb-3">Pague com Pix para confirmar</p>
+            <div className="mt-5 pt-5 border-t" style={{ borderColor: theme.border }}>
+              <p className="text-sm font-semibold mb-3" style={{ color: theme.textPrimary }}>Pague com Pix para confirmar</p>
               <PixQrCode payload={pixPayload} />
             </div>
           )}
 
           <button
             onClick={onNewOrder}
-            className="mt-6 px-5 py-2.5 rounded-full font-semibold text-sm bg-chili text-white shadow-sm active:scale-95 transition-transform"
+            className="mt-6 px-5 py-2.5 font-semibold text-sm text-white shadow-sm active:scale-95 transition-transform"
+            style={{ background: theme.accent, borderRadius: theme.radius === "0.25rem" ? "2px" : "999px" }}
           >
             Fazer Novo Pedido
           </button>

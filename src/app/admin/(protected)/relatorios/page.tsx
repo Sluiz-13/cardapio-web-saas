@@ -25,6 +25,9 @@ type ReportData = {
   byPaymentMethod: { method: string; cents: number }[];
   topProducts: { name: string; qty: number }[];
   couponsUsed: { code: string; count: number }[];
+  cmvReport: { name: string; qty: number; revenueCents: number; costCents: number; marginCents: number; marginPct: number }[];
+  totalCmvCostCents: number;
+  totalCmvRevenueCents: number;
 };
 
 function defaultRange() {
@@ -184,7 +187,7 @@ export default function RelatoriosPage() {
             </Card>
           </div>
 
-          <Card>
+          <Card className="mb-6">
             <CardBody>
               <p className="text-sm font-semibold text-gray-800 mb-3">Produtos mais vendidos</p>
               {data.topProducts.length === 0 ? (
@@ -198,6 +201,41 @@ export default function RelatoriosPage() {
                     </li>
                   ))}
                 </ol>
+              )}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardBody>
+              <p className="text-sm font-semibold text-gray-800 mb-1">CMV e margem por produto</p>
+              <p className="text-xs text-gray-400 mb-3">
+                Baseado na ficha técnica cadastrada — produto sem ficha técnica não aparece aqui.
+              </p>
+              {data.cmvReport.length === 0 ? (
+                <EmptyState icon={<PieChart size={18} />} title="Nenhum produto com ficha técnica vendido no período" />
+              ) : (
+                <>
+                  <div className="flex items-center justify-between text-sm mb-3 pb-3 border-b border-gray-100">
+                    <span className="text-gray-500">Custo total (CMV)</span>
+                    <span className="font-bold text-gray-900">{currency(data.totalCmvCostCents)}</span>
+                  </div>
+                  <div className="space-y-3">
+                    {data.cmvReport.map((p) => (
+                      <div key={p.name} className="text-sm">
+                        <div className="flex justify-between mb-0.5">
+                          <span className="text-gray-700 font-medium">{p.name}</span>
+                          <span className={`font-semibold ${p.marginPct < 20 ? "text-red-500" : "text-emerald-600"}`}>
+                            {p.marginPct}% margem
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-400">
+                          <span>{p.qty} vendidos · custo {currency(p.costCents)}</span>
+                          <span>receita {currency(p.revenueCents)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </CardBody>
           </Card>

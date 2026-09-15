@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
       extraOptions: true,
       category: { select: { name: true } },
       optionGroups: { include: { items: true } },
+      recipeItems: true,
     },
   });
   if (products.length !== new Set(productIds).size) {
@@ -134,7 +135,7 @@ export async function POST(req: NextRequest) {
         : (await tx.comanda.create({ data: { restaurantId, tableId } })).id;
     }
 
-    return tx.order.create({
+    const created = await tx.order.create({
       data: {
         restaurantId,
         customerName,
@@ -151,6 +152,28 @@ export async function POST(req: NextRequest) {
         statusHistory: { create: { status: "NEW" } },
       },
     });
+
+    // Baixa automática de estoque — mesma lógica do pedido do cliente.
+    for (const item of items) {
+      const product = products.find((p) => p.id === item.productId)!;
+      for (const recipeItem of product.recipeItems) {
+        const deduct = recipeItem.quantity * item.qty;
+        await tx.insumo.update({
+          where: { id: recipeItem.insumoId },
+          data: { currentStock: { decrement: deduct } },
+        });
+        await tx.stockMovement.create({
+          data: {
+            insumoId: recipeItem.insumoId,
+            type: "SAIDA_VENDA",
+            quantity: deduct,
+            orderId: created.id,
+          },
+        });
+      }
+    }
+
+    return created;
   });
 
   return NextResponse.json({ orderId: order.id });

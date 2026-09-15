@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import {
   ClipboardList,
@@ -21,30 +22,39 @@ import {
   Wallet as WalletIcon,
   CalendarCheck,
   History,
+  Package2,
 } from "lucide-react";
 import { Sidebar, type SidebarLink } from "@/components/ui/Sidebar";
 
 
 const LINKS: SidebarLink[] = [
-  { href: "/admin", label: "Pedidos", icon: ClipboardList },
-  { href: "/garcom/mesa/balcao?from=admin", label: "Pedido Manual", icon: Plus },
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/produtos", label: "Produtos", icon: Package },
-  { href: "/admin/categorias", label: "Categorias", icon: Tags },
-  { href: "/admin/mesas", label: "Mesas", icon: LayoutGrid },
-  { href: "/admin/comandas", label: "Comandas", icon: Receipt },
-  { href: "/admin/caixa", label: "Caixa", icon: WalletIcon },
-  { href: "/admin/fechamento", label: "Fechamento Diário", icon: CalendarCheck },
-  { href: "/admin/historico", label: "Histórico", icon: History },
-  { href: "/admin/financeiro", label: "Financeiro", icon: Wallet },
-  { href: "/admin/relatorios", label: "Relatórios", icon: FileBarChart },
-  { href: "/admin/planos", label: "Plano", icon: CreditCard },
-  { href: "/admin/conta", label: "Conta", icon: UserCircle },
-  { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
-  { href: "/admin/cupons", label: "Cupons", icon: Ticket },
-  { href: "/admin/entregas", label: "Entregas", icon: Truck },
-  { href: "/admin/entregadores", label: "Entregadores", icon: Bike },
-  { href: "/admin/equipe", label: "Equipe", icon: Users },
+  // Operação
+  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Operação" },
+  { href: "/admin", label: "Pedidos", icon: ClipboardList, group: "Operação" },
+  { href: "/garcom/mesa/balcao?from=admin", label: "Pedido Manual", icon: Plus, group: "Operação" },
+  { href: "/admin/mesas", label: "Mesas", icon: LayoutGrid, group: "Operação" },
+  { href: "/admin/comandas", label: "Comandas", icon: Receipt, group: "Operação" },
+  { href: "/admin/entregas", label: "Entregas", icon: Truck, group: "Operação" },
+  { href: "/admin/entregadores", label: "Entregadores", icon: Bike, group: "Operação" },
+
+  // Cadastro
+  { href: "/admin/produtos", label: "Produtos", icon: Package, group: "Cadastro" },
+  { href: "/admin/categorias", label: "Categorias", icon: Tags, group: "Cadastro" },
+  { href: "/admin/cupons", label: "Cupons", icon: Ticket, group: "Cadastro" },
+  { href: "/admin/insumos", label: "Insumos", icon: Package2, group: "Cadastro" },
+
+  // Financeiro
+  { href: "/admin/caixa", label: "Caixa", icon: WalletIcon, group: "Financeiro" },
+  { href: "/admin/financeiro", label: "Financeiro", icon: Wallet, group: "Financeiro" },
+  { href: "/admin/fechamento", label: "Fechamento Diário", icon: CalendarCheck, group: "Financeiro" },
+  { href: "/admin/historico", label: "Histórico", icon: History, group: "Financeiro" },
+  { href: "/admin/relatorios", label: "Relatórios", icon: FileBarChart, group: "Financeiro" },
+
+  // Administração
+  { href: "/admin/equipe", label: "Equipe", icon: Users, group: "Administração" },
+  { href: "/admin/conta", label: "Conta", icon: UserCircle, group: "Administração" },
+  { href: "/admin/configuracoes", label: "Configurações", icon: Settings, group: "Administração" },
+  { href: "/admin/planos", label: "Plano", icon: CreditCard, group: "Administração" },
 ];
 
 export default function AdminNav({
@@ -56,10 +66,25 @@ export default function AdminNav({
   userName: string;
   logoUrl?: string | null;
 }) {
+  const [lowStockCount, setLowStockCount] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/admin/insumos")
+      .then((r) => r.json())
+      .then((insumos: { currentStock: number; minStock: number }[]) => {
+        setLowStockCount(insumos.filter((i) => i.currentStock <= i.minStock).length);
+      })
+      .catch(() => {});
+  }, []);
+
+  const links = LINKS.map((link) =>
+    link.href === "/admin/insumos" ? { ...link, badge: lowStockCount } : link
+  );
+
   return (
     <Sidebar
       brand={restaurantName}
-      links={LINKS}
+      links={links}
       userName={userName}
       onSignOut={() => signOut({ callbackUrl: "/admin/login" })}
       tone="light"

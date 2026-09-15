@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Power, Settings, ImageIcon, Wallet, Phone as PhoneIcon, Clock, Printer, Percent } from "lucide-react";
+import { Power, Settings, ImageIcon, Wallet, Phone as PhoneIcon, Clock, Printer, Percent, Palette, Lock } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Input";
@@ -30,6 +30,8 @@ export default function ConfiguracoesPage() {
   const [address, setAddress] = useState("");
   const [avgDeliveryTime, setAvgDeliveryTime] = useState("");
   const [serviceFeePercent, setServiceFeePercent] = useState("0");
+  const [menuTheme, setMenuTheme] = useState<"CLASSIC" | "PREMIUM">("CLASSIC");
+  const [plan, setPlan] = useState<"START" | "PRO">("START");
   const [printKitchenCopy, setPrintKitchenCopy] = useState(true);
   const [printMethod, setPrintMethod] = useState("MANUAL");
   const [printerIp, setPrinterIp] = useState("");
@@ -76,6 +78,8 @@ export default function ConfiguracoesPage() {
         setAddress(data.restaurant.address ?? "");
         setAvgDeliveryTime(data.restaurant.avgDeliveryTime ?? "");
         setServiceFeePercent(String(data.restaurant.serviceFeePercent ?? 0));
+        setMenuTheme(data.restaurant.menuTheme ?? "CLASSIC");
+        setPlan(data.restaurant.plan ?? "START");
         setPrintKitchenCopy(data.restaurant.printKitchenCopy ?? true);
         setPrintMethod(data.restaurant.printMethod ?? "MANUAL");
         setPrinterIp(data.restaurant.printerIp ?? "");
@@ -148,6 +152,7 @@ export default function ConfiguracoesPage() {
         address: address || undefined,
         avgDeliveryTime: avgDeliveryTime || undefined,
         serviceFeePercent: Number(serviceFeePercent) || 0,
+        menuTheme,
         printKitchenCopy,
         printMethod,
         printerIp: printMethod === "AGENT" ? printerIp : undefined,
@@ -325,6 +330,55 @@ export default function ConfiguracoesPage() {
             />
             <span className="text-sm text-gray-500">%</span>
           </div>
+        </CardBody>
+      </Card>
+
+      <Card className="mb-5">
+        <CardHeader className="flex items-center gap-2">
+          <Palette size={15} className="text-gray-400" />
+          <CardTitle>Tema do Cardápio</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <CardDescription className="mb-3">Escolha o visual que seu cliente vê ao abrir seu cardápio.</CardDescription>
+          <div className="grid grid-cols-1 gap-3">
+            <button
+              type="button"
+              onClick={() => setMenuTheme("CLASSIC")}
+              className={`text-left rounded-xl border-2 p-3 transition-colors duration-[180ms] ${
+                menuTheme === "CLASSIC" ? "border-brand" : "border-surface-border"
+              }`}
+            >
+              <p className="font-semibold text-sm text-gray-800">Clássico</p>
+              <p className="text-xs text-gray-400 mt-0.5">Creme e laranja, cards com foto — estilo app de delivery.</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (plan !== "PRO") return;
+                setMenuTheme("PREMIUM");
+              }}
+              disabled={plan !== "PRO"}
+              className={`text-left rounded-xl border-2 p-3 transition-colors duration-[180ms] disabled:opacity-60 ${
+                menuTheme === "PREMIUM" ? "border-brand" : "border-surface-border"
+              }`}
+            >
+              <p className="font-semibold text-sm text-gray-800 flex items-center gap-1.5">
+                Premium
+                {plan !== "PRO" && <Lock size={11} className="text-gray-400" />}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">Grafite e dourado, lista serifada — estilo cardápio de restaurante.</p>
+            </button>
+          </div>
+
+          {plan !== "PRO" && (
+            <p className="text-xs text-gray-500 mt-3">
+              O tema Premium é exclusivo do plano Pro.{" "}
+              <a href="/admin/planos" className="text-brand font-semibold underline">
+                Fazer upgrade
+              </a>
+            </p>
+          )}
         </CardBody>
       </Card>
 

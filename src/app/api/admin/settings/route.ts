@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAdminSession } from "@/lib/session";
+import { UPGRADE_MESSAGE } from "@/lib/plan-features";
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -10,6 +11,7 @@ const updateSchema = z.object({
   defaultDeliveryFeeCents: z.number().int().nonnegative().optional(),
   serviceFeePercent: z.number().int().min(0).max(100).optional(),
   printKitchenCopy: z.boolean().optional(),
+  menuTheme: z.enum(["CLASSIC", "PREMIUM"]).optional(),
   pixKey: z.string().optional(),
   pixKeyType: z.enum(["CPF", "CNPJ", "EMAIL", "PHONE", "RANDOM"]).optional(),
   pixMerchantName: z.string().max(25).optional(),
@@ -48,6 +50,8 @@ export async function GET() {
     defaultDeliveryFeeCents: true,
     serviceFeePercent: true,
     printKitchenCopy: true,
+    menuTheme: true,
+    plan: true,
     pixKey: true, 
     pixKeyType: true, 
     pixMerchantName: true, 
@@ -83,6 +87,7 @@ export async function PATCH(req: NextRequest) {
     defaultDeliveryFeeCents,
     serviceFeePercent,
     printKitchenCopy,
+    menuTheme,
     pixKey,
     pixKeyType,
     pixMerchantName,
@@ -99,7 +104,18 @@ export async function PATCH(req: NextRequest) {
     businessHours,
   } = parsed.data;
 
+  if (menuTheme === "PREMIUM") {
+    const currentRestaurant = await db.restaurant.findUnique({
+      where: { id: session.user.restaurantId },
+      select: { plan: true },
+    });
+    if (currentRestaurant?.plan !== "PRO") {
+      return NextResponse.json({ error: UPGRADE_MESSAGE }, { status: 403 });
+    }
+  }
+
   const restaurantData: Record<string, unknown> = {};
+  if (menuTheme !== undefined) restaurantData.menuTheme = menuTheme;
   if (isOpen !== undefined) restaurantData.isOpen = isOpen;
   if (defaultDeliveryFeeCents !== undefined) restaurantData.defaultDeliveryFeeCents = defaultDeliveryFeeCents;
   if (serviceFeePercent !== undefined) restaurantData.serviceFeePercent = serviceFeePercent;

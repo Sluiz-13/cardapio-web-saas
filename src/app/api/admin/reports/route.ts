@@ -69,6 +69,48 @@ export async function GET(req: NextRequest) {
     if (o.couponCode) couponsUsed.set(o.couponCode, (couponsUsed.get(o.couponCode) ?? 0) + 1);
   }
 
+  // CMV — custo dos insumos vs receita, por produto. Usa a ficha técnica
+  // ATUAL (não uma foto do custo no momento da venda) — se o preço do
+  // insumo mudou depois, o relatório reflete o custo de hoje.
+  const productIds = Array.from(
+    new Set(orders.flatMap((o) => o.items.map((i) => i.productId).filter((id): id is string => !!id)))
+  );
+  const productsWithRecipe = await db.product.findMany({
+    where: { id: { in: productIds } },
+    select: {
+      id: true,
+      recipeItems: { select: { quantity: true, insumo: { select: { costPerUnit: true } } } },
+    },
+  });
+  const unitCostByProductId = new Map(
+    productsWithRecipe.map((p) => [p.id, p.recipeItems.reduce((s, r) => s + r.quantity * r.insumo.costPerUnit, 0)])
+  );
+
+  const cmvByProduct = new Map<string, { name: string; qty: number; revenueCents: number; costCents: number }>();
+  for (const o of orders) {
+    for (const item of o.items) {
+      if (!item.productId) continue;
+      const unitCost = unitCostByProductId.get(item.productId);
+      if (!unitCost) continue; // sem ficha técnica cadastrada — não entra no CMV
+      const entry = cmvByProduct.get(item.productId) ?? { name: item.productName, qty: 0, revenueCents: 0, costCents: 0 };
+      entry.qty += item.qty;
+      entry.revenueCents += item.unitPriceCents * item.qty;
+      entry.costCents += unitCost * item.qty;
+      cmvByProduct.set(item.productId, entry);
+    }
+  }
+
+  const cmvReport = Array.from(cmvByProduct.values())
+    .map((p) => ({
+      ...p,
+      marginCents: p.revenueCents - p.costCents,
+      marginPct: p.revenueCents > 0 ? Math.round(((p.revenueCents - p.costCents) / p.revenueCents) * 100) : 0,
+    }))
+    .sort((a, b) => b.revenueCents - a.revenueCents);
+
+  const totalCmvCostCents = cmvReport.reduce((s, p) => s + p.costCents, 0);
+  const totalCmvRevenueCents = cmvReport.reduce((s, p) => s + p.revenueCents, 0);
+
   return NextResponse.json({
     totalCents,
     ordersCount: orders.length,
@@ -77,5 +119,8 @@ export async function GET(req: NextRequest) {
     byPaymentMethod: Array.from(byPaymentMethod.entries()).map(([method, cents]) => ({ method, cents })),
     topProducts,
     couponsUsed: Array.from(couponsUsed.entries()).map(([code, count]) => ({ code, count })),
+    cmvReport,
+    totalCmvCostCents,
+    totalCmvRevenueCents,
   });
 }

@@ -77,6 +77,7 @@ export default async function RestaurantMenuPage({
         address: restaurant.address,
         avgDeliveryTime: restaurant.avgDeliveryTime,
         logoUrl: restaurant.logoUrl,
+        menuTheme: restaurant.menuTheme,
       }}
       categories={categories}
       products={products}
