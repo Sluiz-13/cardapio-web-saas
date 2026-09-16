@@ -24,6 +24,7 @@ import {
   History,
   Package2,
   Users as UsersIcon,
+  CalendarClock,
 } from "lucide-react";
 import { Sidebar, type SidebarLink } from "@/components/ui/Sidebar";
 import { GROUP_ROLES, type AdminGroup, type AdminRole } from "@/lib/admin-permissions";
@@ -44,6 +45,7 @@ const LINKS: SidebarLink[] = [
   { href: "/admin/comandas", label: "Comandas", icon: Receipt, group: "Operação" },
   { href: "/admin/entregas", label: "Entregas", icon: Truck, group: "Operação" },
   { href: "/admin/entregadores", label: "Entregadores", icon: Bike, group: "Operação" },
+  { href: "/admin/reservas", label: "Reservas", icon: CalendarClock, group: "Operação" },
 
   // Cadastro
   { href: "/admin/produtos", label: "Produtos", icon: Package, group: "Cadastro" },

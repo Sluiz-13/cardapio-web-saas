@@ -83,10 +83,11 @@ export default function ContaPage() {
   }
 
   return (
-    <div className="max-w-sm mx-auto px-4 py-6 sm:px-6">
+    <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6">
       <PageHeader icon={UserCircle} title="Minha conta" subtitle="Login e segurança do seu acesso ao painel." />
 
-      <Card className="mb-5">
+      <div className="grid sm:grid-cols-2 gap-5">
+      <Card>
         <CardHeader className="flex items-center gap-2">
           <KeyRound size={15} className="text-gray-400" />
           <div>
@@ -138,6 +139,7 @@ export default function ContaPage() {
           </form>
         </CardBody>
       </Card>
+      </div>
     </div>
   );
 }

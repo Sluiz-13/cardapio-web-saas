@@ -43,6 +43,8 @@ const ROUTE_GROUPS: { prefix: string; group: AdminGroup }[] = [
   { prefix: "/api/admin/plan", group: "administracao" },
 
   // Operação 
+  { prefix: "/admin/reservas", group: "operacao" },
+  { prefix: "/api/admin/reservations", group: "operacao" },
   { prefix: "/admin/pedidos", group: "operacao" },
   { prefix: "/admin/imprimir-comanda", group: "operacao" },
   { prefix: "/admin", group: "operacao" },

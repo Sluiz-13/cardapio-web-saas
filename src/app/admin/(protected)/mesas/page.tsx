@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, QrCode, Lock, LayoutGrid } from "lucide-react";
+import { Plus, Trash2, QrCode, Lock, LayoutGrid, CircleDot } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -25,6 +25,7 @@ export default function MesasPage() {
   const [locked, setLocked] = useState(false);
   const [error, setError] = useState("");
   const [qrTable, setQrTable] = useState<Table | null>(null);
+  const [occupiedTableIds, setOccupiedTableIds] = useState<Set<string>>(new Set());
 
   async function load() {
     setLoading(true);
@@ -38,6 +39,22 @@ export default function MesasPage() {
     setTables(data.tables);
     setRestaurantSlug(data.restaurantSlug);
     setQrSelfOrderAllowed(data.qrSelfOrderAllowed);
+
+    // Cruza com as comandas abertas pra saber quais mesas estão ocupadas
+    // agora — não trava a tela se isso falhar por algum motivo.
+    try {
+      const comandasRes = await fetch("/api/admin/comandas");
+      if (comandasRes.ok) {
+        const comandasData = await comandasRes.json();
+        const ids = new Set<string>(
+          comandasData.comandas.map((c: { tableId: string | null }) => c.tableId).filter((id: string | null): id is string => !!id)
+        );
+        setOccupiedTableIds(ids);
+      }
+    } catch {
+      // silencioso — status de ocupação é um extra, não algo crítico
+    }
+
     setLoading(false);
   }
 
@@ -137,38 +154,53 @@ export default function MesasPage() {
           description="Crie a primeira mesa acima pra gerar o QR Code dela."
         />
       ) : (
-        <div className="space-y-2">
-          {tables.map((t) => (
-            <Card key={t.id}>
-              <CardBody className="flex items-center justify-between !py-3">
-                <span className="font-semibold text-sm text-gray-800">{t.label}</span>
-                <div className="flex items-center gap-1 shrink-0">
-                  {qrSelfOrderAllowed ? (
-                    <button
-                      onClick={() => setQrTable(t)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-surface-border text-gray-600 hover:bg-brand-light hover:text-brand hover:border-brand/30 transition-colors duration-[180ms]"
-                    >
-                      <QrCode size={13} /> Ver QR Code
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => (window.location.href = "/admin/planos")}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors duration-[180ms]"
-                    >
-                      <QrCode size={13} /> QR Code é Pro
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleDelete(t.id)}
-                    className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors duration-[180ms]"
-                    aria-label="Remover mesa"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {tables.map((t) => {
+            const occupied = occupiedTableIds.has(t.id);
+            return (
+              <div key={t.id} className="relative rounded-2xl border border-surface-border bg-white p-4 flex flex-col items-center text-center">
+                <button
+                  onClick={() => handleDelete(t.id)}
+                  className="absolute top-2 right-2 flex items-center justify-center w-6 h-6 rounded-full text-gray-300 hover:bg-red-50 hover:text-red-500 transition-colors duration-[180ms]"
+                  aria-label="Remover mesa"
+                >
+                  <Trash2 size={12} />
+                </button>
+
+                <div
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center mb-2.5 ${
+                    occupied ? "bg-brand-light text-brand" : "bg-emerald-50 text-emerald-600"
+                  }`}
+                >
+                  <LayoutGrid size={18} />
                 </div>
-              </CardBody>
-            </Card>
-          ))}
+
+                <p className="font-bold text-sm text-gray-900 mb-0.5">{t.label}</p>
+                <div className="flex items-center gap-1 mb-3">
+                  <CircleDot size={9} className={occupied ? "text-brand" : "text-emerald-500"} fill="currentColor" />
+                  <span className={`text-xs font-medium ${occupied ? "text-brand" : "text-emerald-600"}`}>
+                    {occupied ? "Ocupada" : "Livre"}
+                  </span>
+                </div>
+
+                {qrSelfOrderAllowed ? (
+                  <button
+                    onClick={() => setQrTable(t)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-surface-border text-gray-600 hover:bg-brand-light hover:text-brand hover:border-brand/30 transition-colors duration-[180ms] w-full justify-center"
+                  >
+                    <QrCode size={13} /> QR Code
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => (window.location.href = "/admin/planos")}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors duration-[180ms] w-full justify-center"
+                  >
+                    <QrCode size={13} /> É Pro
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

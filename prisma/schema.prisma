@@ -49,6 +49,7 @@ model Restaurant {
   cashSessions            CashSession[]
   insumos                 Insumo[]
   customers                Customer[]
+  reservations             Reservation[]
   loyaltyPointsEnabled          Boolean @default(false)
   loyaltyPointsPerReal          Float   @default(0) // pontos ganhos por real gasto — aceita decimal (ex: 0.5)
   loyaltyPointsRedeemThreshold  Int     @default(0) // quantos pontos = 1 resgate
@@ -274,6 +275,31 @@ model Customer {
   @@map("customers")
 }
 
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELED
+}
+
+model Reservation {
+  id            String            @id @default(cuid())
+  restaurantId  String
+  restaurant    Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customerName  String
+  customerPhone String
+  partySize     Int
+  reservedFor   DateTime
+  note          String?
+  status        ReservationStatus @default(PENDING)
+  tableId       String?
+  table         Table?            @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  createdAt     DateTime          @default(now())
+
+  @@index([restaurantId])
+  @@map("reservations")
+}
+
 model ProductRecipeItem {
   id        String  @id @default(cuid())
   productId String
@@ -338,8 +364,9 @@ model Table {
   label        String // ex: "Mesa 1", "Varanda 3"
   createdAt    DateTime   @default(now())
 
-  orders   Order[]
-  comandas Comanda[]
+  orders       Order[]
+  comandas     Comanda[]
+  reservations Reservation[]
 
   @@index([restaurantId])
   @@map("tables")

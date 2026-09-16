@@ -430,6 +430,48 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* GESTÃO */}
+      <section className="bg-[#111827] py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="mb-16 max-w-2xl">
+            <span className="inline-block border border-white/10 text-slate-400 text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-4">
+              Além do cardápio
+            </span>
+            <h2 className="text-4xl font-extrabold mb-4 tracking-tight text-white">
+              Gestão de verdade, não só pedido
+            </h2>
+            <p className="text-slate-400">O que separa um cardápio digital de um sistema de restaurante completo.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <h3 className="font-bold text-lg mb-2 text-white">Estoque com CMV</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Cadastre a ficha técnica de cada prato. O estoque baixa automaticamente a cada venda, e você vê o custo e a margem de cada produto, não só o preço de venda.
+              </p>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <h3 className="font-bold text-lg mb-2 text-white">Fidelidade e Cashback</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Cliente cria conta, acumula pontos e ganha cashback pra usar no próximo pedido — sem depender de cupom de marketplace.
+              </p>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <h3 className="font-bold text-lg mb-2 text-white">Reservas de mesa</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Registre reservas feitas por telefone ou WhatsApp, com status e mesa atribuída — sem depender de caderno.
+              </p>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <h3 className="font-bold text-lg mb-2 text-white">Cardápio Premium</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Um segundo visual pro seu cardápio digital — mais sóbrio, tipografia elegante — pra restaurantes que querem outra identidade visual.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CASE REAL */}
       <section id="case" className="bg-[#111827] py-24 scroll-mt-16">
         <div className="max-w-5xl mx-auto px-6">
@@ -472,6 +514,54 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* COMPARATIVO IFOOD */}
+      <section className="bg-white border-t border-slate-200 py-24">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="mb-12 max-w-2xl">
+            <span className="inline-block border border-slate-200 text-slate-500 text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-4">
+              Comparativo
+            </span>
+            <h2 className="text-4xl font-extrabold mb-4 tracking-tight">iFood vs Menuair<br />(seu canal próprio)</h2>
+            <p className="text-slate-600">
+              Entenda quanto você deixa de pagar tendo seu próprio canal — sem precisar abandonar o que já funciona.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 overflow-hidden">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <td className="p-4 text-slate-500 font-semibold"></td>
+                  <td className="p-4 text-slate-500 font-bold text-center">iFood / Marketplace</td>
+                  <td className="p-4 text-[#D35400] font-bold text-center bg-orange-50">Menuair (seu canal)</td>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: "Taxa por pedido", them: "12% a 27%", us: "0%" },
+                  { label: "Dados do cliente", them: "Ficam com o app", us: "Seus, pra fidelizar" },
+                  { label: "Sua marca", them: "Template deles", us: "Logo e cores próprias" },
+                  { label: "Cupom de desconto", them: "Regras do app", us: "Você define" },
+                  { label: "Mesa, comanda e caixa", them: "Não tem", us: "Sistema completo" },
+                  { label: "Pontos e cashback", them: "Não tem", us: "Você configura" },
+                  { label: "Pagamento online", them: "Com taxa extra", us: "Pix direto, sem taxa" },
+                ].map((row, i) => (
+                  <tr key={row.label} className={i !== 6 ? "border-b border-slate-100" : ""}>
+                    <td className="p-4 text-slate-700 font-medium">{row.label}</td>
+                    <td className="p-4 text-slate-400 text-center">{row.them}</td>
+                    <td className="p-4 text-emerald-700 font-semibold text-center bg-orange-50/50">{row.us}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="text-xs text-slate-400 mt-4 italic">
+            Dica: muitos restaurantes usam os dois juntos — o marketplace pra atrair cliente novo, o Menuair pra fidelizar sem pagar comissão nisso.
+          </p>
         </div>
       </section>
 

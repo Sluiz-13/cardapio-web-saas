@@ -639,7 +639,7 @@ function Footer({ restaurant }: { restaurant: Restaurant }) {
           className="font-semibold underline"
           style={{ color: theme.textSecondary }}
         >
-          Luiz Felippe
+          MenurAir
         </a>
       </p>
       <p className="text-center text-[11px]" style={{ color: theme.textSecondary }}>
