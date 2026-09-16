@@ -26,7 +26,17 @@ export async function POST(req: NextRequest) {
   if (!valid) return NextResponse.json({ error: "Telefone ou senha incorretos." }, { status: 401 });
 
   const token = createCustomerSessionToken(customer.id, restaurantId);
-  const res = NextResponse.json({ id: customer.id, name: customer.name, phone: customer.phone });
+  const res = NextResponse.json({
+    id: customer.id,
+    name: customer.name,
+    phone: customer.phone,
+    street: customer.street,
+    number: customer.number,
+    complement: customer.complement,
+    neighborhood: customer.neighborhood,
+    city: customer.city,
+    referenceNote: customer.referenceNote,
+  });
   res.cookies.set({ ...customerSessionCookieOptions(), value: token });
   return res;
 }

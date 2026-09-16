@@ -24,7 +24,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen flex flex-col sm:flex-row bg-surface-bg">
-      <AdminNav restaurantName={restaurant?.name ?? ""} userName={session.user.name} logoUrl={restaurant?.logoUrl} />
+      <AdminNav
+        restaurantName={restaurant?.name ?? ""}
+        userName={session.user.name}
+        logoUrl={restaurant?.logoUrl}
+        role={session.user.role ?? "OWNER"}
+      />
       <AutoPrintWatcher
         printMethod={restaurant?.printMethod ?? "MANUAL"}
         printerIp={restaurant?.printerIp}

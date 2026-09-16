@@ -28,6 +28,8 @@ const createOrderSchema = z
     address: addressSchema.optional(),
     tableId: z.string().optional(),
     couponCode: z.string().optional(),
+    redeemLoyaltyPoints: z.boolean().optional(),
+    useCashback: z.boolean().optional(),
     changeForCents: z.number().int().positive().optional(),
     items: z
       .array(
@@ -76,6 +78,8 @@ export async function POST(req: NextRequest) {
     address,
     tableId,
     couponCode,
+    redeemLoyaltyPoints,
+    useCashback,
     changeForCents,
     items,
   } = parsed.data;
@@ -195,6 +199,12 @@ const restaurant = await db.restaurant.findUnique({
     pixKeyType: true,
     pixMerchantName: true,
     pixMerchantCity: true,
+    loyaltyPointsEnabled: true,
+    loyaltyPointsPerReal: true,
+    loyaltyPointsRedeemThreshold: true,
+    loyaltyPointsRedeemValueCents: true,
+    cashbackEnabled: true,
+    cashbackPercent: true,
   },
 });
 
@@ -272,7 +282,37 @@ if (!restaurant.isOpen) {
     appliedCouponCode = coupon.code;
   }
 
-  const totalCents = subtotalCents - discountCents + deliveryFeeCents;
+  // Resgate de pontos e cashback — só valem pra quem está numa conta
+  // válida DESSE restaurante, e sempre recalculados aqui, nunca confiando
+  // no valor que o navegador diz que vai descontar.
+  let loyaltyDiscountCents = 0;
+  let cashbackUsedCents = 0;
+  let customerAccount: { loyaltyPoints: number; cashbackBalanceCents: number } | null = null;
+
+  if (validCustomerId) {
+    customerAccount = await db.customer.findUnique({
+      where: { id: validCustomerId },
+      select: { loyaltyPoints: true, cashbackBalanceCents: true },
+    });
+  }
+
+  if (
+    redeemLoyaltyPoints &&
+    customerAccount &&
+    restaurant?.loyaltyPointsEnabled &&
+    (restaurant.loyaltyPointsRedeemThreshold ?? 0) > 0 &&
+    customerAccount.loyaltyPoints >= (restaurant.loyaltyPointsRedeemThreshold ?? 0)
+  ) {
+    loyaltyDiscountCents = restaurant.loyaltyPointsRedeemValueCents ?? 0;
+  }
+
+  const preCashbackTotal = Math.max(subtotalCents - discountCents - loyaltyDiscountCents + deliveryFeeCents, 0);
+
+  if (useCashback && customerAccount && restaurant?.cashbackEnabled && customerAccount.cashbackBalanceCents > 0) {
+    cashbackUsedCents = Math.min(customerAccount.cashbackBalanceCents, preCashbackTotal);
+  }
+
+  const totalCents = preCashbackTotal - cashbackUsedCents;
 
   // Troco só faz sentido pra pagamento em dinheiro, e o valor que o cliente
   // vai pagar não pode ser menor que o total do pedido.
@@ -322,6 +362,8 @@ if (!restaurant.isOpen) {
         deliveryFeeCents,
         totalCents,
         discountCents,
+        loyaltyDiscountCents,
+        cashbackUsedCents,
         couponCode: appliedCouponCode,
         changeForCents: paymentMethod === "CASH" ? changeForCents : undefined,
         paymentConfirmed: paymentMethod !== "PIX",
@@ -354,6 +396,43 @@ if (!restaurant.isOpen) {
             type: "SAIDA_VENDA",
             quantity: deduct,
             orderId: created.id,
+          },
+        });
+      }
+    }
+
+    // Fidelidade e cashback — só pra quem está logado na conta (pedido de
+    // convidado não acumula, é justamente o incentivo pra criar conta).
+    if (validCustomerId) {
+      const pointsEarned = restaurant?.loyaltyPointsEnabled
+        ? Math.round((subtotalCents / 100) * (restaurant.loyaltyPointsPerReal ?? 0))
+        : 0;
+      const cashbackEarnedCents = restaurant?.cashbackEnabled
+        ? Math.round((subtotalCents * (restaurant.cashbackPercent ?? 0)) / 100)
+        : 0;
+      // Ganha pontos/cashback desse pedido, e ao mesmo tempo desconta o que
+      // foi resgatado/usado nele — tudo num incremento só, líquido.
+      const pointsDelta = pointsEarned - (loyaltyDiscountCents > 0 ? restaurant?.loyaltyPointsRedeemThreshold ?? 0 : 0);
+      const cashbackDelta = cashbackEarnedCents - cashbackUsedCents;
+
+      if (pointsDelta !== 0 || cashbackDelta !== 0 || (deliveryType === "DELIVERY" && address)) {
+        await tx.customer.update({
+          where: { id: validCustomerId },
+          data: {
+            loyaltyPoints: { increment: pointsDelta },
+            cashbackBalanceCents: { increment: cashbackDelta },
+            // Guarda o endereço mais recente na conta — na próxima compra
+            // já vem pré-preenchido, editável se mudar.
+            ...(deliveryType === "DELIVERY" && address
+              ? {
+                  street: address.street,
+                  number: address.number,
+                  complement: address.complement,
+                  neighborhood: address.neighborhood,
+                  city: address.city,
+                  referenceNote: address.referenceNote,
+                }
+              : {}),
           },
         });
       }

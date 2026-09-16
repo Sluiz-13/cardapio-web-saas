@@ -7,7 +7,7 @@ declare module "next-auth" {
       name: string;
       email: string;
       restaurantId?: string;
-      role?: "OWNER" | "STAFF";
+      role?: "OWNER" | "GERENTE" | "CAIXA" | "STAFF";
       isPlatformAdmin?: boolean;
     };
   }

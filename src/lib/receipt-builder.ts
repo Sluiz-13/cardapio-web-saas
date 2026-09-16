@@ -22,6 +22,9 @@ type OrderForReceipt = Pick<
   | "paymentMethod"
   | "changeForCents"
   | "deliveryFeeCents"
+  | "discountCents"
+  | "loyaltyDiscountCents"
+  | "cashbackUsedCents"
 > & {
   items: OrderItemForReceipt[];
   restaurant: Pick<Restaurant, "name">;
@@ -148,10 +151,22 @@ export function buildReceiptEscPos(order: OrderForReceipt): Buffer {
     if (extras.length > 0) lines.push(...wrapText(`+ ${extras.map((e) => e.name).join(", ")}`, "  "));
   }
 
+  const itemsSubtotalCents = order.items.reduce((s, item) => s + item.unitPriceCents * item.qty, 0);
+  const hasAdjustments =
+    order.discountCents > 0 ||
+    order.loyaltyDiscountCents > 0 ||
+    order.cashbackUsedCents > 0 ||
+    (order.deliveryType === "DELIVERY" && order.deliveryFeeCents > 0);
+
   lines.push("-".repeat(CHARS_PER_LINE));
-  if (order.deliveryType === "DELIVERY" && order.deliveryFeeCents) {
-    lines.push(padLine("Subtotal", currency(order.totalCents - order.deliveryFeeCents)));
-    lines.push(padLine("Taxa de entrega", currency(order.deliveryFeeCents)));
+  if (hasAdjustments) {
+    lines.push(padLine("Subtotal", currency(itemsSubtotalCents)));
+    if (order.discountCents > 0) lines.push(padLine("Cupom", `-${currency(order.discountCents)}`));
+    if (order.loyaltyDiscountCents > 0) lines.push(padLine("Pontos resgatados", `-${currency(order.loyaltyDiscountCents)}`));
+    if (order.deliveryType === "DELIVERY" && order.deliveryFeeCents) {
+      lines.push(padLine("Taxa de entrega", currency(order.deliveryFeeCents)));
+    }
+    if (order.cashbackUsedCents > 0) lines.push(padLine("Cashback usado", `-${currency(order.cashbackUsedCents)}`));
   }
   lines.push(padLine("TOTAL", currency(order.totalCents)));
   lines.push(`Pagamento: ${PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}`);

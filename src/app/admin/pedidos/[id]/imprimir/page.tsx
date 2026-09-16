@@ -82,18 +82,49 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
 
       <hr className="border-dashed border-black my-2" />
 
-      {order.deliveryType === "DELIVERY" && order.deliveryFeeCents ? (
-        <>
-          <div className="flex justify-between">
-            <span>Subtotal</span>
-            <span>{currency(order.totalCents - order.deliveryFeeCents)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Taxa de entrega</span>
-            <span>{currency(order.deliveryFeeCents)}</span>
-          </div>
-        </>
-      ) : null}
+      {(() => {
+        const itemsSubtotalCents = order.items.reduce((s, item) => s + item.unitPriceCents * item.qty, 0);
+        const hasAdjustments =
+          order.discountCents > 0 ||
+          order.loyaltyDiscountCents > 0 ||
+          order.cashbackUsedCents > 0 ||
+          (order.deliveryType === "DELIVERY" && order.deliveryFeeCents > 0);
+
+        if (!hasAdjustments) return null;
+
+        return (
+          <>
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>{currency(itemsSubtotalCents)}</span>
+            </div>
+            {order.discountCents > 0 && (
+              <div className="flex justify-between">
+                <span>Cupom</span>
+                <span>-{currency(order.discountCents)}</span>
+              </div>
+            )}
+            {order.loyaltyDiscountCents > 0 && (
+              <div className="flex justify-between">
+                <span>Pontos resgatados</span>
+                <span>-{currency(order.loyaltyDiscountCents)}</span>
+              </div>
+            )}
+            {order.deliveryType === "DELIVERY" && order.deliveryFeeCents > 0 && (
+              <div className="flex justify-between">
+                <span>Taxa de entrega</span>
+                <span>{currency(order.deliveryFeeCents)}</span>
+              </div>
+            )}
+            {order.cashbackUsedCents > 0 && (
+              <div className="flex justify-between">
+                <span>Cashback usado</span>
+                <span>-{currency(order.cashbackUsedCents)}</span>
+              </div>
+            )}
+          </>
+        );
+      })()}
       <div className="flex justify-between font-bold">
         <span>TOTAL</span>
         <span>{currency(order.totalCents)}</span>

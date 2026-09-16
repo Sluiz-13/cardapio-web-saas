@@ -78,6 +78,10 @@ export default async function RestaurantMenuPage({
         avgDeliveryTime: restaurant.avgDeliveryTime,
         logoUrl: restaurant.logoUrl,
         menuTheme: restaurant.menuTheme,
+        loyaltyPointsEnabled: restaurant.loyaltyPointsEnabled,
+        loyaltyPointsRedeemThreshold: restaurant.loyaltyPointsRedeemThreshold,
+        loyaltyPointsRedeemValueCents: restaurant.loyaltyPointsRedeemValueCents,
+        cashbackEnabled: restaurant.cashbackEnabled,
       }}
       categories={categories}
       products={products}

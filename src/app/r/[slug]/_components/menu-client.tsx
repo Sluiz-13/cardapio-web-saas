@@ -53,16 +53,26 @@ type Restaurant = {
   address?: string | null;
   avgDeliveryTime?: string | null;
   menuTheme?: "CLASSIC" | "PREMIUM";
+  loyaltyPointsEnabled?: boolean;
+  loyaltyPointsRedeemThreshold?: number;
+  loyaltyPointsRedeemValueCents?: number;
+  cashbackEnabled?: boolean;
 };
 
 type Table = { id: string; label: string };
 type CustomerAccount = {
   id: string;
   name: string;
-  phone: string;
+  phone?: string;
   loyaltyPoints: number;
   cashbackBalanceCents: number;
   restaurantId?: string;
+  street?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  referenceNote?: string | null;
 };
 type BusinessHour = { dayOfWeek: number; isOpen: boolean; openTime: string; closeTime: string };
 const DAY_LABELS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
@@ -344,7 +354,7 @@ export default function MenuClient({
 
           {!restaurant.isOpen && (
             <div className="mx-5 mt-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm">
-              Estamos fechados no momento.
+              Estamos fechados no momento. Por Favor volte mais tarde.
             </div>
           )}
 
@@ -449,10 +459,26 @@ export default function MenuClient({
               total={total}
               table={table}
               customer={customer}
+              loyaltyPointsEnabled={restaurant.loyaltyPointsEnabled ?? false}
+              loyaltyPointsRedeemThreshold={restaurant.loyaltyPointsRedeemThreshold ?? 0}
+              loyaltyPointsRedeemValueCents={restaurant.loyaltyPointsRedeemValueCents ?? 0}
+              cashbackEnabled={restaurant.cashbackEnabled ?? false}
               onClose={() => setDrawer("cart")}
               onSuccess={(result) => {
                 setOrderResult(result);
                 setDrawer("confirmed");
+                // Recarrega o saldo de verdade — pontos/cashback mudaram
+                // depois desse pedido (ganhou e/ou gastou).
+                if (customer) {
+                  fetch("/api/customer-auth/me")
+                    .then((r) => r.json())
+                    .then((data) => {
+                      if (data.customer && data.customer.restaurantId === restaurant.id) {
+                        setCustomer(data.customer);
+                      }
+                    })
+                    .catch(() => {});
+                }
               }}
             />
           )}
@@ -988,6 +1014,10 @@ function CheckoutDrawer({
   total,
   table,
   customer,
+  loyaltyPointsEnabled,
+  loyaltyPointsRedeemThreshold,
+  loyaltyPointsRedeemValueCents,
+  cashbackEnabled,
   onClose,
   onSuccess,
 }: {
@@ -998,6 +1028,10 @@ function CheckoutDrawer({
   total: number;
   table: Table | null;
   customer: CustomerAccount | null;
+  loyaltyPointsEnabled: boolean;
+  loyaltyPointsRedeemThreshold: number;
+  loyaltyPointsRedeemValueCents: number;
+  cashbackEnabled: boolean;
   onClose: () => void;
   onSuccess: (result: { status: string; pixPayload?: string }) => void;
 }) {
@@ -1008,12 +1042,12 @@ function CheckoutDrawer({
   const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP" | "DINE_IN">(
     table ? "DINE_IN" : "DELIVERY"
   );
-  const [street, setStreet] = useState("");
-  const [number, setNumber] = useState("");
-  const [complement, setComplement] = useState("");
-  const [neighborhood, setNeighborhood] = useState("");
-  const [city, setCity] = useState("");
-  const [referenceNote, setReferenceNote] = useState("");
+  const [street, setStreet] = useState(customer?.street ?? "");
+  const [number, setNumber] = useState(customer?.number ?? "");
+  const [complement, setComplement] = useState(customer?.complement ?? "");
+  const [neighborhood, setNeighborhood] = useState(customer?.neighborhood ?? "");
+  const [city, setCity] = useState(customer?.city ?? "");
+  const [referenceNote, setReferenceNote] = useState(customer?.referenceNote ?? "");
   const [savedInfo, setSavedInfo] = useState(() => getSavedCustomerInfo(restaurantId));
   const [confirmingSaved, setConfirmingSaved] = useState(() => !customer && getSavedCustomerInfo(restaurantId) !== null);
   const [paymentMethod, setPaymentMethod] = useState<(typeof PAYMENT_OPTIONS)[number]["value"]>("PIX");
@@ -1026,6 +1060,19 @@ function CheckoutDrawer({
   const [deliveryFeeCents, setDeliveryFeeCents] = useState(0);
   const [changeFor, setChangeFor] = useState("");
   const [neighborhoodDisabled, setNeighborhoodDisabled] = useState(false);
+  const [redeemPoints, setRedeemPoints] = useState(false);
+  const [useCashback, setUseCashback] = useState(false);
+
+  const canRedeemPoints =
+    loyaltyPointsEnabled && !!customer && customer.loyaltyPoints >= loyaltyPointsRedeemThreshold && loyaltyPointsRedeemThreshold > 0;
+  const canUseCashback = cashbackEnabled && !!customer && customer.cashbackBalanceCents > 0;
+
+  const loyaltyDiscountCents = redeemPoints && canRedeemPoints ? loyaltyPointsRedeemValueCents : 0;
+  const preCashbackTotal =
+    total - (couponStatus?.discountCents ?? 0) - loyaltyDiscountCents + (deliveryType === "DELIVERY" ? deliveryFeeCents : 0);
+  const cashbackUsedCents =
+    useCashback && canUseCashback ? Math.min(customer!.cashbackBalanceCents, Math.max(preCashbackTotal, 0)) : 0;
+  const finalTotalCents = Math.max(preCashbackTotal - cashbackUsedCents, 0);
 
   async function applyCoupon() {
     if (!couponCode.trim()) return;
@@ -1078,6 +1125,10 @@ function CheckoutDrawer({
     setConfirmingSaved(false);
   }
 
+  useEffect(() => {
+    if (customer?.neighborhood) checkDeliveryFee(customer.neighborhood);
+  }, []);
+
   async function checkDeliveryFee(neighborhoodValue: string = neighborhood) {
     if (!neighborhoodValue.trim()) return;
     const res = await fetch("/api/delivery-fee", {
@@ -1117,9 +1168,7 @@ function CheckoutDrawer({
       return;
     }
 
-    const finalTotal = total - (couponStatus?.discountCents ?? 0) + (deliveryType === "DELIVERY" ? deliveryFeeCents : 0);
-
-    if (paymentMethod === "CASH" && changeFor && Math.round(Number(changeFor) * 100) < finalTotal) {
+    if (paymentMethod === "CASH" && changeFor && Math.round(Number(changeFor) * 100) < finalTotalCents) {
       setError("O valor para troco não pode ser menor que o total do pedido.");
       return;
     }
@@ -1136,6 +1185,8 @@ function CheckoutDrawer({
         deliveryType,
         paymentMethod: table ? "CASH" : paymentMethod,
         couponCode: couponStatus?.code,
+        redeemLoyaltyPoints: redeemPoints && canRedeemPoints,
+        useCashback: useCashback && canUseCashback,
         changeForCents: paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor) * 100) : undefined,
         tableId: table?.id,
         address:
@@ -1343,6 +1394,35 @@ function CheckoutDrawer({
         </div>
 
         <div className="p-5 pt-3 border-t pb-safe" style={{ borderColor: theme.border }}>
+          {canRedeemPoints && (
+            <button
+              type="button"
+              onClick={() => setRedeemPoints((v) => !v)}
+              className="w-full flex items-center justify-between p-3 rounded-xl border mb-3 text-left"
+              style={{ borderColor: redeemPoints ? theme.accent : theme.border, background: redeemPoints ? `${theme.accent}18` : "transparent" }}
+            >
+              <span className="text-sm" style={{ color: theme.textPrimary }}>
+                Usar {loyaltyPointsRedeemThreshold} pontos ({customer!.loyaltyPoints} disponíveis)
+              </span>
+              <span className="text-sm font-bold" style={{ color: theme.accent }}>-{currency(loyaltyPointsRedeemValueCents)}</span>
+            </button>
+          )}
+          {canUseCashback && (
+            <button
+              type="button"
+              onClick={() => setUseCashback((v) => !v)}
+              className="w-full flex items-center justify-between p-3 rounded-xl border mb-4 text-left"
+              style={{ borderColor: useCashback ? theme.accent : theme.border, background: useCashback ? `${theme.accent}18` : "transparent" }}
+            >
+              <span className="text-sm" style={{ color: theme.textPrimary }}>
+                Usar cashback disponível ({currency(customer!.cashbackBalanceCents)})
+              </span>
+              <span className="text-sm font-bold" style={{ color: theme.accent }}>
+                -{currency(useCashback ? cashbackUsedCents : 0)}
+              </span>
+            </button>
+          )}
+
           <div className="mb-4">
             <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>
               Cupom de desconto
@@ -1378,17 +1458,29 @@ function CheckoutDrawer({
           </div>
 
           <div className="space-y-1 mb-4">
+            {(couponStatus?.discountCents ?? 0) > 0 || loyaltyDiscountCents > 0 || cashbackUsedCents > 0 ? (
+              <div className="flex items-center justify-between text-sm" style={{ color: theme.textSecondary }}>
+                <span>Subtotal</span>
+                <span>{currency(total)}</span>
+              </div>
+            ) : null}
             {couponStatus && couponStatus.discountCents > 0 && (
-              <>
-                <div className="flex items-center justify-between text-sm" style={{ color: theme.textSecondary }}>
-                  <span>Subtotal</span>
-                  <span>{currency(total)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm text-emerald-600">
-                  <span>Desconto</span>
-                  <span>-{currency(couponStatus.discountCents)}</span>
-                </div>
-              </>
+              <div className="flex items-center justify-between text-sm text-emerald-600">
+                <span>Cupom</span>
+                <span>-{currency(couponStatus.discountCents)}</span>
+              </div>
+            )}
+            {loyaltyDiscountCents > 0 && (
+              <div className="flex items-center justify-between text-sm text-emerald-600">
+                <span>Pontos resgatados</span>
+                <span>-{currency(loyaltyDiscountCents)}</span>
+              </div>
+            )}
+            {cashbackUsedCents > 0 && (
+              <div className="flex items-center justify-between text-sm text-emerald-600">
+                <span>Cashback usado</span>
+                <span>-{currency(cashbackUsedCents)}</span>
+              </div>
             )}
             {deliveryType === "DELIVERY" && deliveryFeeCents > 0 && (
               <div className="flex items-center justify-between text-sm" style={{ color: theme.textSecondary }}>
@@ -1398,12 +1490,9 @@ function CheckoutDrawer({
             )}
             <div className="flex items-center justify-between font-bold text-base" style={{ color: theme.textPrimary }}>
               <span>Total</span>
-              <span style={{ color: theme.accent }}>
-                {currency(total - (couponStatus?.discountCents ?? 0) + (deliveryType === "DELIVERY" ? deliveryFeeCents : 0))}
-              </span>
+              <span style={{ color: theme.accent }}>{currency(finalTotalCents)}</span>
             </div>
           </div>
-
           <button
             disabled={submitting || !restaurantIsOpen}
             className="w-full py-3.5 font-semibold text-sm text-white shadow-sm disabled:opacity-50 active:scale-[0.98] transition-transform"

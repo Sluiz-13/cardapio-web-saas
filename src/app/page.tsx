@@ -36,10 +36,10 @@ const BENEFITS = [
 ];
 
 const STEPS = [
-  { n: "01", title: "Abre o cardápio", text: "O cliente acessa seu cardápio pelo link ou QR Code.", src: "/screenshots/menu.jpeg" },
-  { n: "02", title: "Escolhe os produtos", text: "Personaliza removíveis e extras de cada item.", src: "/screenshots/product.jpeg" },
-  { n: "03", title: "Envia o pedido", text: "Preenche os dados, escolhe a forma de pagamento e finaliza.", src: "/screenshots/checkout.jpeg" },
-  { n: "04", title: "Pedido confirmado", text: "Recebe a confirmação e o pedido já vai pra cozinha.", src: "/screenshots/confirm.jpeg" },
+  { n: "01", title: "Abre o cardápio", text: "O cliente acessa seu cardápio pelo link ou QR Code.", src: "/screenshots/menu.jpg" },
+  { n: "02", title: "Escolhe os produtos", text: "Personaliza removíveis e extras de cada item.", src: "/screenshots/product.jpg" },
+  { n: "03", title: "Envia o pedido", text: "Preenche os dados, escolhe a forma de pagamento e finaliza.", src: "/screenshots/checkout.jpg" },
+  { n: "04", title: "Pedido confirmado", text: "Recebe a confirmação e o pedido já vai pra cozinha.", src: "/screenshots/confirm.jpg" },
 ];
 
 const JOURNEY_STEPS = [
@@ -240,13 +240,7 @@ export default function LandingPage() {
 
           {/* HERO MOCKUP CELULAR */}
           <div className="hidden md:flex justify-start items-center mt-4">
-            <div className="relative w-full max-w-[260px]">
-              <div className="bg-[#0F172A] p-3 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-4 border-[#1E293B]">
-                <div className="bg-white rounded-[2.2rem] overflow-hidden aspect-[9/19] relative w-full">
-                  <img src="/screenshots/menu.jpeg" alt="Cardápio digital do Menuair aberto" className="w-full h-auto object-top" />
-                </div>
-              </div>
-            </div>
+            <img src="/screenshots/menu.jpg" alt="Cardápio digital do Menuair aberto" className="w-full max-w-[260px]" />
           </div>
         </div>
 
@@ -343,13 +337,7 @@ export default function LandingPage() {
             {STEPS.map((step) => (
               <div key={step.n} className="flex flex-col">
                 <div className="flex justify-center mb-6">
-                  <div className="relative w-full max-w-[220px]">
-                    <div className="bg-[#0F172A] p-2.5 rounded-[2.5rem] shadow-lg border-4 border-[#1E293B]">
-                      <div className="bg-white rounded-[1.8rem] overflow-hidden aspect-[9/19] relative w-full">
-                        <img src={step.src} alt={step.title} className="w-full h-auto object-top" />
-                      </div>
-                    </div>
-                  </div>
+                  <img src={step.src} alt={step.title} className="w-full max-w-[220px]" />
                 </div>
 
                 <h4 className="font-bold mb-2 text-slate-900"><span className="text-[#D35400] mr-2">{step.n}</span>{step.title}</h4>
@@ -432,26 +420,11 @@ export default function LandingPage() {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 items-start justify-items-center md:justify-items-end">
-            <div className="relative w-full max-w-[260px]">
-              <div className="bg-[#0F172A] p-3 rounded-[3rem] shadow-xl border-4 border-[#1E293B]">
-                <div className="bg-white rounded-[2.2rem] overflow-hidden aspect-[9/19] relative w-full">
-                  <img src="/screenshots/admin-pedidos.jpeg" alt="Painel de pedidos" className="w-full h-auto object-top" />
-                </div>
-              </div>
-            </div>
+            <img src="/screenshots/admin-pedidos.jpg" alt="Painel de pedidos" className="w-full max-w-[260px]" />
 
             <div className="grid gap-8 w-full max-w-[220px]">
-              <div className="bg-[#0F172A] p-2.5 rounded-[2.5rem] shadow-lg border-4 border-[#1E293B]">
-                <div className="bg-white rounded-[1.8rem] overflow-hidden aspect-[9/19] relative w-full">
-                  <img src="/screenshots/confirm.jpeg" alt="Confirmação" className="w-full h-auto object-top" />
-                </div>
-              </div>
-
-              <div className="bg-[#0F172A] p-2.5 rounded-[2.5rem] shadow-lg border-4 border-[#1E293B]">
-                <div className="bg-white rounded-[1.8rem] overflow-hidden aspect-[9/19] relative w-full">
-                  <img src="/screenshots/product.jpeg" alt="Produto" className="w-full h-auto object-top" />
-                </div>
-              </div>
+              <img src="/screenshots/confirm.jpg" alt="Confirmação" className="w-full" />
+              <img src="/screenshots/product.jpg" alt="Produto" className="w-full" />
             </div>
           </div>
         </div>
@@ -614,7 +587,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 className="font-medium text-slate-600 hover:text-slate-800 underline transition-colors"
               >
-                Luiz Felippe
+                MenuAir
               </a>
             </p>
             <p>Todos os direitos reservados</p>

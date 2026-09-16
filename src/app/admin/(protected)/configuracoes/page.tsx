@@ -415,7 +415,7 @@ export default function ConfiguracoesPage() {
           <CardBody className="grid grid-cols-3 gap-3">
             <div>
               <Label>Pontos por real gasto</Label>
-              <input value={loyaltyPointsPerReal} onChange={(e) => setLoyaltyPointsPerReal(e.target.value)} type="number" min="0" className={inputClass} />
+              <input value={loyaltyPointsPerReal} onChange={(e) => setLoyaltyPointsPerReal(e.target.value)} type="number" step="0.1" min="0" className={inputClass} />
             </div>
             <div>
               <Label>Pontos p/ resgate</Label>

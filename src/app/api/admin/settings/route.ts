@@ -13,7 +13,7 @@ const updateSchema = z.object({
   printKitchenCopy: z.boolean().optional(),
   menuTheme: z.enum(["CLASSIC", "PREMIUM"]).optional(),
   loyaltyPointsEnabled: z.boolean().optional(),
-  loyaltyPointsPerReal: z.number().int().nonnegative().optional(),
+  loyaltyPointsPerReal: z.number().nonnegative().optional(),
   loyaltyPointsRedeemThreshold: z.number().int().nonnegative().optional(),
   loyaltyPointsRedeemValueCents: z.number().int().nonnegative().optional(),
   cashbackEnabled: z.boolean().optional(),

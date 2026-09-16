@@ -8,7 +8,20 @@ export async function GET() {
 
   const customer = await db.customer.findUnique({
     where: { id: session.customerId },
-    select: { id: true, name: true, phone: true, loyaltyPoints: true, cashbackBalanceCents: true, restaurantId: true },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      loyaltyPoints: true,
+      cashbackBalanceCents: true,
+      restaurantId: true,
+      street: true,
+      number: true,
+      complement: true,
+      neighborhood: true,
+      city: true,
+      referenceNote: true,
+    },
   });
   if (!customer || customer.restaurantId !== session.restaurantId) {
     return NextResponse.json({ customer: null });

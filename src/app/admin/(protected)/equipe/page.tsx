@@ -11,7 +11,20 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 
-type StaffMember = { id: string; name: string; email: string; role: "OWNER" | "STAFF" };
+type StaffMember = { id: string; name: string; email: string; role: "OWNER" | "GERENTE" | "CAIXA" | "STAFF" };
+
+const ROLE_LABEL: Record<StaffMember["role"], string> = {
+  OWNER: "Dono",
+  GERENTE: "Gerente",
+  CAIXA: "Caixa",
+  STAFF: "Garçom",
+};
+
+const ROLE_DESCRIPTION: Record<"GERENTE" | "CAIXA" | "STAFF", string> = {
+  GERENTE: "Vê tudo, menos Equipe, Configurações e Plano.",
+  CAIXA: "Pedidos, mesas, comandas, caixa e entregas — sem financeiro/relatórios/cadastro.",
+  STAFF: "Só a tela de anotar pedido por mesa (garçom), sem acesso ao painel.",
+};
 
 export default function EquipePage() {
   const { show } = useToast();
@@ -21,6 +34,7 @@ export default function EquipePage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"STAFF" | "CAIXA" | "GERENTE">("STAFF");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -43,7 +57,7 @@ export default function EquipePage() {
     const res = await fetch("/api/admin/staff", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, role }),
     });
 
     setSaving(false);
@@ -108,6 +122,24 @@ export default function EquipePage() {
                 <Label>Senha</Label>
                 <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
+              <div>
+                <Label>Papel</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["STAFF", "CAIXA", "GERENTE"] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRole(r)}
+                      className={`py-2 rounded-xl text-sm font-semibold border transition-colors duration-[180ms] ${
+                        role === r ? "border-brand bg-brand-light text-brand" : "border-surface-border text-gray-500"
+                      }`}
+                    >
+                      {ROLE_LABEL[r]}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">{ROLE_DESCRIPTION[role]}</p>
+              </div>
               {error && <p className="text-red-600 text-xs">{error}</p>}
               <div className="flex gap-2">
                 <Button type="submit" isLoading={saving} className="flex-1">
@@ -117,10 +149,6 @@ export default function EquipePage() {
                   Cancelar
                 </Button>
               </div>
-              <p className="text-xs text-gray-400">
-                Esse acesso entra como <strong>garçom</strong> — vê só a tela de anotar pedido por mesa, sem
-                acesso a financeiro, relatórios ou configurações.
-              </p>
             </form>
           </CardBody>
         </Card>
@@ -138,9 +166,7 @@ export default function EquipePage() {
                   <p className="text-xs text-gray-400 truncate">{s.email}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Badge tone={s.role === "OWNER" ? "brand" : "neutral"}>
-                    {s.role === "OWNER" ? "Dono" : "Garçom"}
-                  </Badge>
+                  <Badge tone={s.role === "OWNER" ? "brand" : "neutral"}>{ROLE_LABEL[s.role]}</Badge>
                   {s.role !== "OWNER" && (
                     <button
                       onClick={() => handleDelete(s.id)}

@@ -9,6 +9,7 @@ const createStaffSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8),
+  role: z.enum(["STAFF", "CAIXA", "GERENTE"]).default("STAFF"),
 });
 
 export async function GET() {
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
       name: parsed.data.name,
       email: parsed.data.email,
       passwordHash,
-      role: "STAFF", // essa rota NUNCA cria OWNER — só convida garçom/staff
+      role: parsed.data.role, // essa rota NUNCA cria OWNER — só Garçom/Caixa/Gerente
     },
     select: { id: true, name: true, email: true, role: true, createdAt: true },
   });
