@@ -626,7 +626,7 @@ function AccountModal({
 function Footer({ restaurant }: { restaurant: Restaurant }) {
   const theme = useTheme();
   const devWhatsApp =
-    "https://wa.me/5535999603944?text=" +
+    "https://wa.me/553599722478?text=" +
     encodeURIComponent("Olá! Vi um cardápio digital feito por você e gostaria de saber mais.");
 
   return (

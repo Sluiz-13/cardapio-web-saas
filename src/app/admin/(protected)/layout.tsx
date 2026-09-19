@@ -41,7 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <PlanDueBanner daysUntilDue={daysUntilDue} />
         <main className="flex-1 min-w-0">{children}</main>
       </div>
-      <WhatsAppFab message={`Olá! Sou do restaurante ${restaurant?.name ?? ""} e preciso de ajuda com o painel.`} />
+      <WhatsAppFab message={`Olá! Sou do restaurante ${restaurant?.name ?? ""} e preciso de suporte com o MenuAir. Podem me ajudar?`} />
     </div>
   );
 }

@@ -155,7 +155,7 @@ export default function LandingPage() {
   const [form, setForm] = useState({ restaurantName: "", yourName: "", phone: "", plan: "START" as "START" | "PRO" });
   const formValid = form.restaurantName.trim() && form.yourName.trim() && form.phone.trim();
 
-  const devWhatsApp = "https://wa.me/5535999603944?text=" + encodeURIComponent("Olá! Vi um cardápio digital feito por você e gostaria de saber mais.");
+  const devWhatsApp = "https://wa.me/553599722478?text=" + encodeURIComponent("Olá! Vi um cardápio digital feito por você e gostaria de saber mais.");
 
   function buildMessage() {
     return [
