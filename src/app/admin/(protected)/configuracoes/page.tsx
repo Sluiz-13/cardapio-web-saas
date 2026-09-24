@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Power, Settings, ImageIcon, Wallet, Phone as PhoneIcon, Clock, Printer, Percent, Palette, Lock, Gift, Coins, Hash } from "lucide-react";
+import { Power, Settings, ImageIcon, Wallet, Phone as PhoneIcon, Clock, Printer, Percent, Palette, Lock, Gift, Coins, Hash, MapPin as MapPinIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Input";
@@ -40,6 +40,7 @@ export default function ConfiguracoesPage() {
   const [address, setAddress] = useState("");
   const [avgDeliveryTime, setAvgDeliveryTime] = useState("");
   const [serviceFeePercent, setServiceFeePercent] = useState("0");
+  const [useDeliveryZones, setUseDeliveryZones] = useState(false);
   const [menuTheme, setMenuTheme] = useState<"CLASSIC" | "PREMIUM">("CLASSIC");
   const [plan, setPlan] = useState<"START" | "PRO">("START");
   const [loyaltyPointsEnabled, setLoyaltyPointsEnabled] = useState(false);
@@ -96,6 +97,7 @@ export default function ConfiguracoesPage() {
         setAddress(data.restaurant.address ?? "");
         setAvgDeliveryTime(data.restaurant.avgDeliveryTime ?? "");
         setServiceFeePercent(String(data.restaurant.serviceFeePercent ?? 0));
+        setUseDeliveryZones(data.restaurant.useDeliveryZones ?? false);
         setMenuTheme(data.restaurant.menuTheme ?? "CLASSIC");
         setPlan(data.restaurant.plan ?? "START");
         setLoyaltyPointsEnabled(data.restaurant.loyaltyPointsEnabled ?? false);
@@ -178,6 +180,7 @@ export default function ConfiguracoesPage() {
         address: address || undefined,
         avgDeliveryTime: avgDeliveryTime || undefined,
         serviceFeePercent: Number(serviceFeePercent) || 0,
+        useDeliveryZones,
         menuTheme,
         loyaltyPointsEnabled,
         loyaltyPointsPerReal: Number(loyaltyPointsPerReal) || 0,
@@ -421,6 +424,21 @@ export default function ConfiguracoesPage() {
                 <span className="text-sm text-gray-500">%</span>
               </div>
             </CardBody>
+          </Card>
+
+          <Card className="mb-5">
+            <CardHeader className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPinIcon size={15} className="text-gray-400" />
+                <div>
+                  <CardTitle>Taxa de entrega por zona (mapa)</CardTitle>
+                  <CardDescription className="mt-0.5">
+                    Usa as áreas desenhadas em Zonas de Entrega em vez da lista simples de bairro.
+                  </CardDescription>
+                </div>
+              </div>
+              <Toggle checked={useDeliveryZones} onChange={() => setUseDeliveryZones((v) => !v)} />
+            </CardHeader>
           </Card>
         </>
       )}

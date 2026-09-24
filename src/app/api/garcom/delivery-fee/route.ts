@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAdminSession } from "@/lib/session";
-import { matchDeliveryFee } from "@/lib/delivery-fee";
+import { resolveDeliveryFee } from "@/lib/delivery-fee";
 
 const bodySchema = z.object({ neighborhood: z.string().min(1) });
 
@@ -18,11 +18,10 @@ export async function POST(req: NextRequest) {
     select: { defaultDeliveryFeeCents: true },
   });
 
-  const fees = await db.deliveryFee.findMany({
-    where: { restaurantId: session.user.restaurantId },
-    select: { neighborhood: true, feeCents: true, active: true },
-  });
-
-  const match = matchDeliveryFee(parsed.data.neighborhood, fees, restaurant?.defaultDeliveryFeeCents ?? 0);
+  const match = await resolveDeliveryFee(
+    session.user.restaurantId,
+    parsed.data.neighborhood,
+    restaurant?.defaultDeliveryFeeCents ?? 0
+  );
   return NextResponse.json(match);
 }

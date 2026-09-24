@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAdminSession } from "@/lib/session";
-import { matchDeliveryFee } from "@/lib/delivery-fee";
+import { resolveDeliveryFee } from "@/lib/delivery-fee";
 
 const addressSchema = z.object({
   street: z.string().min(2),
@@ -53,8 +53,7 @@ export async function POST(req: NextRequest) {
   if (isDelivery) {
     if (!address) return NextResponse.json({ error: "Endereço é obrigatório para entrega." }, { status: 400 });
     const restaurant = await db.restaurant.findUnique({ where: { id: restaurantId }, select: { defaultDeliveryFeeCents: true } });
-    const fees = await db.deliveryFee.findMany({ where: { restaurantId }, select: { neighborhood: true, feeCents: true, active: true } });
-    const match = matchDeliveryFee(address.neighborhood, fees, restaurant?.defaultDeliveryFeeCents ?? 0);
+    const match = await resolveDeliveryFee(restaurantId, address.neighborhood, restaurant?.defaultDeliveryFeeCents ?? 0);
     if (match.disabled) return NextResponse.json({ error: "Entregas pausadas pra esse bairro no momento." }, { status: 400 });
     deliveryFeeCents = match.feeCents;
   }

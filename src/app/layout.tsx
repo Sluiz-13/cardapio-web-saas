@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./global.css";
+import "leaflet/dist/leaflet.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { CookieConsent } from "@/components/ui/CookieConsent";
 

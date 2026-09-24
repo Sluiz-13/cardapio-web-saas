@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { matchDeliveryFee } from "@/lib/delivery-fee";
+import { resolveDeliveryFee } from "@/lib/delivery-fee";
 import { rateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/get-client-ip";
 
@@ -24,12 +24,11 @@ export async function POST(req: NextRequest) {
   });
   if (!restaurant) return NextResponse.json({ error: "Restaurante não encontrado." }, { status: 404 });
 
-  const fees = await db.deliveryFee.findMany({
-    where: { restaurantId: parsed.data.restaurantId },
-    select: { neighborhood: true, feeCents: true, active: true },
-  });
-
-  const { feeCents, disabled } = matchDeliveryFee(parsed.data.neighborhood, fees, restaurant.defaultDeliveryFeeCents);
+  const { feeCents, disabled } = await resolveDeliveryFee(
+    parsed.data.restaurantId,
+    parsed.data.neighborhood,
+    restaurant.defaultDeliveryFeeCents
+  );
   if (disabled) {
     return NextResponse.json({
       disabled: true,

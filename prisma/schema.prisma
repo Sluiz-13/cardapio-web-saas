@@ -50,6 +50,8 @@ model Restaurant {
   insumos                 Insumo[]
   customers                Customer[]
   reservations             Reservation[]
+  deliveryZones            DeliveryZone[]
+  useDeliveryZones         Boolean @default(false) // liga o sistema novo de zona por mapa em vez da lista simples de bairro
   loyaltyPointsEnabled          Boolean @default(false)
   loyaltyPointsPerReal          Float   @default(0) // pontos ganhos por real gasto — aceita decimal (ex: 0.5)
   loyaltyPointsRedeemThreshold  Int     @default(0) // quantos pontos = 1 resgate
@@ -560,6 +562,25 @@ model DeliveryFee {
 
   @@unique([restaurantId, neighborhood])
   @@map("delivery_fees")
+}
+
+model DeliveryZone {
+  id                String   @id @default(cuid())
+  restaurantId      String
+  restaurant        Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name              String
+  feeCents          Int
+  minOrderCents     Int?
+  estimatedMinutes  Int?
+  neighborhoods     String[] // nomes de bairro cobertos por essa área — usado na busca por texto
+  geoJson           Json     // o polígono desenhado no mapa (GeoJSON Polygon)
+  active            Boolean  @default(true)
+  pauseReason       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([restaurantId])
+  @@map("delivery_zones")
 }
 
 // -----------------------------

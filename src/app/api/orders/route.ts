@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { notificationsClient } from "@/lib/notifications-client";
 import { rateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/get-client-ip";
-import { matchDeliveryFee } from "@/lib/delivery-fee";
+import { resolveDeliveryFee } from "@/lib/delivery-fee";
 import { generatePixPayload } from "@/lib/pix";
 
 const addressSchema = z.object({
@@ -219,11 +219,7 @@ if (!restaurant.isOpen) {
 
   let deliveryFeeCents = 0;
   if (deliveryType === "DELIVERY" && address) {
-    const fees = await db.deliveryFee.findMany({
-      where: { restaurantId },
-      select: { neighborhood: true, feeCents: true, active: true },
-    });
-    const match = matchDeliveryFee(address.neighborhood, fees, restaurant?.defaultDeliveryFeeCents ?? 0);
+    const match = await resolveDeliveryFee(restaurantId, address.neighborhood, restaurant?.defaultDeliveryFeeCents ?? 0);
     if (match.disabled) {
       return NextResponse.json(
         { error: "Entregas pausadas pra esse bairro no momento — fale com a gente pelo WhatsApp." },
