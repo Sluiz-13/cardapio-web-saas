@@ -56,6 +56,8 @@ model Restaurant {
   loyaltyPointsRedeemValueCents Int     @default(0) // valor do desconto ao resgatar
   cashbackEnabled               Boolean @default(false)
   cashbackPercent               Int     @default(0) // % do pedido que volta como cashback
+  dailyCounterEnabled           Boolean @default(false)
+  dailyCounterNext              Int     @default(1) // próximo número a atribuir; o caixa reseta manualmente quando quiser
 
   pixKey           String?
   pixKeyType       String?
@@ -417,6 +419,7 @@ model Order {
   discountCents Int     @default(0)
   loyaltyDiscountCents Int @default(0)
   cashbackUsedCents    Int @default(0)
+  dailyNumber   Int?    // número sequencial manual (opcional) — null se o restaurante não usa
   deliveryFeeCents Int @default(0)
 
   deliveryType  DeliveryType  @default(DELIVERY)

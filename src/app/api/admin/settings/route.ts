@@ -18,6 +18,8 @@ const updateSchema = z.object({
   loyaltyPointsRedeemValueCents: z.number().int().nonnegative().optional(),
   cashbackEnabled: z.boolean().optional(),
   cashbackPercent: z.number().int().min(0).max(100).optional(),
+  dailyCounterEnabled: z.boolean().optional(),
+  dailyCounterNext: z.number().int().positive().optional(),
   pixKey: z.string().optional(),
   pixKeyType: z.enum(["CPF", "CNPJ", "EMAIL", "PHONE", "RANDOM"]).optional(),
   pixMerchantName: z.string().max(25).optional(),
@@ -64,6 +66,8 @@ export async function GET() {
     loyaltyPointsRedeemValueCents: true,
     cashbackEnabled: true,
     cashbackPercent: true,
+    dailyCounterEnabled: true,
+    dailyCounterNext: true,
     pixKey: true, 
     pixKeyType: true, 
     pixMerchantName: true, 
@@ -106,6 +110,8 @@ export async function PATCH(req: NextRequest) {
     loyaltyPointsRedeemValueCents,
     cashbackEnabled,
     cashbackPercent,
+    dailyCounterEnabled,
+    dailyCounterNext,
     pixKey,
     pixKeyType,
     pixMerchantName,
@@ -140,6 +146,8 @@ export async function PATCH(req: NextRequest) {
   if (loyaltyPointsRedeemValueCents !== undefined) restaurantData.loyaltyPointsRedeemValueCents = loyaltyPointsRedeemValueCents;
   if (cashbackEnabled !== undefined) restaurantData.cashbackEnabled = cashbackEnabled;
   if (cashbackPercent !== undefined) restaurantData.cashbackPercent = cashbackPercent;
+  if (dailyCounterEnabled !== undefined) restaurantData.dailyCounterEnabled = dailyCounterEnabled;
+  if (dailyCounterNext !== undefined) restaurantData.dailyCounterNext = dailyCounterNext;
   if (isOpen !== undefined) restaurantData.isOpen = isOpen;
   if (defaultDeliveryFeeCents !== undefined) restaurantData.defaultDeliveryFeeCents = defaultDeliveryFeeCents;
   if (serviceFeePercent !== undefined) restaurantData.serviceFeePercent = serviceFeePercent;

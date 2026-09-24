@@ -78,6 +78,33 @@ export default function GarcomMesaPage() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"PIX" | "CREDIT_CARD" | "DEBIT_CARD" | "CASH">("CASH");
   const [changeFor, setChangeFor] = useState("");
+  const [balcaoDeliveryType, setBalcaoDeliveryType] = useState<"PICKUP" | "DELIVERY">("PICKUP");
+  const [street, setStreet] = useState("");
+  const [number, setNumber] = useState("");
+  const [complement, setComplement] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [city, setCity] = useState("");
+  const [referenceNote, setReferenceNote] = useState("");
+  const [deliveryFeeCents, setDeliveryFeeCents] = useState(0);
+  const [neighborhoodDisabled, setNeighborhoodDisabled] = useState(false);
+
+  async function checkDeliveryFee() {
+    if (!neighborhood.trim()) return;
+    const res = await fetch("/api/garcom/delivery-fee", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ neighborhood }),
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+    if (data.disabled) {
+      setNeighborhoodDisabled(true);
+      setDeliveryFeeCents(0);
+      return;
+    }
+    setNeighborhoodDisabled(false);
+    setDeliveryFeeCents(data.feeCents);
+  }
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -170,10 +197,15 @@ export default function GarcomMesaPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         tableId: isBalcao ? undefined : params.tableId,
+        deliveryType: isBalcao ? balcaoDeliveryType : undefined,
         paymentMethod: isBalcao ? paymentMethod : undefined,
         changeForCents: isBalcao && paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor) * 100) : undefined,
         customerName,
         customerPhone,
+        address:
+          isBalcao && balcaoDeliveryType === "DELIVERY"
+            ? { street, number, complement: complement || undefined, neighborhood, city, referenceNote: referenceNote || undefined }
+            : undefined,
         items: cart.map((l) => ({
           productId: l.productId,
           qty: l.qty,
@@ -339,6 +371,49 @@ export default function GarcomMesaPage() {
             <div className="p-5 pt-3 border-t border-gray-100">
               {isBalcao && (
                 <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-2 text-gray-400">Tipo de pedido</p>
+                  <div className="flex gap-2 mb-4">
+                    {(["PICKUP", "DELIVERY"] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => setBalcaoDeliveryType(opt)}
+                        className="flex-1 text-sm font-medium px-3.5 py-2.5 rounded-xl border"
+                        style={{
+                          borderColor: balcaoDeliveryType === opt ? "#C1440E" : "#E5E7EB",
+                          background: balcaoDeliveryType === opt ? "#C1440E" : "#FFFFFF",
+                          color: balcaoDeliveryType === opt ? "#FFFFFF" : "#374151",
+                        }}
+                      >
+                        {opt === "PICKUP" ? "Retirada" : "Entrega"}
+                      </button>
+                    ))}
+                  </div>
+
+                  {balcaoDeliveryType === "DELIVERY" && (
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Rua" className="col-span-2 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm" />
+                      <input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Número" className="px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm" />
+                      <input value={complement} onChange={(e) => setComplement(e.target.value)} placeholder="Complemento (opcional)" className="col-span-3 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm" />
+                      <input
+                        value={neighborhood}
+                        onChange={(e) => { setNeighborhood(e.target.value); setNeighborhoodDisabled(false); }}
+                        onBlur={checkDeliveryFee}
+                        placeholder="Bairro"
+                        className="col-span-2 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm"
+                      />
+                      <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Cidade" className="px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm" />
+                      <input value={referenceNote} onChange={(e) => setReferenceNote(e.target.value)} placeholder="Ponto de referência (opcional)" className="col-span-3 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm" />
+                      {neighborhoodDisabled && (
+                        <p className="col-span-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                          Entregas pausadas pra esse bairro no momento.
+                        </p>
+                      )}
+                      {deliveryFeeCents > 0 && (
+                        <p className="col-span-3 text-xs text-emerald-700">Taxa de entrega: {currency(deliveryFeeCents)}</p>
+                      )}
+                    </div>
+                  )}
+
                   <p className="text-xs font-semibold uppercase tracking-wide mb-2 text-gray-400">Forma de pagamento</p>
                   <div className="flex flex-wrap gap-2">
                     {PAYMENT_OPTIONS.map((opt) => (

@@ -205,6 +205,7 @@ const restaurant = await db.restaurant.findUnique({
     loyaltyPointsRedeemValueCents: true,
     cashbackEnabled: true,
     cashbackPercent: true,
+    dailyCounterEnabled: true,
   },
 });
 
@@ -347,6 +348,16 @@ if (!restaurant.isOpen) {
         ? openComanda.id
         : (await tx.comanda.create({ data: { restaurantId, tableId: table.id } })).id;
     }
+    
+    let dailyNumber: number | undefined;
+    if (restaurant?.dailyCounterEnabled) {
+      const updated = await tx.restaurant.update({
+        where: { id: restaurantId },
+        data: { dailyCounterNext: { increment: 1 } },
+        select: { dailyCounterNext: true },
+      });
+      dailyNumber = updated.dailyCounterNext - 1;
+    }
 
     const created = await tx.order.create({
       data: {
@@ -354,6 +365,7 @@ if (!restaurant.isOpen) {
         customerId: validCustomerId,
         customerName,
         customerPhone,
+        dailyNumber,
         deliveryType,
         paymentMethod,
         ...(deliveryType === "DELIVERY" ? address : {}),

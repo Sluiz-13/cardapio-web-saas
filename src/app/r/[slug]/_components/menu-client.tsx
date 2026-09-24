@@ -521,6 +521,37 @@ function AccountModal({
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState(customer?.name ?? "");
+  const [editPhone, setEditPhone] = useState(customer?.phone ?? "");
+  const [editPassword, setEditPassword] = useState("");
+  const [editError, setEditError] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  async function handleProfileSave(e: React.FormEvent) {
+    e.preventDefault();
+    setEditError("");
+    if (!editName.trim() || !editPhone.trim() || !editPassword.trim()) {
+      setEditError("Preencha todos os campos, incluindo a senha atual.");
+      return;
+    }
+    setEditSubmitting(true);
+    const res = await fetch("/api/customer-auth/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName, phone: editPhone, currentPassword: editPassword }),
+    });
+    setEditSubmitting(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setEditError(data?.error ?? "Não foi possível salvar.");
+      return;
+    }
+    const updated = await res.json();
+    onAuthenticated({ ...customer!, ...updated });
+    setEditMode(false);
+    setEditPassword("");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -567,19 +598,66 @@ function AccountModal({
         </div>
 
         {customer ? (
-          <div>
-            <p className="text-sm mb-1" style={{ color: theme.textPrimary }}>
-              <strong>{customer.name}</strong>
-            </p>
-            <p className="text-xs mb-4" style={{ color: theme.textSecondary }}>{customer.phone}</p>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-semibold text-sm border"
-              style={{ borderColor: theme.border, color: theme.textSecondary }}
-            >
-              <LogOut size={15} /> Sair
-            </button>
-          </div>
+          editMode ? (
+            <form onSubmit={handleProfileSave}>
+              <div className="mb-3">
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Nome</label>
+                <input value={editName} onChange={(e) => setEditName(e.target.value)} className={inputClass} style={inputStyle} />
+              </div>
+              <div className="mb-3">
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Telefone</label>
+                <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className={inputClass} style={inputStyle} />
+              </div>
+              <div className="mb-4">
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Senha atual (pra confirmar)</label>
+                <input value={editPassword} onChange={(e) => setEditPassword(e.target.value)} type="password" className={inputClass} style={inputStyle} />
+              </div>
+
+              {editError && <p className="text-xs mb-3" style={{ color: theme.accent }}>{editError}</p>}
+
+              <button
+                type="submit"
+                disabled={editSubmitting}
+                className="w-full py-3 font-semibold text-sm text-white shadow-sm disabled:opacity-50 mb-2"
+                style={{ background: theme.accent, borderRadius: theme.radius === "0.25rem" ? "2px" : "999px" }}
+              >
+                {editSubmitting ? "Salvando..." : "Salvar alterações"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditMode(false)}
+                className="w-full text-center text-xs underline"
+                style={{ color: theme.textSecondary }}
+              >
+                Cancelar
+              </button>
+            </form>
+          ) : (
+            <div>
+              <p className="text-sm mb-1" style={{ color: theme.textPrimary }}>
+                <strong>{customer.name}</strong>
+              </p>
+              <p className="text-xs mb-4" style={{ color: theme.textSecondary }}>{customer.phone}</p>
+              <button
+                onClick={() => {
+                  setEditName(customer.name);
+                  setEditPhone(customer.phone ?? "");
+                  setEditMode(true);
+                }}
+                className="w-full py-3 rounded-full font-semibold text-sm border mb-2"
+                style={{ borderColor: theme.border, color: theme.textPrimary }}
+              >
+                Editar dados
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-semibold text-sm border"
+                style={{ borderColor: theme.border, color: theme.textSecondary }}
+              >
+                <LogOut size={15} /> Sair
+              </button>
+            </div>
+          )
         ) : (
           <form onSubmit={handleSubmit}>
             {mode === "signup" && (

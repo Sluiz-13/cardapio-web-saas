@@ -8,6 +8,7 @@ type OrderItemForReceipt = Pick <
 type OrderForReceipt = Pick<
   Order,
   | "id"
+  | "dailyNumber"
   | "createdAt"
   | "customerName"
   | "customerPhone"
@@ -112,7 +113,7 @@ export function buildReceiptEscPos(order: OrderForReceipt): Buffer {
   const lines: string[] = [];
 
   lines.push(centerText(order.restaurant.name.toUpperCase()));
-  lines.push(centerText(`Pedido #${order.id.slice(-5)}`));
+  lines.push(centerText(order.dailyNumber ? `Pedido #${order.dailyNumber}` : `Pedido #${order.id.slice(-5)}`));
   lines.push(centerText(new Date(order.createdAt).toLocaleString("pt-BR")));
   lines.push("-".repeat(CHARS_PER_LINE));
 
@@ -240,7 +241,7 @@ export function buildComandaReceiptEscPos(comanda: ComandaForReceipt): Buffer {
   ]);
 }
 
-type KitchenOrderForReceipt = Pick<Order, "id" | "createdAt" | "customerName" | "customerPhone" | "deliveryType"> & {
+type KitchenOrderForReceipt = Pick<Order, "id" | "dailyNumber" | "createdAt" | "customerName" | "customerPhone" | "deliveryType"> & {
   items: Pick<OrderItem, "productName" | "categoryName" | "qty" | "removedItems" | "extras" | "selectedOptions">[];
   table?: { label: string } | null;
 };
@@ -252,7 +253,7 @@ export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt): Buffer
   const lines: string[] = [];
 
   lines.push(centerText("VIA DA COZINHA"));
-  lines.push(centerText(`Pedido #${order.id.slice(-5)}`));
+  lines.push(centerText(order.dailyNumber ? `Pedido #${order.dailyNumber}` : `Pedido #${order.id.slice(-5)}`));
   lines.push(centerText(new Date(order.createdAt).toLocaleString("pt-BR")));
   lines.push("-".repeat(CHARS_PER_LINE));
 

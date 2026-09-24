@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Power, Settings, ImageIcon, Wallet, Phone as PhoneIcon, Clock, Printer, Percent, Palette, Lock, Gift, Coins } from "lucide-react";
+import { Power, Settings, ImageIcon, Wallet, Phone as PhoneIcon, Clock, Printer, Percent, Palette, Lock, Gift, Coins, Hash } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Input";
@@ -48,6 +48,8 @@ export default function ConfiguracoesPage() {
   const [loyaltyPointsRedeemValueCents, setLoyaltyPointsRedeemValueCents] = useState("10");
   const [cashbackEnabled, setCashbackEnabled] = useState(false);
   const [cashbackPercent, setCashbackPercent] = useState("5");
+  const [dailyCounterEnabled, setDailyCounterEnabled] = useState(false);
+  const [dailyCounterNext, setDailyCounterNext] = useState("1");
   const [printKitchenCopy, setPrintKitchenCopy] = useState(true);
   const [printMethod, setPrintMethod] = useState("MANUAL");
   const [printerIp, setPrinterIp] = useState("");
@@ -102,6 +104,8 @@ export default function ConfiguracoesPage() {
         setLoyaltyPointsRedeemValueCents(String((data.restaurant.loyaltyPointsRedeemValueCents ?? 1000) / 100));
         setCashbackEnabled(data.restaurant.cashbackEnabled ?? false);
         setCashbackPercent(String(data.restaurant.cashbackPercent ?? 5));
+        setDailyCounterEnabled(data.restaurant.dailyCounterEnabled ?? false);
+        setDailyCounterNext(String(data.restaurant.dailyCounterNext ?? 1));
         setPrintKitchenCopy(data.restaurant.printKitchenCopy ?? true);
         setPrintMethod(data.restaurant.printMethod ?? "MANUAL");
         setPrinterIp(data.restaurant.printerIp ?? "");
@@ -181,6 +185,8 @@ export default function ConfiguracoesPage() {
         loyaltyPointsRedeemValueCents: Math.round(Number(loyaltyPointsRedeemValueCents) * 100) || 0,
         cashbackEnabled,
         cashbackPercent: Number(cashbackPercent) || 0,
+        dailyCounterEnabled,
+        dailyCounterNext: Number(dailyCounterNext) || 1,
         printKitchenCopy,
         printMethod,
         printerIp: printMethod === "AGENT" ? printerIp : undefined,
@@ -286,14 +292,42 @@ export default function ConfiguracoesPage() {
                   </p>
                 </div>
               </div>
-              <Toggle checked={restaurantIsOpen} onChange={() => setRestaurantIsOpen((v) => !v)} />
-            </CardBody>
-          </Card>
+            <Toggle checked={restaurantIsOpen} onChange={() => setRestaurantIsOpen((v) => !v)} />
+          </CardBody>
+        </Card>
 
-          <Card className="mb-5">
-            <CardHeader className="flex items-center gap-2">
-              <PhoneIcon size={15} className="text-gray-400" />
-              <CardTitle>Informações de contato</CardTitle>
+        <Card className="mb-5">
+          <CardHeader className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Hash size={15} className="text-gray-400" />
+              <div>
+                <CardTitle>Numeração de pedido</CardTitle>
+                <CardDescription className="mt-0.5">Um número sequencial simples (#1, #2...) além do código do pedido — você controla quando reseta.</CardDescription>
+              </div>
+            </div>
+            <Toggle checked={dailyCounterEnabled} onChange={() => setDailyCounterEnabled((v) => !v)} />
+          </CardHeader>
+          {dailyCounterEnabled && (
+            <CardBody>
+              <Label>Próximo número a usar</Label>
+              <p className="text-xs text-gray-400 mb-2">
+                Muda isso a qualquer momento pra resetar (ex: coloca 1 no início do dia) ou pular pra outro número.
+              </p>
+              <input
+                value={dailyCounterNext}
+                onChange={(e) => setDailyCounterNext(e.target.value)}
+                type="number"
+                min="1"
+                className={`${inputClass} w-32`}
+              />
+            </CardBody>
+          )}
+        </Card>
+
+        <Card className="mb-5">
+          <CardHeader className="flex items-center gap-2">
+            <PhoneIcon size={15} className="text-gray-400" />
+            <CardTitle>Informações de contato</CardTitle>
             </CardHeader>
             <CardBody>
               <div className="space-y-3">

@@ -2,13 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAdminSession } from "@/lib/session";
+import { matchDeliveryFee } from "@/lib/delivery-fee";
+
+const addressSchema = z.object({
+  street: z.string().min(2),
+  number: z.string().min(1),
+  complement: z.string().optional(),
+  neighborhood: z.string().min(2),
+  city: z.string().min(2),
+  referenceNote: z.string().optional(),
+});
 
 const createSchema = z.object({
   tableId: z.string().min(1).optional(),
+  deliveryType: z.enum(["PICKUP", "DELIVERY"]).optional(),
   paymentMethod: z.enum(["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"]).optional(),
   changeForCents: z.number().int().positive().optional(),
   customerName: z.string().min(2),
   customerPhone: z.string().min(8).optional().or(z.literal("")),
+  address: addressSchema.optional(),
   items: z
     .array(
       z.object({
@@ -31,10 +43,21 @@ export async function POST(req: NextRequest) {
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
 
-  const { tableId, customerName, items } = parsed.data;
+  const { tableId, customerName, items, address } = parsed.data;
   const customerPhone = parsed.data.customerPhone?.trim() || null;
   const restaurantId = session.user.restaurantId;
   const isBalcao = !tableId;
+  const isDelivery = isBalcao && parsed.data.deliveryType === "DELIVERY";
+
+  let deliveryFeeCents = 0;
+  if (isDelivery) {
+    if (!address) return NextResponse.json({ error: "Endereço é obrigatório para entrega." }, { status: 400 });
+    const restaurant = await db.restaurant.findUnique({ where: { id: restaurantId }, select: { defaultDeliveryFeeCents: true } });
+    const fees = await db.deliveryFee.findMany({ where: { restaurantId }, select: { neighborhood: true, feeCents: true, active: true } });
+    const match = matchDeliveryFee(address.neighborhood, fees, restaurant?.defaultDeliveryFeeCents ?? 0);
+    if (match.disabled) return NextResponse.json({ error: "Entregas pausadas pra esse bairro no momento." }, { status: 400 });
+    deliveryFeeCents = match.feeCents;
+  }
 
   if (!isBalcao) {
     const table = await db.table.findFirst({ where: { id: tableId, restaurantId } });
@@ -53,6 +76,11 @@ export async function POST(req: NextRequest) {
       optionGroups: { include: { items: true } },
       recipeItems: true,
     },
+  });
+
+  const restaurantForCounter = await db.restaurant.findUnique({
+    where: { id: restaurantId },
+    select: { dailyCounterEnabled: true },
   });
   if (products.length !== new Set(productIds).size) {
     return NextResponse.json({ error: "Um ou mais produtos são inválidos." }, { status: 400 });
@@ -135,17 +163,30 @@ export async function POST(req: NextRequest) {
         : (await tx.comanda.create({ data: { restaurantId, tableId } })).id;
     }
 
+    let dailyNumber: number | undefined;
+    if (restaurantForCounter?.dailyCounterEnabled) {
+      const updated = await tx.restaurant.update({
+        where: { id: restaurantId },
+        data: { dailyCounterNext: { increment: 1 } },
+        select: { dailyCounterNext: true },
+      });
+      dailyNumber = updated.dailyCounterNext - 1;
+    }
+
     const created = await tx.order.create({
       data: {
         restaurantId,
         customerName,
         customerPhone,
-        deliveryType: isBalcao ? "PICKUP" : "DINE_IN",
+        dailyNumber,
+        deliveryType: isBalcao ? (isDelivery ? "DELIVERY" : "PICKUP") : "DINE_IN",
         paymentMethod: isBalcao ? parsed.data.paymentMethod! : "CASH",
         changeForCents: isBalcao && parsed.data.paymentMethod === "CASH" ? parsed.data.changeForCents : undefined,
         tableId,
         comandaId,
-        totalCents,
+        ...(isDelivery ? address : {}),
+        deliveryFeeCents,
+        totalCents: totalCents + deliveryFeeCents,
         status: "NEW",
         paymentConfirmed: isBalcao ? parsed.data.paymentMethod !== "PIX" : true,
         items: { create: orderItemsData },

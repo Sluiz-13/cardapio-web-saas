@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Flame, Clock, Printer, MapPin, Phone, Bike, MessageCircle, Inbox, Trash2, ClipboardList } from "lucide-react";
+import { Flame, Clock, Printer, MapPin, Phone, Bike, MessageCircle, Inbox, Trash2, ClipboardList, Pencil } from "lucide-react";
 import OrderHistoryModal from "./order-history-modal";
+import EditOrderModal from "./edit-order-modal";
 import { buildWhatsAppLink, buildOrderStatusMessage } from "@/lib/whatsapp";
 import { playNotificationSound } from "@/lib/notification-sound";
 import { Badge } from "@/components/ui/Badge";
@@ -116,6 +117,7 @@ export default function OrdersBoard({
 }) {
   const [orders, setOrders] = useState(initialOrders);
   const [historyOrderId, setHistoryOrderId] = useState<string | null>(null);
+  const [editOrderId, setEditOrderId] = useState<string | null>(null);
   const [flashingIds, setFlashingIds] = useState<Set<string>>(new Set());
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [openDriverMenuId, setOpenDriverMenuId] = useState<string | null>(null);
@@ -435,6 +437,18 @@ export default function OrdersBoard({
                       >
                         <MessageCircle size={14} />
                       </a>
+                      {status !== "DELIVERED" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditOrderId(o.id);
+                          }}
+                          className="flex items-center justify-center w-9 h-9 rounded-full border border-surface-border text-gray-500 hover:bg-gray-50 transition-colors duration-[180ms] shrink-0"
+                          title="Editar pedido"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      )}
                       <button
                         onClick={async (e) => {
                           e.stopPropagation();
@@ -478,6 +492,13 @@ export default function OrdersBoard({
         </div>
       ))}
       {historyOrderId && <OrderHistoryModal orderId={historyOrderId} onClose={() => setHistoryOrderId(null)} />}
+      {editOrderId && (
+        <EditOrderModal
+          orderId={editOrderId}
+          onClose={() => setEditOrderId(null)}
+          onSaved={() => setEditOrderId(null)}
+        />
+      )}
       </div>
     </div>
   );

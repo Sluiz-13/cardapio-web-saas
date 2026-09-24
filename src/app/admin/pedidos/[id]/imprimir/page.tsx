@@ -32,7 +32,7 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
 
       <div className="text-center mb-3">
         <p className="font-bold uppercase text-sm">{order.restaurant.name}</p>
-        <p>Pedido #{order.id.slice(-5)}</p>
+        <p>Pedido #{order.dailyNumber ?? order.id.slice(-5)}</p>
         <p>{new Date(order.createdAt).toLocaleString("pt-BR")}</p>
       </div>
 
@@ -141,7 +141,7 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
     <div className="max-w-[300px] mx-auto p-4 font-mono text-[12px] leading-snug text-black bg-white" style={{ pageBreakBefore: "always" }}>
       <div className="text-center mb-3">
         <p className="font-bold uppercase text-sm">VIA DA COZINHA</p>
-        <p>Pedido #{order.id.slice(-5)}</p>
+        <p>Pedido #{order.dailyNumber ?? order.id.slice(-5)}</p>
         <p>{new Date(order.createdAt).toLocaleString("pt-BR")}</p>
       </div>
 
