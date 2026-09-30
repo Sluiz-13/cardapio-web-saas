@@ -18,7 +18,6 @@ import {
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { getSavedCustomerInfo, saveCustomerInfo } from "@/lib/customer-storage";
 import PixQrCode from "@/components/ui/PixQrCode";
-
 type Extra = { id: string; name: string; priceCents: number };
 type Removable = { id: string; name: string };
 type OptionItem = { id: string; name: string; priceCents: number };
@@ -57,8 +56,8 @@ type Restaurant = {
   loyaltyPointsRedeemThreshold?: number;
   loyaltyPointsRedeemValueCents?: number;
   cashbackEnabled?: boolean;
+  useDeliveryZones?: boolean;
 };
-
 type Table = { id: string; label: string };
 type CustomerAccount = {
   id: string;
@@ -463,6 +462,7 @@ export default function MenuClient({
               loyaltyPointsRedeemThreshold={restaurant.loyaltyPointsRedeemThreshold ?? 0}
               loyaltyPointsRedeemValueCents={restaurant.loyaltyPointsRedeemValueCents ?? 0}
               cashbackEnabled={restaurant.cashbackEnabled ?? false}
+              useDeliveryZones={restaurant.useDeliveryZones ?? false}
               onClose={() => setDrawer("cart")}
               onSuccess={(result) => {
                 setOrderResult(result);
@@ -1096,6 +1096,7 @@ function CheckoutDrawer({
   loyaltyPointsRedeemThreshold,
   loyaltyPointsRedeemValueCents,
   cashbackEnabled,
+  useDeliveryZones,
   onClose,
   onSuccess,
 }: {
@@ -1110,6 +1111,7 @@ function CheckoutDrawer({
   loyaltyPointsRedeemThreshold: number;
   loyaltyPointsRedeemValueCents: number;
   cashbackEnabled: boolean;
+  useDeliveryZones: boolean;
   onClose: () => void;
   onSuccess: (result: { status: string; pixPayload?: string }) => void;
 }) {
@@ -1409,9 +1411,8 @@ function CheckoutDrawer({
                 <input value={referenceNote} onChange={(e) => setReferenceNote(e.target.value)} placeholder="Ponto de referência (opcional)" className={`col-span-3 ${inputClass}`} style={inputStyle} />
                 {neighborhoodDisabled && (
                   <div className="col-span-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 leading-relaxed">
-                    Não estamos entregando nesse bairro no momento.{" "}
+                    Não estamos entregando nessa área no momento.{" "}
                     {restaurantPhone && (
-
                       <a href={`https://wa.me/55${restaurantPhone.replace(/\D/g, "")}?text=${encodeURIComponent("Oi! Vi que a entrega pro meu bairro tá pausada, queria fazer um pedido")}`}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -1425,7 +1426,6 @@ function CheckoutDrawer({
                 )}
               </div>
             )}
-
             {!table && (
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>Forma de pagamento</label>

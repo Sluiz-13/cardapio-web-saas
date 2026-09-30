@@ -8,8 +8,13 @@ export async function GET() {
 
   const restaurant = await db.restaurant.findUnique({
     where: { id: session.user.restaurantId },
-    select: { address: true },
+    select: { address: true, restaurantLat: true, restaurantLng: true },
   });
+
+  // Já cacheado — nunca chama o Nominatim de novo pra esse restaurante.
+  if (restaurant?.restaurantLat != null && restaurant?.restaurantLng != null) {
+    return NextResponse.json({ lat: restaurant.restaurantLat, lng: restaurant.restaurantLng });
+  }
 
   if (!restaurant?.address) {
     return NextResponse.json({ lat: -23.55, lng: -46.63 }); // fallback: São Paulo
@@ -21,7 +26,15 @@ export async function GET() {
       { headers: { "User-Agent": "Menuair/1.0 (contato@menuair.com.br)" } }
     );
     const data = await res.json();
-    if (data[0]) return NextResponse.json({ lat: Number(data[0].lat), lng: Number(data[0].lon) });
+    if (data[0]) {
+      const lat = Number(data[0].lat);
+      const lng = Number(data[0].lon);
+      await db.restaurant.update({
+        where: { id: session.user.restaurantId },
+        data: { restaurantLat: lat, restaurantLng: lng },
+      });
+      return NextResponse.json({ lat, lng });
+    }
   } catch {
     // falha silenciosa — cai no fallback abaixo
   }

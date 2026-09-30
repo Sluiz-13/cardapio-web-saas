@@ -1,4 +1,30 @@
 import { db } from "@/lib/db";
+import * as turf from "@turf/turf";
+
+export async function resolveDeliveryFeeByPoint(
+  restaurantId: string,
+  lat: number,
+  lng: number
+): Promise<{ feeCents: number; disabled: boolean; zoneName: string | null; outsideArea: boolean }> {
+  const zones = await db.deliveryZone.findMany({
+    where: { restaurantId },
+    select: { name: true, feeCents: true, active: true, geoJson: true },
+  });
+
+  const point = turf.point([lng, lat]);
+
+  for (const zone of zones) {
+    const polygon = turf.polygon((zone.geoJson as { coordinates: number[][][] }).coordinates);
+    if (turf.booleanPointInPolygon(point, polygon)) {
+      if (!zone.active) {
+        return { feeCents: 0, disabled: true, zoneName: zone.name, outsideArea: false };
+      }
+      return { feeCents: zone.feeCents, disabled: false, zoneName: zone.name, outsideArea: false };
+    }
+  }
+
+  return { feeCents: 0, disabled: false, zoneName: null, outsideArea: true };
+}
 
 export async function resolveDeliveryFee(
   restaurantId: string,

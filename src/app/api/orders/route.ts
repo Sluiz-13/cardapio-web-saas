@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { notificationsClient } from "@/lib/notifications-client";
 import { rateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/get-client-ip";
-import { resolveDeliveryFee } from "@/lib/delivery-fee";
+import { resolveDeliveryFee, resolveDeliveryFeeByPoint } from "@/lib/delivery-fee";
 import { generatePixPayload } from "@/lib/pix";
 
 const addressSchema = z.object({
@@ -17,6 +17,7 @@ const addressSchema = z.object({
   referenceNote: z.string().optional(),
 });
 
+const pointSchema = z.object({ lat: z.number(), lng: z.number() });
 const createOrderSchema = z
   .object({
     restaurantId: z.string().min(1),
@@ -26,6 +27,7 @@ const createOrderSchema = z
     deliveryType: z.enum(["DELIVERY", "PICKUP", "DINE_IN"]).default("DELIVERY"),
     paymentMethod: z.enum(["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"]),
     address: addressSchema.optional(),
+    deliveryPoint: pointSchema.optional(),
     tableId: z.string().optional(),
     couponCode: z.string().optional(),
     redeemLoyaltyPoints: z.boolean().optional(),
@@ -76,6 +78,7 @@ export async function POST(req: NextRequest) {
     deliveryType,
     paymentMethod,
     address,
+    deliveryPoint,
     tableId,
     couponCode,
     redeemLoyaltyPoints,
@@ -206,6 +209,7 @@ const restaurant = await db.restaurant.findUnique({
     cashbackEnabled: true,
     cashbackPercent: true,
     dailyCounterEnabled: true,
+    useDeliveryZones: true,
   },
 });
 
@@ -219,10 +223,23 @@ if (!restaurant.isOpen) {
 
   let deliveryFeeCents = 0;
   if (deliveryType === "DELIVERY" && address) {
-    const match = await resolveDeliveryFee(restaurantId, address.neighborhood, restaurant?.defaultDeliveryFeeCents ?? 0);
+    // Se veio um ponto do mapa/GPS e o restaurante usa zonas, o ponto manda
+    // — é mais preciso que o texto do bairro. Nunca confia na taxa que o
+    // cliente já viu na tela, sempre recalcula aqui.
+    const match =
+      restaurant?.useDeliveryZones && deliveryPoint
+        ? await resolveDeliveryFeeByPoint(restaurantId, deliveryPoint.lat, deliveryPoint.lng)
+        : await resolveDeliveryFee(restaurantId, address.neighborhood, restaurant?.defaultDeliveryFeeCents ?? 0);
+
     if (match.disabled) {
       return NextResponse.json(
-        { error: "Entregas pausadas pra esse bairro no momento — fale com a gente pelo WhatsApp." },
+        { error: "Entregas pausadas pra essa área no momento — fale com a gente pelo WhatsApp." },
+        { status: 400 }
+      );
+    }
+    if ("outsideArea" in match && match.outsideArea) {
+      return NextResponse.json(
+        { error: "Esse endereço parece estar fora da nossa área de entrega — fale com a gente pelo WhatsApp." },
         { status: 400 }
       );
     }

@@ -11,7 +11,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
-import ZoneMapEditor from "./_components/zone-map-editor";
+import dynamic from "next/dynamic";
+
+const ZoneMapEditor = dynamic(() => import("./_components/zone-map-editor"), { ssr: false });
 
 type LatLng = { lat: number; lng: number };
 type Zone = {
@@ -178,7 +180,37 @@ function ZoneFormModal({
   const [radiusKm, setRadiusKm] = useState("2");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
 
+  async function suggestNeighborhood() {
+    if (points.length < 3) {
+      setError("Desenhe a área no mapa primeiro.");
+      return;
+    }
+    setSuggesting(true);
+    setError("");
+    const polygon = turf.polygon([[...points.map((p) => [p.lng, p.lat] as [number, number]), [points[0].lng, points[0].lat]]]);
+    const centroid = turf.centroid(polygon);
+    const [lng, lat] = centroid.geometry.coordinates;
+
+    const res = await fetch("/api/admin/delivery-zones/suggest-neighborhood", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat, lng }),
+    });
+    const data = await res.json();
+    setSuggesting(false);
+
+    if (!data.neighborhood) {
+      setError("Não consegui identificar o bairro dessa área — digite manualmente.");
+      return;
+    }
+    setNeighborhoodsInput((cur) => {
+      const list = cur.split(",").map((n) => n.trim()).filter(Boolean);
+      if (list.includes(data.neighborhood)) return cur;
+      return [...list, data.neighborhood].join(", ");
+    });
+  }
   const inputClass = "w-full px-3.5 py-2.5 rounded-xl border border-surface-border bg-white text-sm";
 
   function generateCircle() {
@@ -266,11 +298,20 @@ function ZoneFormModal({
           </div>
 
           <div>
-            <Label>Bairros cobertos (opcional)</Label>
-            <p className="text-xs text-gray-400 mb-1.5">Separados por vírgula — permite achar a taxa por texto, sem precisar do mapa.</p>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label>Bairros cobertos</Label>
+              <button
+                type="button"
+                onClick={suggestNeighborhood}
+                disabled={suggesting || points.length < 3}
+                className="text-xs font-semibold text-brand disabled:opacity-40"
+              >
+                {suggesting ? "Buscando..." : "Sugerir a partir do desenho"}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-1.5">Usado pra achar a taxa quando o cliente digita o bairro.</p>
             <input value={neighborhoodsInput} onChange={(e) => setNeighborhoodsInput(e.target.value)} placeholder="ex: Centro, Vila Nova" className={inputClass} />
           </div>
-
           <div>
             <Label>Desenhar no mapa</Label>
             <p className="text-xs text-gray-400 mb-2">Clique no mapa pra marcar os cantos da área, ou gera um círculo pronto pra ajustar:</p>

@@ -52,6 +52,8 @@ model Restaurant {
   reservations             Reservation[]
   deliveryZones            DeliveryZone[]
   useDeliveryZones         Boolean @default(false) // liga o sistema novo de zona por mapa em vez da lista simples de bairro
+  restaurantLat            Float?
+  restaurantLng            Float?
   loyaltyPointsEnabled          Boolean @default(false)
   loyaltyPointsPerReal          Float   @default(0) // pontos ganhos por real gasto — aceita decimal (ex: 0.5)
   loyaltyPointsRedeemThreshold  Int     @default(0) // quantos pontos = 1 resgate
