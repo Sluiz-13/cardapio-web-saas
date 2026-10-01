@@ -1,114 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import {
-  QrCode,
-  ClipboardList,
-  Store,
-  Wallet,
-  Smartphone,
-  Check,
-  ChevronDown,
-  ArrowRight,
-  MessageCircle,
-  Mail,
-  SlidersHorizontal,
-  Printer,
-  LayoutGrid,
-  UtensilsCrossed,
-  Bike,
-  ChefHat,
-  Truck,
-  Landmark,
-} from "lucide-react";
+import { Check, Plus, Minus, ArrowRight, MessageCircle, Mail, Play } from "lucide-react";
 import { PLAN_PRICE_CENTS } from "@/lib/plan-pricing";
 import { PLAN_LIMITS } from "@/lib/plan-features";
 import { landingWhatsAppLink } from "@/lib/landing-whatsapp";
 
 const CONTACT_EMAIL = "suporte@menuair.com.br";
+const CONTACT_PHONE_LABEL = "(35) 99972-2478";
 const currency = (cents: number) => `R$ ${Math.floor(cents / 100)}`;
+const brl = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-const BENEFITS = [
-  { icon: QrCode, title: "Cardápio digital", text: "Seu cliente acessa pelo celular, por link ou QR Code na mesa." },
-  { icon: ClipboardList, title: "Pedidos organizados", text: "Chega tudo no painel — sem depender de mensagem espalhada no WhatsApp." },
-  { icon: SlidersHorizontal, title: "Você no controle", text: "Produtos, preços, categorias e pedidos, tudo num só lugar." },
-];
+// Laranja do logo (public/landing/logo.png). Texto em cima dele é sempre preto.
+const ORANGE = "#FF7A00";
 
 const STEPS = [
-  { n: "01", title: "Abre o cardápio", text: "O cliente acessa seu cardápio pelo link ou QR Code.", src: "/screenshots/menu.jpg" },
-  { n: "02", title: "Escolhe os produtos", text: "Personaliza removíveis e extras de cada item.", src: "/screenshots/product.jpg" },
-  { n: "03", title: "Envia o pedido", text: "Preenche os dados, escolhe a forma de pagamento e finaliza.", src: "/screenshots/checkout.jpg" },
-  { n: "04", title: "Pedido confirmado", text: "Recebe a confirmação e o pedido já vai pra cozinha.", src: "/screenshots/confirm.jpg" },
+  { title: "Abre o cardápio", text: "Pelo link do restaurante ou pelo QR Code na mesa. Nada pra instalar.", src: "/landing/menu.webp" },
+  { title: "Monta o pedido", text: "Tira a cebola, põe bacon. Cada item com seus removíveis e adicionais.", src: "/landing/product.webp" },
+  { title: "Escolhe como pagar", text: "Entrega ou retirada. Pix, cartão ou dinheiro. Cupom, se tiver.", src: "/landing/checkout.webp" },
+  { title: "Foi pra cozinha", text: "Aparece no painel com aviso sonoro e já sai impresso.", src: "/landing/confirm.webp" },
 ];
 
-const JOURNEY_STEPS = [
-  { icon: QrCode, title: "O cliente pede", text: "Pelo cardápio, QR Code ou no balcão." },
-  { icon: ClipboardList, title: "O pedido entra", text: "Organizado no painel, sem WhatsApp espalhado." },
-  { icon: ChefHat, title: "A cozinha produz", text: "Impressão automática assim que chega." },
-  { icon: Truck, title: "A entrega sai", text: "Entregador atribuído, acompanhando a rota." },
-  { icon: Landmark, title: "O caixa fecha", text: "Confere valores, sangria e suprimento no fim do dia." },
+const TEAM = [
+  {
+    role: "Garçom",
+    items: ["App próprio pra lançar pedido na mesa.", "Comanda acumula tudo até fechar a conta.", "Pedido manual no balcão."],
+  },
+  {
+    role: "Caixa",
+    items: ["Abertura e fechamento com conferência.", "Sangria e suprimento registrados na hora.", "Taxa de serviço só nos pedidos de mesa."],
+  },
+  {
+    role: "Entrega",
+    items: ["Entregador atribuído em cada pedido.", "Taxa por bairro, com pausa quando precisar.", "2ª via impressa só com os itens, pra cozinha"],
+  },
 ];
 
-const OWNER_BENEFITS = [
-  { icon: ClipboardList, title: "Pedidos organizados", text: "Informação clara, direto no painel." },
-  { icon: Store, title: "Seu próprio cardápio", text: "Logo, cores e produtos do seu jeito." },
-  { icon: Wallet, title: "Pagamento por Pix", text: "Sem intermediário, sem comissão." },
-  { icon: Smartphone, title: "Acesso pelo celular", text: "Gerencie de onde estiver." },
-];
-
-const OPERATION_COLUMNS = [
-  {
-    icon: UtensilsCrossed,
-    title: "Garçom",
-    items: [
-      "App próprio pra lançar pedido direto na mesa",
-      "Comanda acumula os pedidos até fechar a conta",
-      "Pedido manual no balcão pra quem chega sem app",
-    ],
-  },
-  {
-    icon: Wallet,
-    title: "Caixa",
-    items: [
-      "Abertura e fechamento com conferência de valores",
-      "Sangria e suprimento registrados na hora",
-      "Taxa de serviço configurável, cobrada só na mesa",
-    ],
-  },
-  {
-    icon: Bike,
-    title: "Entrega",
-    items: [
-      "Cadastro de entregadores e atribuição por pedido",
-      "Taxa por bairro — dá pra pausar um bairro na hora",
-      "2ª via de impressão só com o pedido, pra cozinha",
-    ],
-  },
+const EXTRAS = [
+  { title: "Estoque com CMV", text: "Ficha técnica em cada prato. O estoque baixa a cada venda e você vê custo e margem de cada produto." },
+  { title: "Fidelidade e cashback", text: "O cliente junta pontos e usa o saldo no próximo pedido, sem cupom de marketplace." },
+  { title: "Reservas de mesa", text: "Reserva que chegou por telefone ou WhatsApp entra no sistema com horário, status e mesa." },
+  { title: "Cardápio Premium", text: "Um segundo visual pro cardápio, escuro e mais sóbrio, pra quem quer outra identidade." },
 ];
 
 const CASE_FACTS = [
-  { k: "Pagamento", v: "Pix próprio, sem comissão" },
-  { k: "Cozinha", v: "Impressão térmica automática (Wi-Fi e Bluetooth), com 2ª via" },
-  { k: "Mesas", v: "Comanda por mesa + app do garçom" },
-  { k: "Caixa", v: "Abertura, sangria, suprimento e fechamento com conferência" },
-  { k: "Entrega", v: "Entregadores cadastrados e taxa configurável por bairro" },
+  { k: "Pagamento", v: "Pix na chave do quiosque, sem comissão" },
+  { k: "Cozinha", v: "Impressora térmica Wi-Fi e Bluetooth, com 2ª via" },
+  { k: "Mesas", v: "Comanda por mesa e app do garçom" },
+  { k: "Caixa", v: "Abertura, sangria, suprimento e fechamento" },
+  { k: "Entrega", v: "Entregadores cadastrados, taxa por bairro" },
   { k: "Financeiro", v: "Histórico, relatórios e fechamento diário" },
 ];
 
-const STATS = [
-  { value: "12.000+", label: "Pedidos processados" },
-  { value: "0%", label: "De comissão sobre suas vendas" },
-  { value: "Direto", label: "Pedido direto via Painel" },
+const COMPARISON = [
+  { label: "Comissão por pedido", them: "8% a 12%", us: "0%" },
+  { label: "Dados do cliente", them: "Ficam com o app", us: "Ficam com você" },
+  { label: "Marca", them: "Layout do app", us: "Seu logo e suas cores" },
+  { label: "Cupons", them: "Regras do app", us: "Você decide" },
+  { label: "Mesa, comanda e caixa", them: "Não tem", us: "Incluso" },
+  { label: "Pagamento online", them: "Com taxa extra", us: "Pix direto, sem taxa" },
 ];
 
 const PLAN_FEATURE_ROWS: { label: string; start: boolean | string; pro: boolean | string }[] = [
-  { label: "Cardápio online + QR Code do seu cardápio", start: true, pro: true },
-  { label: "Comandas por mesa + app do garçom", start: true, pro: true },
+  { label: "Cardápio online e QR Code do cardápio", start: true, pro: true },
+  { label: "Comandas por mesa e app do garçom", start: true, pro: true },
   { label: "QR Code de autoatendimento na mesa", start: false, pro: true },
   { label: "Produtos", start: `Até ${PLAN_LIMITS.START.maxProducts}`, pro: "Ilimitado" },
   { label: "Categorias", start: `Até ${PLAN_LIMITS.START.maxCategories}`, pro: "Ilimitado" },
-  { label: "Pedido pelo site + Pix", start: true, pro: true },
+  { label: "Pedido pelo site com Pix", start: true, pro: true },
   { label: "Financeiro", start: true, pro: true },
   { label: "Dashboard com gráfico", start: false, pro: true },
   { label: "Relatórios avançados", start: false, pro: true },
@@ -116,35 +76,153 @@ const PLAN_FEATURE_ROWS: { label: string; start: boolean | string; pro: boolean 
   { label: "Exportação CSV", start: false, pro: true },
 ];
 
-function FeatureCell({ value }: { value: boolean | string }) {
-  if (typeof value === "string") return <span className="text-sm font-medium text-slate-700">{value}</span>;
-  return value ? <Check size={18} className="text-[#D35400] mx-auto" /> : <span className="text-slate-300">—</span>;
-}
-
 const FAQ = [
-  { q: "Preciso instalar algum aplicativo?", a: "Não. O Menuair funciona no navegador, tanto pra você quanto pro seu cliente." },
-  { q: "Como meu cliente acessa o cardápio?", a: "Por um link do seu restaurante ou por QR Code, direto do celular." },
-  { q: "O Menuair cobra comissão por pedido?", a: "Não. Você paga só a mensalidade do plano escolhido." },
-  { q: "Posso receber pagamento por Pix?", a: "Sim, o Pix é gerado na hora, direto na sua chave — sem intermediário." },
-  { q: "Como funciona o caixa?", a: "Abre com um valor inicial, registra sangria e suprimento durante o dia, e fecha conferindo o valor contado contra o esperado pelo sistema." },
-  { q: "Consigo pausar entrega pra um bairro específico?", a: "Sim. Se por qualquer motivo não der pra entregar num bairro (chuva, trânsito, etc.), você pausa na hora e o cliente já é orientado a chamar no WhatsApp." },
-  { q: "Preciso ter conhecimento técnico?", a: "Não. A gente ajuda a configurar tudo, e o dia a dia é feito em telas simples." },
+  { q: "Preciso instalar algum aplicativo?", a: "Não. O Menuair funciona no navegador, pra você e pro seu cliente." },
+  { q: "Como meu cliente acessa o cardápio?", a: "Por um link do seu restaurante ou pelo QR Code, direto no celular." },
+  { q: "Vocês cobram comissão por pedido?", a: "Não. Você paga só a mensalidade do plano." },
+  { q: "Como funciona o Pix?", a: "O código é gerado na hora com a sua chave. O dinheiro cai direto na sua conta, sem intermediário." },
+  { q: "Como funciona o caixa?", a: "Você abre com um valor inicial, registra sangria e suprimento durante o dia e, no fechamento, confere o valor contado com o que o sistema esperava." },
+  { q: "Dá pra pausar a entrega num bairro?", a: "Dá. Choveu ou o trânsito travou, você pausa o bairro na hora e o cliente de lá é orientado a chamar no WhatsApp." },
+  { q: "Preciso entender de tecnologia?", a: "Não. A gente configura o cardápio com você, e o dia a dia é feito em telas simples." },
 ];
 
-function FaqAccordion() {
-  const [open, setOpen] = useState<number | null>(null);
+function FeatureCell({ value }: { value: boolean | string }) {
+  if (typeof value === "string") return <span className="text-sm font-semibold text-neutral-800">{value}</span>;
+  return value ? <Check size={18} strokeWidth={3} className="text-neutral-900 mx-auto" aria-label="Incluso" /> : <span className="text-neutral-300" aria-label="Não incluso">–</span>;
+}
+
+function Screenshot({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
   return (
-    <div className="divide-y divide-slate-200">
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      className={`block w-full h-auto rounded-lg ring-1 ring-black/10 ${className}`}
+    />
+  );
+}
+
+function Phone({ src, alt, className = "", eager = false }: { src: string; alt: string; className?: string; eager?: boolean }) {
+  return (
+    <div className={`rounded-[1.75rem] bg-neutral-950 p-[6px] ring-1 ring-white/10 ${className}`}>
+      <div className="relative rounded-[1.4rem] overflow-hidden bg-white aspect-[9/16]">
+        <img
+          src={src}
+          alt={alt}
+          className="absolute inset-0 w-full h-full object-cover object-top"
+          loading={eager ? "eager" : "lazy"}
+          decoding="async"
+        />
+      </div>
+    </div>
+  );
+}
+
+function Logo({ dark = false }: { dark?: boolean }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <img src="/landing/logo.png" alt="" width={36} height={36} className="w-9 h-9 rounded-lg" />
+      <span className={`text-xl font-extrabold tracking-tight ${dark ? "text-white" : "text-neutral-950"}`}>Menuair</span>
+    </span>
+  );
+}
+
+function DemoVideo() {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [started, setStarted] = useState(false);
+
+  function play() {
+    setStarted(true);
+    ref.current?.play();
+  }
+
+  return (
+    <div className="relative rounded-xl overflow-hidden bg-black aspect-video">
+      <video
+        ref={ref}
+        src="/landing/menuair-demo.mp4"
+        poster="/landing/video-capa.webp"
+        controls={started}
+        playsInline
+        preload="none"
+        className="w-full h-full object-cover"
+      />
+      {!started && (
+        <button
+          onClick={play}
+          className="group absolute inset-0 flex items-end justify-start p-3 sm:p-6"
+          aria-label="Assistir vídeo de demonstração"
+        >
+          <span
+            className="flex items-center gap-2 pl-2.5 pr-3.5 py-1.5 sm:pl-3 sm:pr-5 sm:py-3 rounded-md text-sm sm:text-base font-bold text-neutral-950 group-hover:brightness-95 transition"
+            style={{ background: ORANGE }}
+          >
+            <Play size={16} fill="currentColor" /> Assistir com som
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CommissionCalculator() {
+  const [monthly, setMonthly] = useState(20000);
+  const low = monthly * 0.08;
+  const high = monthly * 0.12;
+  const plan = PLAN_PRICE_CENTS.PRO / 100;
+
+  return (
+    <div className="rounded-xl bg-neutral-950 text-white p-6 sm:p-8">
+      <label htmlFor="faturamento" className="block text-sm text-neutral-400 mb-1">
+        Quanto você vende por mês em delivery?
+      </label>
+      <div className="text-4xl font-extrabold tracking-tight mb-5 tabular-nums">{brl(monthly)}</div>
+      <input
+        id="faturamento"
+        type="range"
+        min={5000}
+        max={100000}
+        step={1000}
+        value={monthly}
+        onChange={(e) => setMonthly(Number(e.target.value))}
+        className="w-full mb-8"
+        style={{ accentColor: ORANGE }}
+      />
+      <div className="grid grid-cols-2 gap-6 border-t border-white/10 pt-6">
+        <div>
+          <p className="text-xs text-neutral-400 mb-1">Comissão no marketplace</p>
+          <p className="text-lg sm:text-2xl font-bold text-neutral-300 tabular-nums">
+            {brl(low)} a {brl(high)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-neutral-400 mb-1">Menuair Pro, por mês</p>
+          <p className="text-lg sm:text-2xl font-bold tabular-nums" style={{ color: ORANGE }}>{brl(plan)}</p>
+        </div>
+      </div>
+      <p className="text-xs text-neutral-500 mt-6 leading-relaxed">
+        Estimativa com as faixas de comissão mais comuns de marketplace (8% a 12%). Não inclui taxa de pagamento online.
+      </p>
+    </div>
+  );
+}
+
+function FaqAccordion() {
+  const [open, setOpen] = useState<number | null>(0);
+  return (
+    <div className="border-t-2 border-neutral-950">
       {FAQ.map((item, i) => (
-        <div key={item.q} className="py-5">
+        <div key={item.q} className="border-b border-neutral-200">
           <button
             onClick={() => setOpen(open === i ? null : i)}
-            className="w-full flex items-center justify-between text-left font-medium text-slate-800 hover:text-[#D35400] transition-colors"
+            aria-expanded={open === i}
+            className="w-full flex items-center justify-between gap-6 py-5 text-left font-semibold text-neutral-900"
           >
             {item.q}
-            <ChevronDown size={20} className={`text-slate-400 shrink-0 transition-transform duration-[180ms] ${open === i ? "rotate-180" : ""}`} />
+            {open === i ? <Minus size={18} className="shrink-0" /> : <Plus size={18} className="shrink-0" />}
           </button>
-          {open === i && <p className="mt-4 text-sm text-slate-500 leading-relaxed">{item.a}</p>}
+          {open === i && <p className="pb-6 -mt-1 text-neutral-600 leading-relaxed max-w-2xl">{item.a}</p>}
         </div>
       ))}
     </div>
@@ -156,6 +234,7 @@ export default function LandingPage() {
   const formValid = form.restaurantName.trim() && form.yourName.trim() && form.phone.trim();
 
   const devWhatsApp = "https://wa.me/553599722478?text=" + encodeURIComponent("Olá! Vi um cardápio digital feito por você e gostaria de saber mais.");
+  const quickWhatsApp = landingWhatsAppLink("Olá! Quero conhecer o Menuair pro meu restaurante.");
 
   function buildMessage() {
     return [
@@ -173,121 +252,363 @@ export default function LandingPage() {
   }
 
   function handleEmail() {
-    const subject = encodeURIComponent(`Quero contratar o Menuair — ${form.restaurantName || "novo restaurante"}`);
+    const subject = encodeURIComponent(`Quero contratar o Menuair: ${form.restaurantName || "novo restaurante"}`);
     window.open(`mailto:${CONTACT_EMAIL}?subject=${subject}&body=${encodeURIComponent(buildMessage())}`, "_blank");
   }
 
-  return (
-    <div className="min-h-screen bg-[#FCFBF8] text-slate-900 font-sans scroll-smooth">
+  const inputClass =
+    "w-full px-4 py-3 rounded-md border border-neutral-300 bg-white text-neutral-900 text-[15px] placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors";
 
+  const primaryBtn =
+    "inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-md font-bold text-neutral-950 hover:brightness-95 transition";
+
+  return (
+    <div className="min-h-screen bg-white text-neutral-950 font-sans scroll-smooth antialiased overflow-x-clip">
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-40 bg-[#FCFBF8]/95 backdrop-blur border-b border-slate-200">
-        <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-8 lg:gap-12">
-            <div className="flex items-center gap-2 font-bold text-xl text-slate-900">
-              <div className="bg-slate-900 text-white p-1 rounded-md w-8 h-8 flex items-center justify-center text-sm">M</div>
-              Menuair
-            </div>
-            <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-              <a href="#como-funciona" className="hover:text-slate-900 transition-colors">Como funciona</a>
-              <a href="#case" className="hover:text-slate-900 transition-colors">Case real</a>
-              <a href="#planos" className="hover:text-slate-900 transition-colors">Planos</a>
-              <a href="#faq" className="hover:text-slate-900 transition-colors">Dúvidas</a>
+      <nav className="sticky top-0 z-40 bg-neutral-950 text-white">
+        <div className="flex items-center justify-between px-5 sm:px-6 h-16 max-w-7xl mx-auto">
+          <div className="flex items-center gap-10">
+            <a href="#" aria-label="Menuair, início">
+              <Logo dark />
+            </a>
+            <div className="hidden md:flex items-center gap-7 text-sm text-neutral-400">
+              <a href="#como-funciona" className="hover:text-white transition-colors">Como funciona</a>
+              <a href="#painel" className="hover:text-white transition-colors">Painel</a>
+              <a href="#planos" className="hover:text-white transition-colors">Planos</a>
+              <a href="#faq" className="hover:text-white transition-colors">Dúvidas</a>
             </div>
           </div>
-          <div className="flex items-center gap-4 sm:gap-6">
-            <a href="#contato" className="bg-[#D35400] text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#b84a00] transition-colors text-center">
-              Falar com a gente
-            </a>
-            <Link href="/admin/login" className="hidden sm:block text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+          <div className="flex items-center gap-5">
+            <Link href="/admin/login" className="hidden sm:block text-sm text-neutral-400 hover:text-white transition-colors">
               Entrar
             </Link>
+            <a href="#contato" className="px-4 py-2 rounded-md text-sm font-bold text-neutral-950" style={{ background: ORANGE }}>
+              Quero conhecer
+            </a>
           </div>
         </div>
       </nav>
 
-      {/* HERO + FORMULÁRIO */}
-      <section id="contato" className="max-w-7xl mx-auto px-6 pt-16 pb-24 grid md:grid-cols-2 gap-12 items-start scroll-mt-16">
-        <div>
-          <span className="inline-block border border-slate-200 text-slate-500 text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-6 bg-white">
-            Do primeiro pedido ao fechamento do caixa
-          </span>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] mb-6 tracking-tight">
-            Seu restaurante <br />
-            <span className="text-[#D35400]">sob controle.</span>
-          </h1>
-          <p className="text-slate-600 text-lg mb-8 max-w-md">
-            Pedidos, mesas, comandas, caixa, delivery e gestão — tudo em um só lugar. Seu próprio canal de vendas, sem pagar comissão por pedido.
-          </p>
-          <div className="space-y-3 mb-10">
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Check size={16} className="text-[#D35400] shrink-0" />
-              <span>Sem comissão sobre suas vendas — você paga só a mensalidade.</span>
+      {/* HERO */}
+      <header className="bg-neutral-950 text-white">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 pt-14 sm:pt-20 pb-16 sm:pb-24 grid lg:grid-cols-[1fr_1fr] gap-14 lg:gap-12 items-center">
+          <div>
+            <h1 className="text-[2.75rem] leading-[1] sm:text-7xl font-extrabold tracking-tight mb-7">
+              Seu restaurante sob controle.{" "}
+              <span style={{ color: ORANGE }}>Sem comissão.</span>
+            </h1>
+            <p className="text-lg sm:text-xl text-neutral-300 leading-relaxed mb-9 max-w-lg">
+              Cardápio digital, pedidos, mesas, caixa e entrega num painel só. O Pix cai na sua conta e você paga uma mensalidade fixa.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 mb-12">
+              <a href="#contato" className={primaryBtn} style={{ background: ORANGE }}>
+                Quero conhecer <ArrowRight size={18} strokeWidth={2.5} />
+              </a>
+              <a
+                href="#video"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-md font-bold text-white ring-1 ring-white/25 hover:bg-white/5 transition"
+              >
+                <Play size={16} fill="currentColor" /> Ver funcionando
+              </a>
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Check size={16} className="text-[#D35400] shrink-0" />
-              <span>Pagamento Pix direto na sua conta, sem intermediário.</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Check size={16} className="text-[#D35400] shrink-0" />
-              <span>Mesa, balcão e entrega com caixa e entregador organizados.</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Check size={16} className="text-[#D35400] shrink-0" />
-              <span>Impressão automática na cozinha, com 2ª via se precisar.</span>
-            </div>
+            <p className="text-sm text-neutral-500">
+              <span className="text-white font-semibold">12.000+ pedidos</span> já passaram pelo Menuair. A partir de{" "}
+              <span className="text-white font-semibold">{currency(PLAN_PRICE_CENTS.START)}/mês</span>.
+            </p>
           </div>
 
-          {/* HERO MOCKUP CELULAR */}
-          <div className="hidden md:flex justify-start items-center mt-4">
-            <img src="/screenshots/menu.jpg" alt="Cardápio digital do Menuair aberto" className="w-full max-w-[260px]" />
+          <div className="relative">
+            <Screenshot
+              src="/landing/painel-pedidos.webp"
+              alt="Painel de pedidos do Menuair com colunas Novo, Em preparo, Pronto, Saiu para entrega e Entregue"
+              className="ring-white/10"
+            />
+            <Phone
+              src="/landing/menu.webp"
+              alt="Cardápio digital aberto no celular"
+              eager
+              className="absolute -bottom-10 right-4 sm:right-8 w-[30%] sm:w-[26%]"
+            />
           </div>
         </div>
+      </header>
 
-        {/* FORMULÁRIO DE CONTATO */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-100">
-          <h3 className="font-bold text-lg mb-1 text-slate-900">Peça uma demonstração</h3>
-          <p className="text-sm text-slate-500 mb-6">A gente te chama no WhatsApp pra configurar seu cardápio digital.</p>
+      {/* VÍDEO */}
+      <section id="video" className="py-20 sm:py-28 scroll-mt-16">
+        <div className="max-w-5xl mx-auto px-5 sm:px-6">
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-3">Veja como funciona em menos de 30 segundos</h2>
+          <p className="text-lg text-neutral-600 mb-10">Do pedido no celular direto pra gestão do seu restaurante.</p>
+          <DemoVideo />
+        </div>
+      </section>
 
-          <form onSubmit={handleWhatsApp}>
-            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-slate-500">Nome do restaurante</label>
-            <input
-              value={form.restaurantName}
-              onChange={(e) => setForm((f) => ({ ...f, restaurantName: e.target.value }))}
-              placeholder="Ex: Pizzaria da Praça"
-              className="w-full mb-5 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#D35400]/20 focus:border-[#D35400] transition-all"
-            />
+      {/* COMO FUNCIONA */}
+      <section id="como-funciona" className="bg-neutral-100 py-20 sm:py-28 scroll-mt-16">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6">
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-3 max-w-3xl">Seu cliente pede sem baixar nada</h2>
+          <p className="text-lg text-neutral-600 mb-14 max-w-2xl">São quatro telas, do link até a cozinha. Com a sua logo e as suas cores.</p>
 
-            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-slate-500">Seu nome</label>
-            <input
-              value={form.yourName}
-              onChange={(e) => setForm((f) => ({ ...f, yourName: e.target.value }))}
-              placeholder="Como gosta de ser chamado"
-              className="w-full mb-5 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#D35400]/20 focus:border-[#D35400] transition-all"
-            />
+          <ol className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-12 sm:gap-x-8">
+            {STEPS.map((step, i) => (
+              <li key={step.title}>
+                <Phone src={step.src} alt={step.title} className="max-w-[250px] mx-auto mb-6" />
+                <div className="flex items-baseline gap-3">
+                  <span className="text-4xl font-extrabold tabular-nums" style={{ color: ORANGE }}>{i + 1}</span>
+                  <div>
+                    <h3 className="font-bold text-lg leading-tight mb-1">{step.title}</h3>
+                    <p className="text-[15px] text-neutral-600 leading-relaxed">{step.text}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
 
-            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-slate-500">Telefone / WhatsApp</label>
-            <input
-              value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              placeholder="(35) 99999-9999"
-              className="w-full mb-6 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#D35400]/20 focus:border-[#D35400] transition-all"
-            />
+      {/* PAINEL */}
+      <section id="painel" className="py-20 sm:py-28 scroll-mt-16">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6">
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-12 lg:gap-16 items-center mb-20">
+            <div>
+              <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-6">O pedido chega completo. Ninguém precisa perguntar de novo.</h2>
+              <p className="text-lg text-neutral-600 leading-relaxed">
+                Itens, adicionais, endereço e pagamento aparecem no painel com aviso sonoro, e a impressora da cozinha já solta a comanda. Nas mesas, cada uma tem QR Code e comanda própria.
+              </p>
+            </div>
+            <Screenshot src="/landing/painel-mesas.webp" alt="Tela de mesas do Menuair, com mesas livres e ocupadas" />
+          </div>
 
-            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-slate-500">Plano de interesse</label>
-            <div className="flex gap-3 mb-8">
+          <div className="grid md:grid-cols-3 gap-px bg-neutral-200 rounded-xl overflow-hidden ring-1 ring-neutral-200">
+            {TEAM.map((col) => (
+              <div key={col.role} className="bg-white p-7">
+                <h3 className="text-xl font-extrabold mb-4">{col.role}</h3>
+                <ul className="space-y-3">
+                  {col.items.map((item) => (
+                    <li key={item} className="text-[15px] text-neutral-700 leading-relaxed">{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-20 grid sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
+            {EXTRAS.map((item) => (
+              <div key={item.title} className="border-t-2 border-neutral-950 pt-4">
+                <h3 className="font-bold mb-2">{item.title}</h3>
+                <p className="text-[15px] text-neutral-600 leading-relaxed">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CASE */}
+      <section id="case" className="scroll-mt-16 text-neutral-950" style={{ background: ORANGE }}>
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 py-20 sm:py-24 grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+          <div>
+            <p className="font-bold mb-4">Quiosque Tô Em Casa</p>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-6">Roda no Menuair todo dia, do primeiro pedido ao fechamento do caixa.</h2>
+            <p className="text-lg leading-relaxed max-w-lg">
+              Foi o primeiro restaurante com o sistema completo: cardápio, pedido, Pix e impressão na cozinha, sem planilha paralela e sem app de terceiro.
+            </p>
+          </div>
+          <dl className="border-t-2 border-neutral-950">
+            {CASE_FACTS.map((f) => (
+              <div key={f.k} className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-4 py-4 border-b border-neutral-950/20">
+                <dt className="font-bold">{f.k}</dt>
+                <dd>{f.v}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* COMPARATIVO */}
+      <section className="py-20 sm:py-28">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4 max-w-3xl">Quanto sai a comissão do marketplace?</h2>
+          <p className="text-lg text-neutral-600 mb-12 max-w-2xl">
+            Muita gente usa os dois: o marketplace pra ser encontrado e o canal próprio pro cliente que já é seu. Com esse cliente, não faz sentido pagar comissão.
+          </p>
+
+          <div className="grid lg:grid-cols-2 gap-8 items-start">
+            <CommissionCalculator />
+
+            <table className="w-full border-collapse text-[15px]">
+              <thead>
+                <tr className="border-b-2 border-neutral-950">
+                  <th className="py-3 text-left font-normal"><span className="sr-only">Item</span></th>
+                  <th className="py-3 px-2 text-center font-semibold text-neutral-500">Marketplace</th>
+                  <th className="py-3 px-2 text-center font-extrabold">Menuair</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARISON.map((row) => (
+                  <tr key={row.label} className="border-b border-neutral-200">
+                    <td className="py-4 pr-2 text-neutral-800">{row.label}</td>
+                    <td className="py-4 px-2 text-neutral-400 text-center">{row.them}</td>
+                    <td className="py-4 px-2 font-bold text-center">{row.us}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* PLANOS */}
+      <section id="planos" className="bg-neutral-100 py-20 sm:py-28 scroll-mt-16">
+        <div className="max-w-4xl mx-auto px-5 sm:px-6">
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-3">Planos</h2>
+          <p className="text-lg text-neutral-600 mb-12">Mensalidade fixa. Nenhum plano cobra comissão por pedido.</p>
+
+          <div className="grid md:grid-cols-2 gap-5 mb-12">
+            <div className="rounded-xl p-7 sm:p-8 bg-white ring-1 ring-neutral-200 flex flex-col">
+              <h3 className="text-2xl font-extrabold">Start</h3>
+              <p className="text-neutral-500 mb-6">Pra começar a operar</p>
+              <div className="flex items-baseline gap-1 mb-6">
+                <span className="text-5xl font-extrabold tracking-tight tabular-nums">{currency(PLAN_PRICE_CENTS.START)}</span>
+                <span className="text-neutral-500">/mês</span>
+              </div>
+              <p className="text-neutral-700 mb-8 flex-grow">Cardápio, pedidos, Pix, mesas, comandas e caixa. O que o dia a dia pede.</p>
+              <a
+                href="#contato"
+                onClick={() => setForm((f) => ({ ...f, plan: "START" }))}
+                className="block text-center w-full py-3.5 rounded-md ring-1 ring-neutral-950 font-bold hover:bg-neutral-50 transition-colors"
+              >
+                Quero o Start
+              </a>
+            </div>
+
+            <div className="rounded-xl p-7 sm:p-8 bg-neutral-950 text-white flex flex-col">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-extrabold">Pro</h3>
+                <span className="text-xs font-bold px-2 py-1 rounded text-neutral-950" style={{ background: ORANGE }}>Mais escolhido</span>
+              </div>
+              <p className="text-neutral-400 mb-6">Pra ter o controle do negócio</p>
+              <div className="flex items-baseline gap-1 mb-6">
+                <span className="text-5xl font-extrabold tracking-tight tabular-nums">{currency(PLAN_PRICE_CENTS.PRO)}</span>
+                <span className="text-neutral-400">/mês</span>
+              </div>
+              <p className="text-neutral-300 mb-8 flex-grow">Tudo do Start, mais dashboard, relatórios, cupons, exportação e QR Code de autoatendimento na mesa.</p>
+              <a
+                href="#contato"
+                onClick={() => setForm((f) => ({ ...f, plan: "PRO" }))}
+                className="block text-center w-full py-3.5 rounded-md font-bold text-neutral-950 hover:brightness-95 transition"
+                style={{ background: ORANGE }}
+              >
+                Quero o Pro
+              </a>
+            </div>
+          </div>
+
+          <table className="w-full text-left text-[15px]">
+            <thead>
+              <tr className="border-b-2 border-neutral-950">
+                <th className="py-3 pr-2 font-bold">Recursos</th>
+                <th className="py-3 px-2 font-bold text-center w-24 sm:w-32">Start</th>
+                <th className="py-3 px-2 font-bold text-center w-24 sm:w-32">Pro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PLAN_FEATURE_ROWS.map((row) => (
+                <tr key={row.label} className="border-b border-neutral-200">
+                  <td className="py-3.5 pr-2 text-neutral-700">{row.label}</td>
+                  <td className="py-3.5 px-2 text-center"><FeatureCell value={row.start} /></td>
+                  <td className="py-3.5 px-2 text-center"><FeatureCell value={row.pro} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="py-20 sm:py-28 scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 grid lg:grid-cols-[0.75fr_1.25fr] gap-10 lg:gap-16">
+          <div>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4">Dúvidas</h2>
+            <p className="text-neutral-600">
+              Não achou a sua?{" "}
+              <a href={quickWhatsApp} target="_blank" rel="noopener noreferrer" className="font-semibold text-neutral-950 underline underline-offset-4">
+                Pergunta no WhatsApp
+              </a>
+              .
+            </p>
+          </div>
+          <FaqAccordion />
+        </div>
+      </section>
+
+      {/* CONTATO */}
+      <section id="contato" className="bg-neutral-950 text-white py-20 sm:py-28 scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+          <div>
+            <h2 className="text-4xl sm:text-6xl font-extrabold tracking-tight mb-6">
+              Bora colocar seu cardápio <span style={{ color: ORANGE }}>no ar?</span>
+            </h2>
+            <p className="text-lg text-neutral-300 leading-relaxed mb-10 max-w-md">
+              Deixa seus dados que a gente chama no WhatsApp, mostra o sistema e monta o cardápio junto com você.
+            </p>
+            <div className="space-y-4">
+              <a href={quickWhatsApp} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-lg font-semibold hover:text-neutral-300 transition-colors">
+                <MessageCircle size={20} style={{ color: ORANGE }} /> {CONTACT_PHONE_LABEL}
+              </a>
+              <a href={`mailto:${CONTACT_EMAIL}`} className="flex items-center gap-3 text-lg font-semibold hover:text-neutral-300 transition-colors">
+                <Mail size={20} style={{ color: ORANGE }} /> {CONTACT_EMAIL}
+              </a>
+            </div>
+          </div>
+
+          <form onSubmit={handleWhatsApp} className="bg-white text-neutral-950 rounded-xl p-6 sm:p-8">
+            <div className="grid sm:grid-cols-2 gap-4 mb-4">
+              <div className="sm:col-span-2">
+                <label htmlFor="restaurante" className="block text-sm font-semibold mb-1.5">Nome do restaurante</label>
+                <input
+                  id="restaurante"
+                  value={form.restaurantName}
+                  onChange={(e) => setForm((f) => ({ ...f, restaurantName: e.target.value }))}
+                  placeholder="Ex.: Pizzaria da Praça"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label htmlFor="nome" className="block text-sm font-semibold mb-1.5">Seu nome</label>
+                <input
+                  id="nome"
+                  value={form.yourName}
+                  onChange={(e) => setForm((f) => ({ ...f, yourName: e.target.value }))}
+                  placeholder="Como te chamamos"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label htmlFor="telefone" className="block text-sm font-semibold mb-1.5">WhatsApp</label>
+                <input
+                  id="telefone"
+                  type="tel"
+                  inputMode="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="(35) 99999-9999"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <p className="text-sm font-semibold mb-1.5">Plano de interesse</p>
+            <div className="grid grid-cols-2 gap-2 mb-6">
               {(["START", "PRO"] as const).map((p) => (
                 <button
                   type="button"
                   key={p}
                   onClick={() => setForm((f) => ({ ...f, plan: p }))}
-                  className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all ${
-                    form.plan === p
-                      ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                      : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                  aria-pressed={form.plan === p}
+                  className={`py-3 rounded-md text-sm font-bold transition-colors ${
+                    form.plan === p ? "bg-neutral-950 text-white" : "ring-1 ring-neutral-300 text-neutral-600 hover:ring-neutral-500"
                   }`}
                 >
-                  {p === "START" ? "Start" : "Pro"}
+                  {p === "START" ? `Start · ${currency(PLAN_PRICE_CENTS.START)}` : `Pro · ${currency(PLAN_PRICE_CENTS.PRO)}`}
                 </button>
               ))}
             </div>
@@ -295,7 +616,7 @@ export default function LandingPage() {
             <button
               type="submit"
               disabled={!formValid}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-full font-bold text-sm bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 disabled:opacity-50 disabled:hover:bg-emerald-500 transition-colors mb-3"
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-md font-bold bg-[#25D366] text-neutral-950 hover:brightness-95 disabled:opacity-40 transition mb-2.5"
             >
               <MessageCircle size={18} /> Enviar pelo WhatsApp
             </button>
@@ -303,392 +624,31 @@ export default function LandingPage() {
               type="button"
               onClick={handleEmail}
               disabled={!formValid}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-full font-bold text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-md font-bold ring-1 ring-neutral-300 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 transition-colors"
             >
               <Mail size={18} /> Enviar por e-mail
             </button>
-            <p className="text-[11px] text-slate-400 mt-4 text-center">Sem cartão de crédito. Resposta em até 1 dia útil.</p>
+            <p className="text-xs text-neutral-500 mt-4 text-center">Sem cartão de crédito. Respondemos em até 1 dia útil.</p>
           </form>
         </div>
       </section>
 
-      {/* 3 FEATURES BENEATH HERO */}
-      <section className="max-w-7xl mx-auto px-6 pb-24">
-        <div className="grid md:grid-cols-3 gap-12 border-t border-slate-200 pt-16">
-          {BENEFITS.map((b) => (
-            <div key={b.title}>
-              <b.icon className="text-[#D35400] mb-4" size={28} />
-              <h3 className="font-bold text-lg mb-2 text-slate-900">{b.title}</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">{b.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section id="como-funciona" className="bg-[#FCFBF8] border-t border-slate-200 py-24 scroll-mt-16">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="mb-16 max-w-2xl">
-            <h2 className="text-4xl font-extrabold mb-4 tracking-tight">Do primeiro contato<br />ao pedido na cozinha</h2>
-            <p className="text-slate-600">Veja como seu cliente faz um pedido pelo Menuair.</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {STEPS.map((step) => (
-              <div key={step.n} className="flex flex-col">
-                <div className="flex justify-center mb-6">
-                  <img src={step.src} alt={step.title} className="w-full max-w-[220px]" />
-                </div>
-
-                <h4 className="font-bold mb-2 text-slate-900"><span className="text-[#D35400] mr-2">{step.n}</span>{step.title}</h4>
-                <p className="text-sm text-slate-500 leading-relaxed">{step.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* JORNADA COMPLETA */}
-      <section className="bg-white border-t border-slate-200 py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="mb-16 max-w-2xl">
-            <h2 className="text-4xl font-extrabold mb-4 tracking-tight">Do pedido ao fechamento do caixa</h2>
-            <p className="text-slate-600">Essa é a jornada completa que o Menuair organiza pra você, todo dia.</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-8 sm:gap-4">
-            {JOURNEY_STEPS.map((step, i) => (
-              <div key={step.title} className="relative">
-                <step.icon className="text-[#D35400] mb-3" size={26} />
-                <h4 className="font-bold text-sm mb-1.5 text-slate-900">
-                  <span className="text-slate-300 mr-1.5">{String(i + 1).padStart(2, "0")}</span>
-                  {step.title}
-                </h4>
-                <p className="text-xs text-slate-500 leading-relaxed">{step.text}</p>
-                {i < JOURNEY_STEPS.length - 1 && (
-                  <ArrowRight size={16} className="hidden sm:block text-slate-200 absolute top-1.5 -right-6" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* OPERAÇÃO INTERNA */}
-      <section className="bg-slate-50 border-t border-slate-200 py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="mb-16 max-w-2xl">
-            <h2 className="text-4xl font-extrabold mb-4 tracking-tight">Por dentro do restaurante,<br />todo mundo no mesmo painel</h2>
-            <p className="text-slate-600">Garçom, caixa e entrega — cada um com a tela certa pra sua função, sem planilha paralela.</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {OPERATION_COLUMNS.map((col) => (
-              <div key={col.title} className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
-                <col.icon className="text-[#D35400] mb-4" size={28} />
-                <h3 className="font-bold text-xl mb-4 text-slate-900">{col.title}</h3>
-                <ul className="space-y-3">
-                  {col.items.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
-                      <Check size={15} className="text-[#D35400] shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* RESTAURANT DASHBOARD */}
-      <section className="border-t border-slate-200 py-24">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
-          <div>
-            <h2 className="text-4xl font-extrabold mb-6 tracking-tight">Enquanto seu cliente faz o pedido, você acompanha tudo.</h2>
-            <p className="text-slate-600 mb-10 leading-relaxed">Cada pedido chega com os itens, os extras, os dados de entrega e a forma de pagamento — direto no painel, com aviso sonoro.</p>
-
-            <div className="grid grid-cols-2 gap-8">
-              {OWNER_BENEFITS.map((b) => (
-                <div key={b.title}>
-                  <b.icon className="text-[#D35400] mb-3" size={24} />
-                  <h4 className="font-bold mb-1 text-slate-900">{b.title}</h4>
-                  <p className="text-sm text-slate-500">{b.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 items-start justify-items-center md:justify-items-end">
-            <img src="/screenshots/admin-pedidos.jpg" alt="Painel de pedidos" className="w-full max-w-[260px]" />
-
-            <div className="grid gap-8 w-full max-w-[220px]">
-              <img src="/screenshots/confirm.jpg" alt="Confirmação" className="w-full" />
-              <img src="/screenshots/product.jpg" alt="Produto" className="w-full" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* GESTÃO */}
-      <section className="bg-[#111827] py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="mb-16 max-w-2xl">
-            <span className="inline-block border border-white/10 text-slate-400 text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-4">
-              Além do cardápio
-            </span>
-            <h2 className="text-4xl font-extrabold mb-4 tracking-tight text-white">
-              Gestão de verdade, não só pedido
-            </h2>
-            <p className="text-slate-400">O que separa um cardápio digital de um sistema de restaurante completo.</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-              <h3 className="font-bold text-lg mb-2 text-white">Estoque com CMV</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Cadastre a ficha técnica de cada prato. O estoque baixa automaticamente a cada venda, e você vê o custo e a margem de cada produto, não só o preço de venda.
-              </p>
-            </div>
-            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-              <h3 className="font-bold text-lg mb-2 text-white">Fidelidade e Cashback</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Cliente cria conta, acumula pontos e ganha cashback pra usar no próximo pedido — sem depender de cupom de marketplace.
-              </p>
-            </div>
-            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-              <h3 className="font-bold text-lg mb-2 text-white">Reservas de mesa</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Registre reservas feitas por telefone ou WhatsApp, com status e mesa atribuída — sem depender de caderno.
-              </p>
-            </div>
-            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-              <h3 className="font-bold text-lg mb-2 text-white">Cardápio Premium</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Um segundo visual pro seu cardápio digital — mais sóbrio, tipografia elegante — pra restaurantes que querem outra identidade visual.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CASE REAL */}
-      <section id="case" className="bg-[#111827] py-24 scroll-mt-16">
-        <div className="max-w-5xl mx-auto px-6">
-          <span className="inline-block text-[#D35400] text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-4 bg-white/5 border border-white/10">
-            Case real
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-4 max-w-xl tracking-tight">
-            Quiosque Tô Em Casa opera com Menuair todo dia
-          </h2>
-          <p className="text-slate-400 max-w-xl mb-10 leading-relaxed">
-            Primeiro restaurante rodando o sistema completo: cardápio, pedido, Pix e impressão na cozinha, sem depender de planilha paralela nem de app de terceiro.
-          </p>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {CASE_FACTS.map((f) => (
-              <div key={f.k} className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                <p className="text-xs text-slate-400 mb-1">{f.k}</p>
-                <p className="text-sm font-semibold text-white">{f.v}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* PROVA SOCIAL E RESUMO ANTES DOS PLANOS */}
-      <section className="bg-slate-50 border-t border-slate-200 py-20">
-        <div className="max-w-5xl mx-auto px-6 text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
-            Feito para o restaurante, sem complicação.
-          </h2>
-          <p className="text-slate-600 max-w-2xl mx-auto mb-12 text-base leading-relaxed">
-            Seu cliente acessa pelo celular, escolhe os produtos e faz o pedido. Você recebe tudo organizado no painel e acompanha cada etapa.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {STATS.map((stat) => (
-              <div key={stat.label} className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-                <div className="text-3xl sm:text-4xl font-black text-[#D35400] mb-2">{stat.value}</div>
-                <div className="text-sm font-medium text-slate-600">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* COMPARATIVO IFOOD */}
-      <section className="bg-white border-t border-slate-200 py-24">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="mb-12 max-w-2xl">
-            <span className="inline-block border border-slate-200 text-slate-500 text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-4">
-              Comparativo
-            </span>
-            <h2 className="text-4xl font-extrabold mb-4 tracking-tight">iFood vs Menuair<br />(seu canal próprio)</h2>
-            <p className="text-slate-600">
-              Entenda quanto você deixa de pagar tendo seu próprio canal — sem precisar abandonar o que já funciona.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 overflow-hidden">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <td className="p-4 text-slate-500 font-semibold"></td>
-                  <td className="p-4 text-slate-500 font-bold text-center">iFood / Marketplace</td>
-                  <td className="p-4 text-[#D35400] font-bold text-center bg-orange-50">Menuair (seu canal)</td>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { label: "Taxa por pedido", them: "12% a 27%", us: "0%" },
-                  { label: "Dados do cliente", them: "Ficam com o app", us: "Seus, pra fidelizar" },
-                  { label: "Sua marca", them: "Template deles", us: "Logo e cores próprias" },
-                  { label: "Cupom de desconto", them: "Regras do app", us: "Você define" },
-                  { label: "Mesa, comanda e caixa", them: "Não tem", us: "Sistema completo" },
-                  { label: "Pontos e cashback", them: "Não tem", us: "Você configura" },
-                  { label: "Pagamento online", them: "Com taxa extra", us: "Pix direto, sem taxa" },
-                ].map((row, i) => (
-                  <tr key={row.label} className={i !== 6 ? "border-b border-slate-100" : ""}>
-                    <td className="p-4 text-slate-700 font-medium">{row.label}</td>
-                    <td className="p-4 text-slate-400 text-center">{row.them}</td>
-                    <td className="p-4 text-emerald-700 font-semibold text-center bg-orange-50/50">{row.us}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <p className="text-xs text-slate-400 mt-4 italic">
-            Dica: muitos restaurantes usam os dois juntos — o marketplace pra atrair cliente novo, o Menuair pra fidelizar sem pagar comissão nisso.
-          </p>
-        </div>
-      </section>
-
-      {/* PRICING */}
-      <section id="planos" className="bg-[#FCFBF8] border-t border-slate-200 py-24 scroll-mt-16">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-extrabold mb-4 tracking-tight">Planos</h2>
-            <p className="text-slate-600">Mensalidade fixa, sem comissão por pedido.</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8 mb-16">
-            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col">
-              <h3 className="font-bold text-xl mb-4 uppercase tracking-wide text-slate-900">Start</h3>
-              <div className="flex items-baseline gap-1 mb-4">
-                <span className="text-4xl font-extrabold text-slate-900">{currency(PLAN_PRICE_CENTS.START)}</span>
-                <span className="text-slate-500">/mês</span>
-              </div>
-              <p className="text-xs font-bold uppercase tracking-wide text-[#D35400] mb-1">Comece a operar</p>
-              <p className="text-slate-500 text-sm mb-8 flex-grow">Cardápio, pedidos, Pix, mesas, comandas e caixa — tudo pra rodar o dia a dia.</p>
-              <a
-                href="#contato"
-                onClick={() => setForm((f) => ({ ...f, plan: "START" }))}
-                className="block text-center w-full py-3 rounded-full border border-slate-300 font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                Começar com o Start
-              </a>
-            </div>
-
-            <div className="bg-[#111827] text-white rounded-3xl p-8 shadow-xl relative flex flex-col">
-              <div className="absolute top-0 right-8 -translate-y-1/2 bg-[#D35400] text-white text-xs font-bold px-3 py-1 rounded-full">
-                POPULAR
-              </div>
-              <h3 className="font-bold text-xl mb-4 uppercase tracking-wide text-white">Pro</h3>
-              <div className="flex items-baseline gap-1 mb-4">
-                <span className="text-4xl font-extrabold text-white">{currency(PLAN_PRICE_CENTS.PRO)}</span>
-                <span className="text-slate-300">/mês</span>
-              </div>
-              <p className="text-xs font-bold uppercase tracking-wide text-[#D35400] mb-1">Tenha controle do negócio</p>
-              <p className="text-slate-300 text-sm mb-8 flex-grow">Tudo do Start, mais dashboard, financeiro, relatórios, cupons, exportação e QR Code de autoatendimento.</p>
-              <a
-                href="#contato"
-                onClick={() => setForm((f) => ({ ...f, plan: "PRO" }))}
-                className="block text-center w-full py-3 rounded-full bg-[#D35400] text-white font-bold hover:bg-[#b84a00] transition-colors"
-              >
-                Começar com o Pro
-              </a>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="py-4 px-6 font-semibold text-slate-700">Recursos</th>
-                  <th className="py-4 px-6 font-semibold text-center text-slate-700 w-28 sm:w-32">Start</th>
-                  <th className="py-4 px-6 font-semibold text-center text-slate-700 w-28 sm:w-32">Pro</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {PLAN_FEATURE_ROWS.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-4 px-6 text-slate-600">{row.label}</td>
-                    <td className="py-4 px-6 text-center"><FeatureCell value={row.start} /></td>
-                    <td className="py-4 px-6 text-center"><FeatureCell value={row.pro} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ SECTION */}
-      <section id="faq" className="py-24 max-w-3xl mx-auto px-6 scroll-mt-16">
-        <h2 className="text-3xl font-extrabold text-center mb-12 tracking-tight">Perguntas frequentes</h2>
-        <FaqAccordion />
-      </section>
-
-      {/* CTA FINAL */}
-      <section className="max-w-5xl mx-auto px-6 pb-24">
-        <div className="bg-[#111827] rounded-[2rem] p-8 md:p-16 text-center text-white relative overflow-hidden shadow-2xl">
-          <div className="relative z-10 max-w-md mx-auto">
-            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4 tracking-tight">Pronto para colocar<br />seu restaurante online?</h2>
-            <p className="text-slate-400 mb-8">Preenche o formulário lá em cima, a gente te chama no WhatsApp.</p>
-            <a
-              href="#contato"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-bold text-sm bg-[#D35400] text-white hover:bg-[#b84a00] transition-colors"
-            >
-              Quero meu cardápio digital <ArrowRight size={18} />
-            </a>
-          </div>
-        </div>
-      </section>
-
       {/* FOOTER */}
-      <footer className="border-t border-slate-200 py-10 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col items-center justify-center text-sm text-slate-500 gap-6">
-          <div className="flex items-center gap-2 font-bold text-lg text-slate-900">
-            <div className="bg-slate-900 text-white p-1 rounded-md w-7 h-7 flex items-center justify-center text-xs">
-              M
-            </div>
-            Menuair
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-slate-100 flex flex-col items-center justify-center text-sm text-slate-500 gap-6">
-          <div className="text-center leading-relaxed">
-            <p>
-              © {new Date().getFullYear()} Desenvolvido por{" "}
-              <a
-                href={devWhatsApp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-slate-600 hover:text-slate-800 underline transition-colors"
-              >
+      <footer className="bg-neutral-950 text-neutral-500 border-t border-white/10 py-8 px-5 sm:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-sm">
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-5">
+            <Logo dark />
+            <span>
+              © {new Date().getFullYear()}{" "}
+              <a href={devWhatsApp} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
                 MenuAir
               </a>
-            </p>
-            <p>Todos os direitos reservados</p>
+              . Todos os direitos reservados.
+            </span>
           </div>
-          <div className="flex gap-6 text-xs text-slate-400">
-            <Link href="/privacidade" className="hover:text-slate-600 transition-colors">
-              Política de Privacidade
-            </Link>
-            <Link href="/termos" className="hover:text-slate-600 transition-colors">
-              Termos de Uso
-            </Link>
+          <div className="flex gap-6">
+            <Link href="/privacidade" className="hover:text-white transition-colors">Privacidade</Link>
+            <Link href="/termos" className="hover:text-white transition-colors">Termos de uso</Link>
           </div>
         </div>
       </footer>
