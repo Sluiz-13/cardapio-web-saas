@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   });
   if (!restaurant) return NextResponse.json({ error: "Restaurante não encontrado." }, { status: 404 });
 
-  const { feeCents, disabled } = await resolveDeliveryFee(
+  const { feeCents, disabled, outsideArea } = await resolveDeliveryFee(
     parsed.data.restaurantId,
     parsed.data.neighborhood,
     restaurant.defaultDeliveryFeeCents
@@ -33,6 +33,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       disabled: true,
       error: "Entregas pausadas pra esse bairro no momento — fale com a gente pelo WhatsApp.",
+    });
+  }
+  if (outsideArea) {
+    return NextResponse.json({
+      outsideArea: true,
+      error: "Esse bairro está fora da nossa área de entrega — fale com a gente pelo WhatsApp.",
     });
   }
   return NextResponse.json({ feeCents });

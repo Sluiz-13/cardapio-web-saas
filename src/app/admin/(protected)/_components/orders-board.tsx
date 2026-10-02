@@ -54,6 +54,8 @@ type Order = {
   neighborhood: string | null;
   city: string | null;
   changeForCents: number | null;
+  note: string | null;
+  dailyNumber: number | null;
   paymentConfirmed: boolean;
   printedAt: string | Date | null;
   table: { label: string } | null;
@@ -327,6 +329,11 @@ export default function OrdersBoard({
                     <p className="text-xs mt-2 text-gray-600">
                       {o.items.map((i) => `${i.qty}x ${i.productName}${i.categoryName ? ` (${i.categoryName})` : ""}`).join(", ")}
                     </p>
+                    {o.note && (
+                      <p className="text-xs mt-1.5 italic text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">
+                        💬 {o.note}
+                      </p>
+                    )}
 
                     <div className="flex items-center justify-between mt-2.5">
                       <span className="text-emerald-600 font-bold text-sm">{currency(o.totalCents)}</span>
@@ -428,8 +435,8 @@ export default function OrdersBoard({
                         </div>
                       )}
 
-                      <a href={buildWhatsAppLink(o.customerPhone, buildOrderStatusMessage(o.status, o.customerName, o.id.slice(-5)))}
-                        target="_blank"
+                      <a href={buildWhatsAppLink(o.customerPhone, buildOrderStatusMessage(o.status, o.customerName, o.dailyNumber ? String(o.dailyNumber) : o.id.slice(-5)))}
+                        target="whatsapp-menuair"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center justify-center w-9 h-9 rounded-full border border-surface-border text-emerald-600 hover:bg-emerald-50 transition-colors duration-[180ms] shrink-0"

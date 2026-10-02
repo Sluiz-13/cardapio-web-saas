@@ -9,6 +9,7 @@ type OrderForReceipt = Pick<
   Order,
   | "id"
   | "dailyNumber"
+  | "note"
   | "createdAt"
   | "customerName"
   | "customerPhone"
@@ -131,6 +132,10 @@ export function buildReceiptEscPos(order: OrderForReceipt): Buffer {
     if (order.referenceNote) lines.push(...wrapText(`Ref: ${order.referenceNote}`));
   }
 
+  if (order.note) {
+    lines.push(...wrapText(`Obs: ${order.note}`));
+  }
+
   lines.push("-".repeat(CHARS_PER_LINE));
 
   for (const item of order.items) {
@@ -241,7 +246,7 @@ export function buildComandaReceiptEscPos(comanda: ComandaForReceipt): Buffer {
   ]);
 }
 
-type KitchenOrderForReceipt = Pick<Order, "id" | "dailyNumber" | "createdAt" | "customerName" | "customerPhone" | "deliveryType"> & {
+type KitchenOrderForReceipt = Pick<Order, "id" | "dailyNumber" | "createdAt" | "customerName" | "customerPhone" | "deliveryType" | "note"> & {
   items: Pick<OrderItem, "productName" | "categoryName" | "qty" | "removedItems" | "extras" | "selectedOptions">[];
   table?: { label: string } | null;
 };
@@ -260,6 +265,7 @@ export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt): Buffer
   lines.push(...wrapText(`Cliente: ${order.customerName}`));
   if (order.customerPhone) lines.push(...wrapText(`Telefone: ${order.customerPhone}`));
   if (order.deliveryType === "DINE_IN" && order.table) lines.push(`Mesa: ${order.table.label}`);
+  if (order.note) lines.push(...wrapText(`Obs: ${order.note}`));
 
   lines.push("-".repeat(CHARS_PER_LINE));
 

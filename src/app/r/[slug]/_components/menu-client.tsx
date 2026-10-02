@@ -1139,7 +1139,9 @@ function CheckoutDrawer({
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [deliveryFeeCents, setDeliveryFeeCents] = useState(0);
   const [changeFor, setChangeFor] = useState("");
+  const [note, setNote] = useState("");
   const [neighborhoodDisabled, setNeighborhoodDisabled] = useState(false);
+  const [neighborhoodOutsideArea, setNeighborhoodOutsideArea] = useState(false);
   const [redeemPoints, setRedeemPoints] = useState(false);
   const [useCashback, setUseCashback] = useState(false);
 
@@ -1220,10 +1222,18 @@ function CheckoutDrawer({
     if (!res.ok) return;
     if (data.disabled) {
       setNeighborhoodDisabled(true);
+      setNeighborhoodOutsideArea(false);
+      setDeliveryFeeCents(0);
+      return;
+    }
+    if (data.outsideArea) {
+      setNeighborhoodOutsideArea(true);
+      setNeighborhoodDisabled(false);
       setDeliveryFeeCents(0);
       return;
     }
     setNeighborhoodDisabled(false);
+    setNeighborhoodOutsideArea(false);
     setDeliveryFeeCents(data.feeCents);
   }
 
@@ -1237,6 +1247,10 @@ function CheckoutDrawer({
     }
     if (deliveryType === "DELIVERY" && neighborhoodDisabled) {
       setError("Não estamos entregando nesse bairro no momento.");
+      return;
+    }
+    if (deliveryType === "DELIVERY" && neighborhoodOutsideArea) {
+      setError("Esse bairro está fora da nossa área de entrega.");
       return;
     }
     if (deliveryType === "DELIVERY" && (!street.trim() || !number.trim() || !neighborhood.trim() || !city.trim())) {
@@ -1268,6 +1282,7 @@ function CheckoutDrawer({
         redeemLoyaltyPoints: redeemPoints && canRedeemPoints,
         useCashback: useCashback && canUseCashback,
         changeForCents: paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor) * 100) : undefined,
+        note: note.trim() || undefined,
         tableId: table?.id,
         address:
           deliveryType === "DELIVERY"
@@ -1307,8 +1322,12 @@ function CheckoutDrawer({
     "w-full px-3.5 py-2.5 rounded-xl border bg-transparent text-base focus:outline-none focus:ring-2 transition-shadow";
   const inputStyle = { borderColor: theme.border, color: theme.textPrimary };
 
+  function handleCloseAttempt() {
+    if (confirm("Tem certeza? Os dados preenchidos serão perdidos.")) onClose();
+  }
+
   return (
-    <Overlay onClose={onClose}>
+    <Overlay onClose={handleCloseAttempt}>
       <form onSubmit={handleSubmit} className="w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col animate-fade-in-up" style={{ background: theme.surface }}>
         <div className="flex items-center justify-between p-5 pb-3">
           <h2 className="font-bold text-xl" style={{ color: theme.textPrimary, fontFamily: theme.fontDisplay }}>Seus Dados</h2>
@@ -1411,9 +1430,24 @@ function CheckoutDrawer({
                 <input value={referenceNote} onChange={(e) => setReferenceNote(e.target.value)} placeholder="Ponto de referência (opcional)" className={`col-span-3 ${inputClass}`} style={inputStyle} />
                 {neighborhoodDisabled && (
                   <div className="col-span-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 leading-relaxed">
-                    Não estamos entregando nessa área no momento.{" "}
+                    Não estamos entregando nesse bairro no momento.{" "}
                     {restaurantPhone && (
                       <a href={`https://wa.me/55${restaurantPhone.replace(/\D/g, "")}?text=${encodeURIComponent("Oi! Vi que a entrega pro meu bairro tá pausada, queria fazer um pedido")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline font-semibold"
+                      >
+                        Fala com a gente pelo WhatsApp
+                      </a>
+                    )}
+                    .
+                  </div>
+                )}
+                {neighborhoodOutsideArea && (
+                  <div className="col-span-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 leading-relaxed">
+                    Esse bairro está fora da nossa área de entrega.{" "}
+                    {restaurantPhone && (
+                      <a href={`https://wa.me/55${restaurantPhone.replace(/\D/g, "")}?text=${encodeURIComponent("Oi! Vi que meu bairro não está na área de entrega, queria saber se dá pra fazer um pedido")}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="underline font-semibold"
@@ -1459,6 +1493,20 @@ function CheckoutDrawer({
                 />
               </div>
             )}
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: theme.textSecondary }}>
+              Observação (opcional)
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value.slice(0, 300))}
+              placeholder="ex: sem cebola, trazer troco, tocar o interfone 2"
+              rows={2}
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
 
           <p className="text-xs mb-3" style={{ color: theme.textSecondary }}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Bike, UserX, Power } from "lucide-react";
+import { Plus, Trash2, Bike, UserX, Power, Calendar, Printer } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 
 type Driver = { id: string; name: string; phone: string; active: boolean };
+type ReportDelivery = { id: string; address: string; neighborhood: string | null; feeCents: number; time: string };
+type ReportEntry = { driverName: string; totalCents: number; averageCents: number; deliveries: ReportDelivery[] };
 
 export default function EntregadoresPage() {
   const { show } = useToast();
@@ -19,6 +21,21 @@ export default function EntregadoresPage() {
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [reportDate, setReportDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [report, setReport] = useState<ReportEntry[]>([]);
+  const [loadingReport, setLoadingReport] = useState(true);
+
+  async function loadReport(date: string) {
+    setLoadingReport(true);
+    const res = await fetch(`/api/admin/drivers/report?date=${date}`).then((r) => r.json());
+    setReport(res);
+    setLoadingReport(false);
+  }
+
+  useEffect(() => {
+    loadReport(reportDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportDate]);
 
   async function load() {
     setLoading(true);
@@ -121,7 +138,7 @@ export default function EntregadoresPage() {
           description="Cadastre seus entregadores pra poder atribuí-los aos pedidos de delivery."
         />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 mb-8">
           {drivers.map((d) => (
             <Card key={d.id}>
               <CardBody className="flex items-center gap-3 !py-3.5">
@@ -150,6 +167,68 @@ export default function EntregadoresPage() {
                 >
                   <Trash2 size={15} />
                 </button>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <Calendar size={13} className="text-gray-400" />
+          <p className="text-xs uppercase tracking-wide font-semibold text-gray-400">Relatório do dia</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={reportDate}
+            onChange={(e) => setReportDate(e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg border border-surface-border text-sm"
+          />
+          <button
+            onClick={() => window.open(`/admin/entregadores/relatorio/imprimir?date=${reportDate}`, "_blank")}
+            disabled={report.length === 0}
+            className="flex items-center justify-center w-9 h-9 rounded-full border border-surface-border text-gray-500 hover:bg-gray-50 disabled:opacity-40 transition-colors duration-[180ms]"
+            title="Imprimir relatório"
+          >
+            <Printer size={14} />
+          </button>
+        </div>
+      </div>
+
+      {loadingReport ? (
+        <Skeleton className="h-20" />
+      ) : report.length === 0 ? (
+        <p className="text-sm text-gray-400 italic">Nenhuma entrega concluída nesse dia.</p>
+      ) : (
+        <div className="space-y-3">
+          {report.map((entry) => (
+            <Card key={entry.driverName}>
+              <CardBody>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-bold text-sm text-gray-900">{entry.driverName}</p>
+                  <div className="text-right">
+                    <p className="font-bold text-sm text-emerald-600">
+                      {(entry.totalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      média {(entry.averageCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-1.5 pt-2 border-t border-surface-border">
+                  {entry.deliveries.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between text-xs text-gray-500">
+                      <span className="truncate pr-2">
+                        {d.address}
+                        {d.neighborhood ? ` — ${d.neighborhood}` : ""}
+                      </span>
+                      <span className="shrink-0 font-medium text-gray-700">
+                        {(d.feeCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </CardBody>
             </Card>
           ))}

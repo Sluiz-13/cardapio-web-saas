@@ -424,6 +424,7 @@ model Order {
   loyaltyDiscountCents Int @default(0)
   cashbackUsedCents    Int @default(0)
   dailyNumber   Int?    // número sequencial manual (opcional) — null se o restaurante não usa
+  note          String? // observação opcional escrita pelo cliente no checkout
   deliveryFeeCents Int @default(0)
 
   deliveryType  DeliveryType  @default(DELIVERY)

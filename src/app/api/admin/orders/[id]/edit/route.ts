@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAdminSession } from "@/lib/session";
-import { matchDeliveryFee } from "@/lib/delivery-fee";
+import { resolveDeliveryFee } from "@/lib/delivery-fee";
 
 const addressSchema = z.object({
   street: z.string().min(2),
@@ -163,12 +163,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (groupValidationError) return NextResponse.json({ error: groupValidationError }, { status: 400 });
 
   // Taxa de entrega: recalcula só se o pedido é de entrega — usa o bairro
-  // novo (se endereço foi alterado) pra achar a taxa certa.
+  // novo (se endereço foi alterado) pra achar a taxa certa. resolveDeliveryFee
+  // já decide sozinho se usa zona (mapa) ou a lista simples de bairro,
+  // dependendo do que o restaurante tiver configurado.
   let deliveryFeeCents = existing.deliveryFeeCents;
   if (existing.deliveryType === "DELIVERY" && address) {
     const restaurant = await db.restaurant.findUnique({ where: { id: restaurantId }, select: { defaultDeliveryFeeCents: true } });
-    const fees = await db.deliveryFee.findMany({ where: { restaurantId }, select: { neighborhood: true, feeCents: true, active: true } });
-    const match = matchDeliveryFee(address.neighborhood, fees, restaurant?.defaultDeliveryFeeCents ?? 0);
+    const match = await resolveDeliveryFee(restaurantId, address.neighborhood, restaurant?.defaultDeliveryFeeCents ?? 0);
     if (!match.disabled) deliveryFeeCents = match.feeCents;
   }
 

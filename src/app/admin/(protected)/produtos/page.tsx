@@ -94,31 +94,27 @@ export default function ProdutosPage() {
   async function moveProduct(categoryItems: Product[], index: number, direction: "up" | "down") {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= categoryItems.length) return;
+    const reordered = [...categoryItems];
+    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
 
-    const current = categoryItems[index];
-    const target = categoryItems[targetIndex];
-    setMovingId(current.id);
+    setMovingId(reordered[targetIndex].id);
 
     setProducts((prev) =>
       prev.map((p) => {
-        if (p.id === current.id) return { ...p, order: target.order };
-        if (p.id === target.id) return { ...p, order: current.order };
-        return p;
+        const newIndex = reordered.findIndex((r) => r.id === p.id);
+        return newIndex === -1 ? p : { ...p, order: newIndex };
       })
     );
 
-    await Promise.all([
-      fetch(`/api/admin/products/${current.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order: target.order }),
-      }),
-      fetch(`/api/admin/products/${target.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order: current.order }),
-      }),
-    ]);
+    await Promise.all(
+      reordered.map((item, i) =>
+        fetch(`/api/admin/products/${item.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order: i }),
+        })
+      )
+    );
 
     setMovingId(null);
     load(); // confirma com o servidor, corrige se algo deu errado
@@ -448,8 +444,12 @@ const [optionGroups, setOptionGroups] = useState <
     "px-3.5 py-2.5 rounded-xl border border-surface-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-shadow duration-[180ms]";
   const inputClass = `w-full ${inputBaseClass}`;
 
+  function handleCloseAttempt() {
+    if (confirm("Tem certeza? Os dados preenchidos serão perdidos.")) onClose();
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-fade-in" onClick={handleCloseAttempt}>
       <form onSubmit={handleSubmit} className="w-full max-w-lg bg-white rounded-2xl max-h-[88vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-surface-border shrink-0">
           <h2 className="text-lg font-bold text-gray-900">{isEditing ? "Editar Produto" : "Novo Produto"}</h2>

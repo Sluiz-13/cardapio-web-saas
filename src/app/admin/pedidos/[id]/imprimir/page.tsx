@@ -55,6 +55,7 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
           {order.referenceNote && <><br />Ref: {order.referenceNote}</>}
         </p>
       )}
+      {order.note && <p><strong>Obs:</strong> {order.note}</p>}
 
       <hr className="border-dashed border-black my-2" />
 

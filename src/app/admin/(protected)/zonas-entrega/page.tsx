@@ -266,12 +266,16 @@ function ZoneFormModal({
     onSaved();
   }
 
+  function handleCloseAttempt() {
+    if (confirm("Tem certeza? Os dados preenchidos serão perdidos.")) onClose();
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={handleCloseAttempt}>
       <form onSubmit={handleSubmit} className="w-full max-w-lg bg-white rounded-2xl max-h-[90vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-surface-border">
           <h2 className="text-lg font-bold text-gray-900">{isEditing ? "Editar Área" : "Nova Área"}</h2>
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700" aria-label="Fechar">
+          <button type="button" onClick={handleCloseAttempt} className="text-gray-400 hover:text-gray-700" aria-label="Fechar">
             <X size={18} />
           </button>
         </div>

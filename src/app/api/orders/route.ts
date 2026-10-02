@@ -33,6 +33,7 @@ const createOrderSchema = z
     redeemLoyaltyPoints: z.boolean().optional(),
     useCashback: z.boolean().optional(),
     changeForCents: z.number().int().positive().optional(),
+    note: z.string().max(300).optional(),
     items: z
       .array(
         z.object({
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
     redeemLoyaltyPoints,
     useCashback,
     changeForCents,
+    note,
     items,
   } = parsed.data;
 
@@ -223,9 +225,7 @@ if (!restaurant.isOpen) {
 
   let deliveryFeeCents = 0;
   if (deliveryType === "DELIVERY" && address) {
-    // Se veio um ponto do mapa/GPS e o restaurante usa zonas, o ponto manda
-    // — é mais preciso que o texto do bairro. Nunca confia na taxa que o
-    // cliente já viu na tela, sempre recalcula aqui.
+
     const match =
       restaurant?.useDeliveryZones && deliveryPoint
         ? await resolveDeliveryFeeByPoint(restaurantId, deliveryPoint.lat, deliveryPoint.lng)
@@ -378,6 +378,7 @@ if (!restaurant.isOpen) {
         customerId: validCustomerId,
         customerName,
         customerPhone,
+        note: note || undefined,
         dailyNumber,
         deliveryType,
         paymentMethod,

@@ -19,8 +19,10 @@ const createSchema = z.object({
   paymentMethod: z.enum(["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"]).optional(),
   changeForCents: z.number().int().positive().optional(),
   customerName: z.string().min(2),
+  note: z.string().max(300).optional(),
   customerPhone: z.string().min(8).optional().or(z.literal("")),
   address: addressSchema.optional(),
+  manualDeliveryFeeCents: z.number().int().nonnegative().optional(),
   items: z
     .array(
       z.object({
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest) {
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
 
-  const { tableId, customerName, items, address } = parsed.data;
+  const { tableId, customerName, items, address, note } = parsed.data;
   const customerPhone = parsed.data.customerPhone?.trim() || null;
   const restaurantId = session.user.restaurantId;
   const isBalcao = !tableId;
@@ -55,7 +57,17 @@ export async function POST(req: NextRequest) {
     const restaurant = await db.restaurant.findUnique({ where: { id: restaurantId }, select: { defaultDeliveryFeeCents: true } });
     const match = await resolveDeliveryFee(restaurantId, address.neighborhood, restaurant?.defaultDeliveryFeeCents ?? 0);
     if (match.disabled) return NextResponse.json({ error: "Entregas pausadas pra esse bairro no momento." }, { status: 400 });
-    deliveryFeeCents = match.feeCents;
+
+    // Fora da área mapeada: diferente do cliente, o caixa pode seguir mesmo
+    // assim, só que define a taxa na mão em vez de calcular sozinho.
+    if (match.outsideArea) {
+      if (parsed.data.manualDeliveryFeeCents === undefined) {
+        return NextResponse.json({ error: "Bairro fora da área mapeada — informe a taxa manualmente.", outsideArea: true }, { status: 400 });
+      }
+      deliveryFeeCents = parsed.data.manualDeliveryFeeCents;
+    } else {
+      deliveryFeeCents = match.feeCents;
+    }
   }
 
   if (!isBalcao) {
@@ -177,6 +189,7 @@ export async function POST(req: NextRequest) {
         restaurantId,
         customerName,
         customerPhone,
+        note: note || undefined,
         dailyNumber,
         deliveryType: isBalcao ? (isDelivery ? "DELIVERY" : "PICKUP") : "DINE_IN",
         paymentMethod: isBalcao ? parsed.data.paymentMethod! : "CASH",

@@ -30,13 +30,16 @@ export async function resolveDeliveryFee(
   restaurantId: string,
   neighborhood: string,
   defaultFeeCents: number
-): Promise<{ feeCents: number; disabled: boolean }> {
+): Promise<{ feeCents: number; disabled: boolean; outsideArea: boolean }> {
   const restaurant = await db.restaurant.findUnique({
     where: { id: restaurantId },
     select: { useDeliveryZones: true },
   });
 
   if (restaurant?.useDeliveryZones) {
+    // Com zona ligada, bairro sem mapeamento não cai mais na taxa padrão
+    // silenciosamente — vira "fora da área", pra quem chama decidir se
+    // trava (cliente) ou libera com taxa manual (caixa/garçom).
     const zones = await db.deliveryZone.findMany({
       where: { restaurantId },
       select: { neighborhoods: true, feeCents: true, active: true },
@@ -44,16 +47,19 @@ export async function resolveDeliveryFee(
     const rows = zones.flatMap((z) =>
       z.neighborhoods.map((n) => ({ neighborhood: n, feeCents: z.feeCents, active: z.active }))
     );
-    return matchDeliveryFee(neighborhood, rows, defaultFeeCents);
+    const normalizedInput = normalizeNeighborhood(neighborhood);
+    const match = rows.find((f) => normalizeNeighborhood(f.neighborhood) === normalizedInput);
+    if (!match) return { feeCents: 0, disabled: false, outsideArea: true };
+    return { feeCents: match.feeCents, disabled: match.active === false, outsideArea: false };
   }
 
   const fees = await db.deliveryFee.findMany({
     where: { restaurantId },
     select: { neighborhood: true, feeCents: true, active: true },
   });
-  return matchDeliveryFee(neighborhood, fees, defaultFeeCents);
+  const result = matchDeliveryFee(neighborhood, fees, defaultFeeCents);
+  return { ...result, outsideArea: false };
 }
-
 export function normalizeNeighborhood(value: string): string {
   return value
     .normalize("NFD")

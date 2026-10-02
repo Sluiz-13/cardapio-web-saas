@@ -78,6 +78,7 @@ export default function GarcomMesaPage() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"PIX" | "CREDIT_CARD" | "DEBIT_CARD" | "CASH">("CASH");
   const [changeFor, setChangeFor] = useState("");
+  const [note, setNote] = useState("");
   const [balcaoDeliveryType, setBalcaoDeliveryType] = useState<"PICKUP" | "DELIVERY">("PICKUP");
   const [street, setStreet] = useState("");
   const [number, setNumber] = useState("");
@@ -87,6 +88,8 @@ export default function GarcomMesaPage() {
   const [referenceNote, setReferenceNote] = useState("");
   const [deliveryFeeCents, setDeliveryFeeCents] = useState(0);
   const [neighborhoodDisabled, setNeighborhoodDisabled] = useState(false);
+  const [neighborhoodOutsideArea, setNeighborhoodOutsideArea] = useState(false);
+  const [manualFee, setManualFee] = useState("");
 
   async function checkDeliveryFee() {
     if (!neighborhood.trim()) return;
@@ -99,10 +102,18 @@ export default function GarcomMesaPage() {
     if (!res.ok) return;
     if (data.disabled) {
       setNeighborhoodDisabled(true);
+      setNeighborhoodOutsideArea(false);
+      setDeliveryFeeCents(0);
+      return;
+    }
+    if (data.outsideArea) {
+      setNeighborhoodOutsideArea(true);
+      setNeighborhoodDisabled(false);
       setDeliveryFeeCents(0);
       return;
     }
     setNeighborhoodDisabled(false);
+    setNeighborhoodOutsideArea(false);
     setDeliveryFeeCents(data.feeCents);
   }
   const [submitting, setSubmitting] = useState(false);
@@ -202,9 +213,14 @@ export default function GarcomMesaPage() {
         changeForCents: isBalcao && paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor) * 100) : undefined,
         customerName,
         customerPhone,
+        note: note.trim() || undefined,
         address:
           isBalcao && balcaoDeliveryType === "DELIVERY"
             ? { street, number, complement: complement || undefined, neighborhood, city, referenceNote: referenceNote || undefined }
+            : undefined,
+        manualDeliveryFeeCents:
+          isBalcao && balcaoDeliveryType === "DELIVERY" && neighborhoodOutsideArea && manualFee
+            ? Math.round(Number(manualFee) * 100)
             : undefined,
         items: cart.map((l) => ({
           productId: l.productId,
@@ -366,6 +382,17 @@ export default function GarcomMesaPage() {
                   </div>
                 </div>
               )}
+
+              <div className="mt-3">
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-gray-400">Observação (opcional)</label>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value.slice(0, 300))}
+                  placeholder="ex: sem cebola, trazer troco"
+                  rows={2}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm"
+                />
+              </div>
             </div>
 
             <div className="p-5 pt-3 border-t border-gray-100">
@@ -407,6 +434,22 @@ export default function GarcomMesaPage() {
                         <p className="col-span-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
                           Entregas pausadas pra esse bairro no momento.
                         </p>
+                      )}
+                      {neighborhoodOutsideArea && (
+                        <div className="col-span-3">
+                          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-2">
+                            Bairro fora da área mapeada — defina a taxa manualmente:
+                          </p>
+                          <input
+                            value={manualFee}
+                            onChange={(e) => setManualFee(e.target.value)}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Taxa de entrega (R$)"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm"
+                          />
+                        </div>
                       )}
                       {deliveryFeeCents > 0 && (
                         <p className="col-span-3 text-xs text-emerald-700">Taxa de entrega: {currency(deliveryFeeCents)}</p>
