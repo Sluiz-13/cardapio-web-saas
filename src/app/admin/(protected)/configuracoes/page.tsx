@@ -52,6 +52,7 @@ export default function ConfiguracoesPage() {
   const [dailyCounterEnabled, setDailyCounterEnabled] = useState(false);
   const [dailyCounterNext, setDailyCounterNext] = useState("1");
   const [printKitchenCopy, setPrintKitchenCopy] = useState(true);
+  const [printShowCategory, setPrintShowCategory] = useState(true);
   const [printMethod, setPrintMethod] = useState("MANUAL");
   const [printerIp, setPrinterIp] = useState("");
   const [printerPort, setPrinterPort] = useState("9100");
@@ -109,6 +110,7 @@ export default function ConfiguracoesPage() {
         setDailyCounterEnabled(data.restaurant.dailyCounterEnabled ?? false);
         setDailyCounterNext(String(data.restaurant.dailyCounterNext ?? 1));
         setPrintKitchenCopy(data.restaurant.printKitchenCopy ?? true);
+        setPrintShowCategory(data.restaurant.printShowCategory ?? true);
         setPrintMethod(data.restaurant.printMethod ?? "MANUAL");
         setPrinterIp(data.restaurant.printerIp ?? "");
         setPrinterPort(String(data.restaurant.printerPort ?? 9100));
@@ -191,6 +193,7 @@ export default function ConfiguracoesPage() {
         dailyCounterEnabled,
         dailyCounterNext: Number(dailyCounterNext) || 1,
         printKitchenCopy,
+        printShowCategory,
         printMethod,
         printerIp: printMethod === "AGENT" ? printerIp : undefined,
         printerPort: printMethod === "AGENT" ? Number(printerPort) || 9100 : undefined,
@@ -631,6 +634,14 @@ export default function ConfiguracoesPage() {
                 <p className="text-xs text-gray-400">Sem preços — só nome, telefone e itens. Se desligado, sai só 1 via completa.</p>
               </div>
               <Toggle checked={printKitchenCopy} onChange={() => setPrintKitchenCopy((v) => !v)} />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-surface-border">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Mostrar categoria do item na comanda</p>
+                <p className="text-xs text-gray-400">Ex.: &quot;Lanches&quot; abaixo de &quot;1x X-Burguer&quot;. Desligue pra comanda ficar mais enxuta.</p>
+              </div>
+              <Toggle checked={printShowCategory} onChange={() => setPrintShowCategory((v) => !v)} />
             </div>
 
             {printMethod === "QZ_TRAY" && (

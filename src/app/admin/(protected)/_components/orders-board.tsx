@@ -300,7 +300,7 @@ export default function OrdersBoard({
                     style={{ borderLeftColor: STATUS_BORDER_COLOR[status] }}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-mono text-gray-400">#{o.id.slice(-5)}</span>
+                      <span className="text-xs font-mono text-gray-400">#{o.dailyNumber ?? o.id.slice(-5)}</span>
                       <span className="text-xs font-mono text-gray-400">
                         {new Date(o.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </span>
@@ -435,7 +435,15 @@ export default function OrdersBoard({
                         </div>
                       )}
 
-                      <a href={buildWhatsAppLink(o.customerPhone, buildOrderStatusMessage(o.status, o.customerName, o.dailyNumber ? String(o.dailyNumber) : o.id.slice(-5)))}
+                      <a href={buildWhatsAppLink(
+                          o.customerPhone,
+                          buildOrderStatusMessage(
+                            o.status,
+                            o.customerName,
+                            o.dailyNumber ? String(o.dailyNumber) : o.id.slice(-5),
+                            { items: o.items, paymentMethod: o.paymentMethod, totalCents: o.totalCents }
+                          )
+                        )}
                         target="whatsapp-menuair"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
@@ -498,7 +506,13 @@ export default function OrdersBoard({
           </div>
         </div>
       ))}
-      {historyOrderId && <OrderHistoryModal orderId={historyOrderId} onClose={() => setHistoryOrderId(null)} />}
+      {historyOrderId && (
+        <OrderHistoryModal
+          orderId={historyOrderId}
+          dailyNumber={orders.find((x) => x.id === historyOrderId)?.dailyNumber ?? null}
+          onClose={() => setHistoryOrderId(null)}
+        />
+      )}
       {editOrderId && (
         <EditOrderModal
           orderId={editOrderId}

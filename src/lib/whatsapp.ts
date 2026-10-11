@@ -26,8 +26,43 @@ const STATUS_MESSAGE: Record<string, (name: string, orderShortId: string) => str
   DELIVERED: (name, id) => `${name}, seu pedido #${id} foi entregue. Bom apetite! 😋`,
 };
 
-export function buildOrderStatusMessage(status: string, customerName: string, orderShortId: string): string {
+const PAYMENT_LABEL: Record<string, string> = {
+  PIX: "Pix",
+  CREDIT_CARD: "Cartão de crédito",
+  DEBIT_CARD: "Cartão de débito",
+  CASH: "Dinheiro",
+};
+
+const currency = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
+
+export type OrderMessageDetails = {
+  items: { productName: string; qty: number }[];
+  paymentMethod: string;
+  totalCents: number;
+};
+
+// Resumo que vai abaixo da frase do status. Negrito com *...* é a
+// formatação nativa do WhatsApp.
+function buildOrderSummary(d: OrderMessageDetails): string {
+  const itemLines = d.items.map((i) => `${i.qty}x ${i.productName}`).join("\n");
+  return [
+    "*Seu pedido:*",
+    itemLines,
+    "",
+    `*Pagamento:* ${PAYMENT_LABEL[d.paymentMethod] ?? d.paymentMethod}`,
+    `*Total:* ${currency(d.totalCents)}`,
+  ].join("\n");
+}
+
+export function buildOrderStatusMessage(
+  status: string,
+  customerName: string,
+  orderShortId: string,
+  details?: OrderMessageDetails
+): string {
   const builder = STATUS_MESSAGE[status];
   const name = firstName(customerName);
-  return builder ? builder(name, orderShortId) : `Olá, ${name}! Sobre o seu pedido #${orderShortId}:`;
+  const headline = builder ? builder(name, orderShortId) : `Olá, ${name}! Sobre o seu pedido #${orderShortId}:`;
+  if (!details || details.items.length === 0) return headline;
+  return `${headline}\n\n${buildOrderSummary(details)}`;
 }

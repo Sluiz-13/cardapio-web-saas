@@ -105,16 +105,34 @@ const CMD = {
   // Só dobra a ALTURA, não a largura — assim o texto fica visivelmente
   // maior sem bagunçar o alinhamento de 32 colunas que já está calibrado.
   SIZE_TALL: Buffer.from([GS, 0x21, 0x01]),
+  // Dobra altura E largura — usado só no número do pedido, que fica numa
+  // linha separada, então não afeta o alinhamento de 32 colunas do resto.
+  SIZE_BIG: Buffer.from([GS, 0x21, 0x11]),
   SIZE_NORMAL: Buffer.from([GS, 0x21, 0x00]),
   CUT: Buffer.from([GS, 0x56, 0x42, 0x00]), // corte parcial com avanço de papel
   FEED: (lines: number) => Buffer.from([ESC, 0x64, lines]),
 };
 
-export function buildReceiptEscPos(order: OrderForReceipt): Buffer {
+// Número do pedido em destaque. Com largura dobrada cabem só 16 colunas,
+// por isso centraliza em CHARS_PER_LINE / 2.
+function bigOrderNumber(order: { id: string; dailyNumber: number | null }): Buffer {
+  const label = stripAccents(`PEDIDO #${order.dailyNumber ?? order.id.slice(-5)}`);
+  const width = CHARS_PER_LINE / 2;
+  const pad = Math.max(Math.floor((width - label.length) / 2), 0);
+  return Buffer.concat([
+    CMD.BOLD_ON,
+    CMD.SIZE_BIG,
+    Buffer.from(" ".repeat(pad) + label + "\n", "ascii"),
+    CMD.SIZE_NORMAL,
+    CMD.BOLD_OFF,
+  ]);
+}
+
+export function buildReceiptEscPos(order: OrderForReceipt, opts: { showCategory?: boolean } = {}): Buffer {
+  const showCategory = opts.showCategory ?? true;
   const lines: string[] = [];
 
-  lines.push(centerText(order.restaurant.name.toUpperCase()));
-  lines.push(centerText(order.dailyNumber ? `Pedido #${order.dailyNumber}` : `Pedido #${order.id.slice(-5)}`));
+  const headerLine = centerText(order.restaurant.name.toUpperCase());
   lines.push(centerText(new Date(order.createdAt).toLocaleString("pt-BR")));
   lines.push("-".repeat(CHARS_PER_LINE));
 
@@ -148,7 +166,7 @@ export function buildReceiptEscPos(order: OrderForReceipt): Buffer {
       : [];
 
     lines.push(padLine(`${item.qty}x ${item.productName}`, currency(item.unitPriceCents * item.qty)));
-    if (item.categoryName) lines.push(...wrapText(item.categoryName, "  "));
+    if (showCategory && item.categoryName) lines.push(...wrapText(item.categoryName, "  "));
 
     for (const group of selectedOptions) {
       lines.push(...wrapText(`${group.groupName}: ${group.items.map((i) => i.name).join(", ")}`, "  "));
@@ -186,6 +204,9 @@ export function buildReceiptEscPos(order: OrderForReceipt): Buffer {
 
   return Buffer.concat([
     CMD.INIT,
+    CMD.SIZE_TALL,
+    Buffer.from(headerLine + "\n", "ascii"),
+    bigOrderNumber(order),
     CMD.SIZE_TALL,
     Buffer.from(body, "ascii"),
     CMD.SIZE_NORMAL,
@@ -254,11 +275,10 @@ type KitchenOrderForReceipt = Pick<Order, "id" | "dailyNumber" | "createdAt" | "
 // Via da cozinha: só o essencial pra preparar — sem preço, sem forma de
 // pagamento, sem troco. Reduz erro de quem prepara ficar lendo valor em vez
 // de item, e evita expor preço pro cliente que às vezes acompanha de perto.
-export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt): Buffer {
+export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt, opts: { showCategory?: boolean } = {}): Buffer {
+  const showCategory = opts.showCategory ?? true;
   const lines: string[] = [];
 
-  lines.push(centerText("VIA DA COZINHA"));
-  lines.push(centerText(order.dailyNumber ? `Pedido #${order.dailyNumber}` : `Pedido #${order.id.slice(-5)}`));
   lines.push(centerText(new Date(order.createdAt).toLocaleString("pt-BR")));
   lines.push("-".repeat(CHARS_PER_LINE));
 
@@ -277,7 +297,7 @@ export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt): Buffer
       : [];
 
     lines.push(`${item.qty}x ${item.productName}`);
-    if (item.categoryName) lines.push(...wrapText(item.categoryName, "  "));
+    if (showCategory && item.categoryName) lines.push(...wrapText(item.categoryName, "  "));
     for (const group of selectedOptions) {
       lines.push(...wrapText(`${group.groupName}: ${group.items.map((i) => i.name).join(", ")}`, "  "));
     }
@@ -287,5 +307,12 @@ export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt): Buffer
 
   const body = lines.join("\n") + "\n";
 
-  return Buffer.concat([CMD.INIT, Buffer.from(body, "ascii"), CMD.FEED(3), CMD.CUT]);
+  return Buffer.concat([
+    CMD.INIT,
+    Buffer.from(centerText("VIA DA COZINHA") + "\n", "ascii"),
+    bigOrderNumber(order),
+    Buffer.from(body, "ascii"),
+    CMD.FEED(3),
+    CMD.CUT,
+  ]);
 }

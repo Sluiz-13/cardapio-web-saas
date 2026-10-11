@@ -12,6 +12,7 @@ const updateSchema = z.object({
   serviceFeePercent: z.number().int().min(0).max(100).optional(),
   useDeliveryZones: z.boolean().optional(),
   printKitchenCopy: z.boolean().optional(),
+  printShowCategory: z.boolean().optional(),
   menuTheme: z.enum(["CLASSIC", "PREMIUM"]).optional(),
   loyaltyPointsEnabled: z.boolean().optional(),
   loyaltyPointsPerReal: z.number().nonnegative().optional(),
@@ -60,6 +61,7 @@ export async function GET() {
     serviceFeePercent: true,
     useDeliveryZones: true,
     printKitchenCopy: true,
+    printShowCategory: true,
     menuTheme: true,
     plan: true,
     loyaltyPointsEnabled: true,
@@ -106,6 +108,7 @@ export async function PATCH(req: NextRequest) {
     serviceFeePercent,
     useDeliveryZones,
     printKitchenCopy,
+    printShowCategory,
     menuTheme,
     loyaltyPointsEnabled,
     loyaltyPointsPerReal,
@@ -156,6 +159,7 @@ export async function PATCH(req: NextRequest) {
   if (serviceFeePercent !== undefined) restaurantData.serviceFeePercent = serviceFeePercent;
   if (useDeliveryZones !== undefined) restaurantData.useDeliveryZones = useDeliveryZones;
   if (printKitchenCopy !== undefined) restaurantData.printKitchenCopy = printKitchenCopy;
+  if (printShowCategory !== undefined) restaurantData.printShowCategory = printShowCategory;
   if (pixKey !== undefined) restaurantData.pixKey = pixKey;
   if (pixKeyType !== undefined) restaurantData.pixKeyType = pixKeyType;
   if (pixMerchantName !== undefined) restaurantData.pixMerchantName = pixMerchantName;

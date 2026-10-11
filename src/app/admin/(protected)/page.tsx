@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import OrdersBoard from "./_components/orders-board";
+import { getBoardOrders } from "@/lib/board-orders";
 
 
 export default async function AdminOrdersPage() {
@@ -9,15 +10,7 @@ export default async function AdminOrdersPage() {
   if (!session?.user?.restaurantId) return null; // middleware já protege, isso é só type-safety
 
   const [orders, restaurant] = await Promise.all([
-    db.order.findMany({
-      where: {
-        restaurantId: session.user.restaurantId,
-        status: { in: ["NEW", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] },
-      },
-      include: { items: true, table: { select: { label: true } }, driver: { select: { id: true, name: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    }),
+    getBoardOrders(session.user.restaurantId),
        db.restaurant.findUnique({
       where: { id: session.user.restaurantId },
       select: { printMethod: true, printerIp: true, printerPort: true, printerBluetoothAddress: true, printerQzName: true },

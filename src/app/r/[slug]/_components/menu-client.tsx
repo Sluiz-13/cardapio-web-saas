@@ -1130,7 +1130,7 @@ function CheckoutDrawer({
   const [referenceNote, setReferenceNote] = useState(customer?.referenceNote ?? "");
   const [savedInfo, setSavedInfo] = useState(() => getSavedCustomerInfo(restaurantId));
   const [confirmingSaved, setConfirmingSaved] = useState(() => !customer && getSavedCustomerInfo(restaurantId) !== null);
-  const [paymentMethod, setPaymentMethod] = useState<(typeof PAYMENT_OPTIONS)[number]["value"]>("PIX");
+  const [paymentMethod, setPaymentMethod] = useState<(typeof PAYMENT_OPTIONS)[number]["value"] | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [couponCode, setCouponCode] = useState("");
@@ -1259,6 +1259,11 @@ function CheckoutDrawer({
     }
     if (deliveryType === "DINE_IN" && !table) {
       setError("Mesa inválida. Escaneie o QR Code novamente.");
+      return;
+    }
+
+    if (!table && !paymentMethod) {
+      setError("Selecione a forma de pagamento.");
       return;
     }
 
@@ -1469,6 +1474,9 @@ function CheckoutDrawer({
                   className={inputClass}
                   style={inputStyle}
                 >
+                  <option value="" disabled>
+                    Selecione o meio de pagamento
+                  </option>
                   {PAYMENT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}

@@ -16,13 +16,14 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     where: { id: params.id, restaurantId: session.user.restaurantId },
     include: {
       items: true,
-      restaurant: { select: { name: true, printKitchenCopy: true } },
+      restaurant: { select: { name: true, printKitchenCopy: true, printShowCategory: true } },
       table: { select: { label: true } },
     },
   });
   if (!order) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
 
-  const fullBytes = buildReceiptEscPos(order);
+  const printOpts = { showCategory: order.restaurant.printShowCategory };
+  const fullBytes = buildReceiptEscPos(order, printOpts);
 
   await db.order.update({
     where: { id: order.id },
@@ -35,7 +36,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ full, kitchen: null });
   }
 
-  const kitchenBytes = buildKitchenReceiptEscPos(order);
+  const kitchenBytes = buildKitchenReceiptEscPos(order, printOpts);
   const kitchen = { rawbtUrl: `rawbt:base64,${kitchenBytes.toString("base64")}`, hex: kitchenBytes.toString("hex") };
 
   return NextResponse.json({ full, kitchen });

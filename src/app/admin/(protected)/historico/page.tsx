@@ -32,6 +32,7 @@ const fmtDateTime = (iso: string) =>
 
 type HistOrder = {
   id: string;
+  dailyNumber: number | null;
   customerName: string;
   status: string;
   totalCents: number;
@@ -114,7 +115,7 @@ export default function HistoricoPage() {
               <Card key={o.id}>
                 <CardBody className="!py-3.5">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-mono text-gray-400">#{o.id.slice(-5)}</span>
+                    <span className="text-xs font-mono text-gray-400">#{o.dailyNumber ?? o.id.slice(-5)}</span>
                     <span className="text-xs font-mono text-gray-400">{fmtDateTime(o.createdAt)}</span>
                   </div>
                   <div className="flex items-center justify-between">

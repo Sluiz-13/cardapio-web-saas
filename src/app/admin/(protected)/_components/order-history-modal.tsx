@@ -15,7 +15,15 @@ const STATUS_LABEL: Record<string, string> = {
 
 type HistoryEntry = { id: string; status: string; changedAt: string };
 
-export default function OrderHistoryModal({ orderId, onClose }: { orderId: string; onClose: () => void }) {
+export default function OrderHistoryModal({
+  orderId,
+  dailyNumber,
+  onClose,
+}: {
+  orderId: string;
+  dailyNumber?: number | null;
+  onClose: () => void;
+}) {
   const [history, setHistory] = useState<HistoryEntry[] | null>(null);
 
   useEffect(() => {
@@ -33,7 +41,7 @@ export default function OrderHistoryModal({ orderId, onClose }: { orderId: strin
     >
       <div className="w-full max-w-sm bg-white rounded-2xl p-5 shadow-xl">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Pedido #{orderId.slice(-5)}</h2>
+          <h2 className="text-lg font-bold text-gray-900">Pedido #{dailyNumber ?? orderId.slice(-5)}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors duration-[180ms]" aria-label="Fechar">
             <X size={18} />
           </button>

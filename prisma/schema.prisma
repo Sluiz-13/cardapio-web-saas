@@ -43,6 +43,7 @@ model Restaurant {
   defaultDeliveryFeeCents Int             @default(0)
     serviceFeePercent       Int      @default(0) // taxa de serviço do garçom, só cobrada no fechamento de comanda (mesa)
   printKitchenCopy        Boolean  @default(true) // imprime uma 2ª via só pra cozinha (sem preço) além da via completa
+  printShowCategory       Boolean  @default(true) // mostra a categoria do item na comanda (alguns clientes preferem sem)
   menuTheme               MenuTheme @default(CLASSIC) // visual do cardápio público — Premium é exclusivo do plano Pro
   deliveryFees            DeliveryFee[]
   drivers                 Driver[]
