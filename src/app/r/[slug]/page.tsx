@@ -42,7 +42,7 @@ export default async function RestaurantMenuPage({
 
   if (!restaurant || !restaurant.active) notFound();
 
-  const [categories, products, businessHours, table] = await Promise.all([
+  const [categories, products, businessHours, table, banners] = await Promise.all([
     db.category.findMany({ where: { restaurantId: restaurant.id }, orderBy: { order: "asc" } }),
     db.product.findMany({
         where: { restaurantId: restaurant.id, active: true, visibleToCustomer: true },
@@ -63,6 +63,12 @@ export default async function RestaurantMenuPage({
           select: { id: true, label: true },
         })
       : Promise.resolve(null),
+    db.restaurantBanner.findMany({
+      where: { restaurantId: restaurant.id, active: true },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+      select: { id: true, imageUrl: true },
+      take: 3,
+    }),
   ]);
 
   const isOpenNow = isRestaurantOpenNow(restaurant.isOpen, businessHours);
@@ -86,6 +92,7 @@ export default async function RestaurantMenuPage({
       categories={categories}
       products={products}
       table={table}
+      banners={banners}
       businessHours={businessHours.map((h) => ({
         dayOfWeek: h.dayOfWeek,
         isOpen: h.isOpen,

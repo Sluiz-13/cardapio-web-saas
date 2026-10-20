@@ -1,2 +1,4 @@
-file 'stills/t14.60.jpg'
-file 'stills/t16.20.jpg'
+file 'tour/mesas.png'
+file 'tour/insumos.png'
+file 'tour/clientes.png'
+file 'tour/reservas.png'

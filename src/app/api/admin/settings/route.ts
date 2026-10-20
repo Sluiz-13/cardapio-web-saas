@@ -13,6 +13,8 @@ const updateSchema = z.object({
   useDeliveryZones: z.boolean().optional(),
   printKitchenCopy: z.boolean().optional(),
   printShowCategory: z.boolean().optional(),
+  printFontSize: z.enum(["AUTO", "SMALL", "MEDIUM", "LARGE"]).optional(),
+  printSpacing: z.enum(["COMPACT", "NORMAL", "WIDE"]).optional(),
   menuTheme: z.enum(["CLASSIC", "PREMIUM"]).optional(),
   loyaltyPointsEnabled: z.boolean().optional(),
   loyaltyPointsPerReal: z.number().nonnegative().optional(),
@@ -62,6 +64,8 @@ export async function GET() {
     useDeliveryZones: true,
     printKitchenCopy: true,
     printShowCategory: true,
+    printFontSize: true,
+    printSpacing: true,
     menuTheme: true,
     plan: true,
     loyaltyPointsEnabled: true,
@@ -109,6 +113,8 @@ export async function PATCH(req: NextRequest) {
     useDeliveryZones,
     printKitchenCopy,
     printShowCategory,
+    printFontSize,
+    printSpacing,
     menuTheme,
     loyaltyPointsEnabled,
     loyaltyPointsPerReal,
@@ -160,6 +166,8 @@ export async function PATCH(req: NextRequest) {
   if (useDeliveryZones !== undefined) restaurantData.useDeliveryZones = useDeliveryZones;
   if (printKitchenCopy !== undefined) restaurantData.printKitchenCopy = printKitchenCopy;
   if (printShowCategory !== undefined) restaurantData.printShowCategory = printShowCategory;
+  if (printFontSize !== undefined) restaurantData.printFontSize = printFontSize;
+  if (printSpacing !== undefined) restaurantData.printSpacing = printSpacing;
   if (pixKey !== undefined) restaurantData.pixKey = pixKey;
   if (pixKeyType !== undefined) restaurantData.pixKeyType = pixKeyType;
   if (pixMerchantName !== undefined) restaurantData.pixMerchantName = pixMerchantName;

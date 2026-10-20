@@ -1,0 +1,8 @@
+file 'stills/t13.50.jpg'
+file 'stills/t16.80.jpg'
+file 'stills/t20.00.jpg'
+file 'stills/t23.20.jpg'
+file 'stills/t26.40.jpg'
+file 'stills/t29.60.jpg'
+file 'stills/t32.80.jpg'
+file 'stills/t36.40.jpg'

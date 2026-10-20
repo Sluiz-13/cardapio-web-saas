@@ -109,9 +109,46 @@ const CMD = {
   // linha separada, então não afeta o alinhamento de 32 colunas do resto.
   SIZE_BIG: Buffer.from([GS, 0x21, 0x11]),
   SIZE_NORMAL: Buffer.from([GS, 0x21, 0x00]),
+  FONT_A: Buffer.from([ESC, 0x4d, 0x00]), // fonte normal
+  FONT_B: Buffer.from([ESC, 0x4d, 0x01]), // fonte compacta (nem toda impressora genérica tem; sem ela, sai igual à normal)
   CUT: Buffer.from([GS, 0x56, 0x42, 0x00]), // corte parcial com avanço de papel
   FEED: (lines: number) => Buffer.from([ESC, 0x64, lines]),
 };
+
+const EMPTY = Buffer.alloc(0);
+
+export type PrintFontSizeOpt = "AUTO" | "SMALL" | "MEDIUM" | "LARGE";
+export type PrintSpacingOpt = "COMPACT" | "NORMAL" | "WIDE";
+type ReceiptOpts = { showCategory?: boolean; fontSize?: PrintFontSizeOpt; spacing?: PrintSpacingOpt };
+type ResolvedSize = "SMALL" | "MEDIUM" | "LARGE";
+
+// AUTO mantém o comportamento antigo: cada via tem seu tamanho padrão.
+function resolveSize(size: PrintFontSizeOpt | undefined, autoDefault: ResolvedSize): ResolvedSize {
+  return !size || size === "AUTO" ? autoDefault : size;
+}
+
+// Altura aproximada do caractere em pontos (203dpi). O espaçamento é
+// calculado em cima disso pra nunca ficar menor que a letra e encavalar.
+const CHAR_HEIGHT_DOTS: Record<ResolvedSize, number> = { SMALL: 17, MEDIUM: 24, LARGE: 48 };
+
+function spacingCmd(spacing: PrintSpacingOpt | undefined, size: ResolvedSize): Buffer {
+  if (!spacing || spacing === "NORMAL") return EMPTY; // padrão da impressora, como sempre foi
+  const h = CHAR_HEIGHT_DOTS[size];
+  const n = spacing === "COMPACT" ? h + 2 : Math.round(h * 1.6);
+  return Buffer.from([ESC, 0x33, Math.min(n, 255)]);
+}
+
+// Estilo do cabeçalho (nome do restaurante / "VIA DA COZINHA").
+function headerStyle(size: ResolvedSize): Buffer {
+  if (size === "LARGE") return CMD.SIZE_TALL;
+  if (size === "SMALL") return CMD.FONT_B;
+  return EMPTY;
+}
+
+// Estilo do corpo, aplicado depois do número do pedido.
+function bodyStyle(size: ResolvedSize, spacing: PrintSpacingOpt | undefined): Buffer {
+  return Buffer.concat([headerStyle(size), spacingCmd(spacing, size)]);
+}
 
 // Número do pedido em destaque. Com largura dobrada cabem só 16 colunas,
 // por isso centraliza em CHARS_PER_LINE / 2.
@@ -128,8 +165,10 @@ function bigOrderNumber(order: { id: string; dailyNumber: number | null }): Buff
   ]);
 }
 
-export function buildReceiptEscPos(order: OrderForReceipt, opts: { showCategory?: boolean } = {}): Buffer {
+export function buildReceiptEscPos(order: OrderForReceipt, opts: ReceiptOpts = {}): Buffer {
   const showCategory = opts.showCategory ?? true;
+  const size = resolveSize(opts.fontSize, "LARGE");
+  const wideGap = opts.spacing === "WIDE";
   const lines: string[] = [];
 
   const headerLine = centerText(order.restaurant.name.toUpperCase());
@@ -165,6 +204,7 @@ export function buildReceiptEscPos(order: OrderForReceipt, opts: { showCategory?
       ? (item.selectedOptions as { groupName: string; items: { name: string }[] }[])
       : [];
 
+    if (wideGap && item !== order.items[0]) lines.push("");
     lines.push(padLine(`${item.qty}x ${item.productName}`, currency(item.unitPriceCents * item.qty)));
     if (showCategory && item.categoryName) lines.push(...wrapText(item.categoryName, "  "));
 
@@ -204,10 +244,11 @@ export function buildReceiptEscPos(order: OrderForReceipt, opts: { showCategory?
 
   return Buffer.concat([
     CMD.INIT,
-    CMD.SIZE_TALL,
+    headerStyle(size),
     Buffer.from(headerLine + "\n", "ascii"),
+    size === "SMALL" ? CMD.FONT_A : EMPTY, // número do pedido sempre na fonte normal
     bigOrderNumber(order),
-    CMD.SIZE_TALL,
+    bodyStyle(size, opts.spacing),
     Buffer.from(body, "ascii"),
     CMD.SIZE_NORMAL,
     CMD.FEED(3),
@@ -275,8 +316,10 @@ type KitchenOrderForReceipt = Pick<Order, "id" | "dailyNumber" | "createdAt" | "
 // Via da cozinha: só o essencial pra preparar — sem preço, sem forma de
 // pagamento, sem troco. Reduz erro de quem prepara ficar lendo valor em vez
 // de item, e evita expor preço pro cliente que às vezes acompanha de perto.
-export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt, opts: { showCategory?: boolean } = {}): Buffer {
+export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt, opts: ReceiptOpts = {}): Buffer {
   const showCategory = opts.showCategory ?? true;
+  const size = resolveSize(opts.fontSize, "MEDIUM");
+  const wideGap = opts.spacing === "WIDE";
   const lines: string[] = [];
 
   lines.push(centerText(new Date(order.createdAt).toLocaleString("pt-BR")));
@@ -296,6 +339,7 @@ export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt, opts: {
       ? (item.selectedOptions as { groupName: string; items: { name: string }[] }[])
       : [];
 
+    if (wideGap && item !== order.items[0]) lines.push("");
     lines.push(`${item.qty}x ${item.productName}`);
     if (showCategory && item.categoryName) lines.push(...wrapText(item.categoryName, "  "));
     for (const group of selectedOptions) {
@@ -309,8 +353,11 @@ export function buildKitchenReceiptEscPos(order: KitchenOrderForReceipt, opts: {
 
   return Buffer.concat([
     CMD.INIT,
+    headerStyle(size),
     Buffer.from(centerText("VIA DA COZINHA") + "\n", "ascii"),
+    size === "SMALL" ? CMD.FONT_A : EMPTY,
     bigOrderNumber(order),
+    bodyStyle(size, opts.spacing),
     Buffer.from(body, "ascii"),
     CMD.FEED(3),
     CMD.CUT,

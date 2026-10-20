@@ -25,9 +25,25 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
   });
   if (!order) notFound();
 
+  // Tamanho e espaçamento configuráveis (Configurações → Impressão).
+  // AUTO/MEDIUM e NORMAL reproduzem exatamente o visual de antes.
+  const FONT_CLASS = {
+    AUTO: "text-[12px]",
+    SMALL: "text-[10px]",
+    MEDIUM: "text-[12px]",
+    LARGE: "text-[15px]",
+  } as const;
+  const LEADING_CLASS = { COMPACT: "leading-tight", NORMAL: "leading-snug", WIDE: "leading-relaxed" } as const;
+  const ITEM_GAP_CLASS = { COMPACT: "mb-0.5", NORMAL: "mb-1.5", WIDE: "mb-3" } as const;
+
+  const boxClass = `max-w-[300px] mx-auto p-4 font-mono ${FONT_CLASS[order.restaurant.printFontSize]} ${
+    LEADING_CLASS[order.restaurant.printSpacing]
+  } text-black bg-white`;
+  const itemGapClass = ITEM_GAP_CLASS[order.restaurant.printSpacing];
+
   return (
     <>
-    <div className="max-w-[300px] mx-auto p-4 font-mono text-[12px] leading-snug text-black bg-white">
+    <div className={boxClass}>
       <PrintTrigger />
 
       <div className="text-center mb-3">
@@ -66,7 +82,7 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
           ? (item.selectedOptions as { groupName: string; items: { name: string }[] }[])
           : [];
         return (
-          <div key={item.id} className="mb-1.5">
+          <div key={item.id} className={itemGapClass}>
             <div className="flex justify-between">
               <span>{item.qty}x {item.productName}</span>
               <span>{currency(item.unitPriceCents * item.qty)}</span>
@@ -139,7 +155,7 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
     </div>
 
     {order.restaurant.printKitchenCopy && (
-    <div className="max-w-[300px] mx-auto p-4 font-mono text-[12px] leading-snug text-black bg-white" style={{ pageBreakBefore: "always" }}>
+    <div className={boxClass} style={{ pageBreakBefore: "always" }}>
       <div className="text-center mb-3">
         <p className="font-bold uppercase text-sm">VIA DA COZINHA</p>
         <p className="text-2xl font-bold my-1">Pedido #{order.dailyNumber ?? order.id.slice(-5)}</p>
@@ -161,7 +177,7 @@ export default async function PrintOrderPage({ params }: { params: { id: string 
           ? (item.selectedOptions as { groupName: string; items: { name: string }[] }[])
           : [];
         return (
-          <div key={item.id} className="mb-1.5">
+          <div key={item.id} className={itemGapClass}>
             <p>{item.qty}x {item.productName}</p>
             {order.restaurant.printShowCategory && item.categoryName && <p className="pl-3">({item.categoryName})</p>}
             {selectedOptions.map((group, gi) => (

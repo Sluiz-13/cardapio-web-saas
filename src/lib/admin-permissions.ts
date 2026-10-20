@@ -17,6 +17,8 @@ const ROUTE_GROUPS: { prefix: string; group: AdminGroup }[] = [
   { prefix: "/api/admin/categories", group: "cadastro" },
   { prefix: "/admin/cupons", group: "cadastro" },
   { prefix: "/api/admin/coupons", group: "cadastro" },
+  { prefix: "/admin/banners", group: "cadastro" },
+  { prefix: "/api/admin/banners", group: "cadastro" },
   { prefix: "/admin/insumos", group: "cadastro" },
   { prefix: "/api/admin/insumos", group: "cadastro" },
   { prefix: "/admin/clientes", group: "cadastro" },

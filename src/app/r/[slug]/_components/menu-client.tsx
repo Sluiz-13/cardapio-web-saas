@@ -18,6 +18,7 @@ import {
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { getSavedCustomerInfo, saveCustomerInfo } from "@/lib/customer-storage";
 import PixQrCode from "@/components/ui/PixQrCode";
+import MenuBanners, { type MenuBanner } from "./menu-banners";
 type Extra = { id: string; name: string; priceCents: number };
 type Removable = { id: string; name: string };
 type OptionItem = { id: string; name: string; priceCents: number };
@@ -139,12 +140,14 @@ export default function MenuClient({
   products,
   table,
   businessHours,
+  banners = [],
 }: {
   restaurant: Restaurant;
   categories: Category[];
   products: Product[];
   table: Table | null;
   businessHours: BusinessHour[];
+  banners?: MenuBanner[];
 }) {
   const [hoursOpen, setHoursOpen] = useState(false);
   const [activeCat, setActiveCat] = useState(categories[0]?.id ?? "");
@@ -326,6 +329,8 @@ export default function MenuClient({
               </div>
             </div>
           </div>
+
+          <MenuBanners banners={banners} accent={theme.accent} />
 
           <div
             className="sticky top-[84px] sm:top-[92px] z-10 flex gap-2 px-5 py-3 overflow-x-auto backdrop-blur-sm border-b scrollbar-none"

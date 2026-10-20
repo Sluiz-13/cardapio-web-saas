@@ -38,12 +38,15 @@ model Restaurant {
   orders     Order[]
   businessHours BusinessHours[]
   coupons Coupon[]
+  banners    RestaurantBanner[]
   tables     Table[]
   comandas   Comanda[]
   defaultDeliveryFeeCents Int             @default(0)
     serviceFeePercent       Int      @default(0) // taxa de serviço do garçom, só cobrada no fechamento de comanda (mesa)
   printKitchenCopy        Boolean  @default(true) // imprime uma 2ª via só pra cozinha (sem preço) além da via completa
   printShowCategory       Boolean  @default(true) // mostra a categoria do item na comanda (alguns clientes preferem sem)
+  printFontSize           PrintFontSize @default(AUTO)   // tamanho da letra nas duas vias
+  printSpacing            PrintSpacing  @default(NORMAL) // espaçamento entre linhas e entre itens
   menuTheme               MenuTheme @default(CLASSIC) // visual do cardápio público — Premium é exclusivo do plano Pro
   deliveryFees            DeliveryFee[]
   drivers                 Driver[]
@@ -93,6 +96,19 @@ enum PrintMethod {
   AGENT  // app Menuair Caixa (celular) — impressora Wi-Fi/Rede
   AGENT_BLUETOOTH // app Menuair Caixa (celular) — impressora Bluetooth
   QZ_TRAY // agente QZ Tray rodando no PC/notebook do balcão
+}
+
+enum PrintFontSize {
+  AUTO   // como sempre foi: via completa grande, via da cozinha média
+  SMALL  // fonte compacta da impressora (cabe mais texto por linha)
+  MEDIUM // fonte normal
+  LARGE  // altura dupla
+}
+
+enum PrintSpacing {
+  COMPACT // linhas mais juntas
+  NORMAL  // padrão da impressora (como sempre foi)
+  WIDE    // linhas mais soltas + linha em branco entre itens
 }
 model BusinessHours {
   id           String     @id @default(cuid())
@@ -638,11 +654,30 @@ model Coupon {
   createdAt     DateTime     @default(now())
   productId String?
   product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  banners   RestaurantBanner[]
 
   @@unique([restaurantId, code])
   @@map("coupons")
 }
 
+// -----------------------------
+// Banners de promoção do cardápio (até 3 por restaurante).
+// Com 1 ativo aparece fixo no topo; com 2+ vira carrossel.
+// -----------------------------
+model RestaurantBanner {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  imageUrl     String
+  position     Int        @default(0)
+  active       Boolean    @default(true)
+  couponId     String?
+  coupon       Coupon?    @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  createdAt    DateTime   @default(now())
+
+  @@index([restaurantId, position])
+  @@map("restaurant_banners")
+}
 // -----------------------------
 // Cupom de desconto boas vindas
 // -----------------------------

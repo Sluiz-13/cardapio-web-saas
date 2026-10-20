@@ -53,6 +53,8 @@ export default function ConfiguracoesPage() {
   const [dailyCounterNext, setDailyCounterNext] = useState("1");
   const [printKitchenCopy, setPrintKitchenCopy] = useState(true);
   const [printShowCategory, setPrintShowCategory] = useState(true);
+  const [printFontSize, setPrintFontSize] = useState("AUTO");
+  const [printSpacing, setPrintSpacing] = useState("NORMAL");
   const [printMethod, setPrintMethod] = useState("MANUAL");
   const [printerIp, setPrinterIp] = useState("");
   const [printerPort, setPrinterPort] = useState("9100");
@@ -111,6 +113,8 @@ export default function ConfiguracoesPage() {
         setDailyCounterNext(String(data.restaurant.dailyCounterNext ?? 1));
         setPrintKitchenCopy(data.restaurant.printKitchenCopy ?? true);
         setPrintShowCategory(data.restaurant.printShowCategory ?? true);
+        setPrintFontSize(data.restaurant.printFontSize ?? "AUTO");
+        setPrintSpacing(data.restaurant.printSpacing ?? "NORMAL");
         setPrintMethod(data.restaurant.printMethod ?? "MANUAL");
         setPrinterIp(data.restaurant.printerIp ?? "");
         setPrinterPort(String(data.restaurant.printerPort ?? 9100));
@@ -194,6 +198,8 @@ export default function ConfiguracoesPage() {
         dailyCounterNext: Number(dailyCounterNext) || 1,
         printKitchenCopy,
         printShowCategory,
+        printFontSize,
+        printSpacing,
         printMethod,
         printerIp: printMethod === "AGENT" ? printerIp : undefined,
         printerPort: printMethod === "AGENT" ? Number(printerPort) || 9100 : undefined,
@@ -642,6 +648,29 @@ export default function ConfiguracoesPage() {
                 <p className="text-xs text-gray-400">Ex.: &quot;Lanches&quot; abaixo de &quot;1x X-Burguer&quot;. Desligue pra comanda ficar mais enxuta.</p>
               </div>
               <Toggle checked={printShowCategory} onChange={() => setPrintShowCategory((v) => !v)} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-surface-border">
+              <div>
+                <p className="text-sm font-semibold text-gray-800 mb-1">Tamanho da letra na comanda</p>
+                <select value={printFontSize} onChange={(e) => setPrintFontSize(e.target.value)} className={inputClass}>
+                  <option value="AUTO">Automático (completa grande, cozinha média)</option>
+                  <option value="SMALL">Pequena</option>
+                  <option value="MEDIUM">Média</option>
+                  <option value="LARGE">Grande</option>
+                </select>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800 mb-1">Espaçamento</p>
+                <select value={printSpacing} onChange={(e) => setPrintSpacing(e.target.value)} className={inputClass}>
+                  <option value="COMPACT">Compacto</option>
+                  <option value="NORMAL">Normal</option>
+                  <option value="WIDE">Espaçado</option>
+                </select>
+              </div>
+              <p className="text-xs text-gray-400 sm:col-span-2">
+                Vale para as duas vias. O número do pedido sai sempre grande.
+              </p>
             </div>
 
             {printMethod === "QZ_TRAY" && (

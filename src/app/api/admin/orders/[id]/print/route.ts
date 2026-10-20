@@ -16,13 +16,19 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     where: { id: params.id, restaurantId: session.user.restaurantId },
     include: {
       items: true,
-      restaurant: { select: { name: true, printKitchenCopy: true, printShowCategory: true } },
+      restaurant: {
+        select: { name: true, printKitchenCopy: true, printShowCategory: true, printFontSize: true, printSpacing: true },
+      },
       table: { select: { label: true } },
     },
   });
   if (!order) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
 
-  const printOpts = { showCategory: order.restaurant.printShowCategory };
+  const printOpts = {
+    showCategory: order.restaurant.printShowCategory,
+    fontSize: order.restaurant.printFontSize,
+    spacing: order.restaurant.printSpacing,
+  };
   const fullBytes = buildReceiptEscPos(order, printOpts);
 
   await db.order.update({

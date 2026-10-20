@@ -26,6 +26,7 @@ import {
   Users as UsersIcon,
   CalendarClock,
   MapPin,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Sidebar, type SidebarLink } from "@/components/ui/Sidebar";
 import { GROUP_ROLES, type AdminGroup, type AdminRole } from "@/lib/admin-permissions";
@@ -53,6 +54,7 @@ const LINKS: SidebarLink[] = [
   { href: "/admin/produtos", label: "Produtos", icon: Package, group: "Cadastro" },
   { href: "/admin/categorias", label: "Categorias", icon: Tags, group: "Cadastro" },
   { href: "/admin/cupons", label: "Cupons", icon: Ticket, group: "Cadastro" },
+  { href: "/admin/banners", label: "Banners", icon: ImageIcon, group: "Cadastro" },
   { href: "/admin/insumos", label: "Insumos", icon: Package2, group: "Cadastro" },
   { href: "/admin/clientes", label: "Clientes", icon: UsersIcon, group: "Cadastro" },
 
