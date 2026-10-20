@@ -11,9 +11,30 @@ type EditableItem = {
   qty: number;
   removedItems: string[];
   extras: { name: string; priceCents: number }[];
+  groupSelections: Record<string, string[]>; // groupId -> ids das opções escolhidas
 };
 
-type ProductOption = { id: string; name: string; priceCents: number };
+type OptionGroup = {
+  id: string;
+  name: string;
+  minSelect: number;
+  maxSelect: number | null;
+  items: { id: string; name: string; priceCents: number }[];
+};
+
+type ProductOption = { id: string; name: string; priceCents: number; optionGroups: OptionGroup[] };
+
+function selectionsFromSnapshot(product: ProductOption | undefined, snapshot: unknown): Record<string, string[]> {
+  if (!product || !Array.isArray(snapshot)) return {};
+  const result: Record<string, string[]> = {};
+  for (const s of snapshot as { groupName?: string; items?: { name?: string }[] }[]) {
+    const group = product.optionGroups.find((g) => g.name === s.groupName);
+    if (!group) continue;
+    const names = (s.items ?? []).map((i) => i.name);
+    result[group.id] = group.items.filter((gi) => names.includes(gi.name)).map((gi) => gi.id);
+  }
+  return result;
+}
 
 type OrderDetail = {
   id: string;
@@ -35,9 +56,9 @@ type OrderDetail = {
     qty: number;
     removedItems: unknown;
     extras: unknown;
+    selectedOptions: unknown;
   }[];
 };
-
 export default function EditOrderModal({
   orderId,
   onClose,
@@ -69,7 +90,13 @@ export default function EditOrderModal({
     Promise.all([
       fetch(`/api/admin/orders/${orderId}/edit`).then((r) => r.json()),
       fetch("/api/admin/products").then((r) => r.json()),
-    ]).then(([orderData, productsData]: [OrderDetail, { id: string; name: string; priceCents: number }[]]) => {
+    ]).then(([orderData, productsData]: [OrderDetail, ProductOption[]]) => {
+      const productList: ProductOption[] = productsData.map((p) => ({
+        id: p.id,
+        name: p.name,
+        priceCents: p.priceCents,
+        optionGroups: p.optionGroups ?? [],
+      }));
       setOrder(orderData);
       setCustomerName(orderData.customerName);
       setCustomerPhone(orderData.customerPhone ?? "");
@@ -88,9 +115,13 @@ export default function EditOrderModal({
           qty: i.qty,
           removedItems: Array.isArray(i.removedItems) ? (i.removedItems as string[]) : [],
           extras: Array.isArray(i.extras) ? (i.extras as { name: string; priceCents: number }[]) : [],
+          groupSelections: selectionsFromSnapshot(
+            productList.find((p) => p.id === i.productId),
+            i.selectedOptions
+          ),
         }))
       );
-      setProducts(productsData.map((p) => ({ id: p.id, name: p.name, priceCents: p.priceCents })));
+      setProducts(productList);
       setLoading(false);
     });
   }, [orderId]);
@@ -112,9 +143,32 @@ export default function EditOrderModal({
     if (!product) return;
     setItems((cur) => [
       ...cur,
-      { productId: product.id, productName: product.name, unitPriceCents: product.priceCents, qty: 1, removedItems: [], extras: [] },
+      {
+        productId: product.id,
+        productName: product.name,
+        unitPriceCents: product.priceCents,
+        qty: 1,
+        removedItems: [],
+        extras: [],
+        groupSelections: {},
+      },
     ]);
     setAddingProductId("");
+  }
+
+  function toggleGroupItem(index: number, group: OptionGroup, itemId: string) {
+    setItems((cur) =>
+      cur.map((it, i) => {
+        if (i !== index) return it;
+        const current = it.groupSelections[group.id] ?? [];
+        let next: string[];
+        if (current.includes(itemId)) next = current.filter((id) => id !== itemId);
+        else if (group.maxSelect === 1) next = [itemId];
+        else if (group.maxSelect !== null && current.length >= group.maxSelect) return it;
+        else next = [...current, itemId];
+        return { ...it, groupSelections: { ...it.groupSelections, [group.id]: next } };
+      })
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -124,6 +178,16 @@ export default function EditOrderModal({
     if (items.length === 0) {
       setError("O pedido precisa ter pelo menos 1 item.");
       return;
+    }
+    for (const item of items) {
+      const product = products.find((p) => p.id === item.productId);
+      for (const group of product?.optionGroups ?? []) {
+        const count = item.groupSelections[group.id]?.length ?? 0;
+        if (count < group.minSelect) {
+          setError(`Escolha pelo menos ${group.minSelect} em "${group.name}" (${item.productName}).`);
+          return;
+        }
+      }
     }
     setSaving(true);
     const res = await fetch(`/api/admin/orders/${order.id}/edit`, {
@@ -141,7 +205,9 @@ export default function EditOrderModal({
           qty: i.qty,
           removedItems: i.removedItems,
           extraNames: i.extras.map((e) => e.name),
-          selectedGroupOptions: [],
+          selectedGroupOptions: Object.entries(i.groupSelections)
+            .filter(([, ids]) => ids.length > 0)
+            .map(([groupId, itemIds]) => ({ groupId, itemIds })),
         })),
       }),
     });
@@ -230,7 +296,8 @@ export default function EditOrderModal({
             <label className="block text-xs font-semibold uppercase tracking-wide mb-2 text-gray-400">Itens</label>
             <div className="space-y-2">
               {items.map((item, i) => (
-                <div key={i} className="flex items-center justify-between gap-2 border border-gray-100 rounded-xl p-2.5">
+                <div key={i} className="border border-gray-100 rounded-xl p-2.5">
+                  <div className="flex items-center justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{item.productName}</p>
                     <p className="text-xs text-gray-400">{currency(item.unitPriceCents)}</p>
@@ -243,6 +310,40 @@ export default function EditOrderModal({
                       remover
                     </button>
                   </div>
+                  </div>
+
+                  {(products.find((p) => p.id === item.productId)?.optionGroups ?? []).map((group) => {
+                    const selected = item.groupSelections[group.id] ?? [];
+                    return (
+                      <div key={group.id} className="mt-2">
+                        <p className="text-xs font-semibold text-gray-600">
+                          {group.name}{" "}
+                          {group.minSelect > 0 && <span className="text-chili">· obrigatório</span>}
+                          <span className="text-gray-400 font-normal">
+                            {" "}({selected.length}{group.maxSelect ? `/${group.maxSelect}` : ""})
+                          </span>
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {group.items.map((opt) => {
+                            const active = selected.includes(opt.id);
+                            return (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => toggleGroupItem(i, group, opt.id)}
+                                className={`px-2.5 py-1 rounded-full border text-xs ${
+                                  active ? "bg-chili text-white border-chili" : "border-gray-200 text-gray-600"
+                                }`}
+                              >
+                                {opt.name}
+                                {opt.priceCents > 0 ? ` +${currency(opt.priceCents)}` : ""}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>

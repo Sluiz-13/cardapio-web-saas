@@ -62,6 +62,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
           qty: true,
           removedItems: true,
           extras: true,
+          selectedOptions: true,
         },
       },
     },
