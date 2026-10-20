@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export type MenuBanner = { id: string; imageUrl: string };
@@ -21,6 +21,7 @@ export default function MenuBanners({
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
+  const [index, setIndex] = useState(0);
   const isCarousel = banners.length > 1;
 
   useEffect(() => {
@@ -37,13 +38,18 @@ export default function MenuBanners({
 
   if (banners.length === 0) return null;
 
-  // Setas: anda 1 banner pra frente/trás, dando a volta no fim/começo.
   function step(direction: -1 | 1) {
     const el = trackRef.current;
     if (!el) return;
     const current = Math.round(el.scrollLeft / el.clientWidth);
-    const next = (current + direction + banners.length) % banners.length;
+    const next = Math.min(Math.max(current + direction, 0), banners.length - 1);
     el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
+  }
+
+  function handleScroll() {
+    const el = trackRef.current;
+    if (!el) return;
+    setIndex(Math.round(el.scrollLeft / el.clientWidth));
   }
 
   const pause = () => {
@@ -55,9 +61,10 @@ export default function MenuBanners({
 
   return (
     <div className="px-5 pt-4">
-      <div className="relative">
+      <div className="relative group">
       <div
         ref={trackRef}
+        onScroll={isCarousel ? handleScroll : undefined}
         onTouchStart={pause}
         onTouchEnd={resume}
         onMouseEnter={pause}
@@ -87,27 +94,25 @@ export default function MenuBanners({
         })}
       </div>
 
-        {isCarousel && (
-          <>
+        {isCarousel && index > 0 && (
             <button
               type="button"
               onClick={() => step(-1)}
               aria-label="Promoção anterior"
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/85 hover:bg-white shadow flex items-center justify-center"
-              style={{ color: accent }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm hidden md:flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-200"
             >
               <ChevronLeft size={18} />
             </button>
+        )}
+        {isCarousel && index < banners.length - 1 && (
             <button
               type="button"
               onClick={() => step(1)}
               aria-label="Próxima promoção"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/85 hover:bg-white shadow flex items-center justify-center"
-              style={{ color: accent }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm hidden md:flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-200"
             >
               <ChevronRight size={18} />
             </button>
-          </>
         )}
       </div>
     </div>
